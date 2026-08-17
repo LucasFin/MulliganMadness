@@ -6,7 +6,7 @@ repository = "https://thunderstore.io"
 
 [package]
 # Must match your Thunderstore team name exactly
-namespace = "LucasFin"
+namespace = "LJIndustries"
 name = "MulliganMadness"
 versionNumber = "0.1.0"
 description = "Once-per-game Take All button, plus mutually exclusive auto-pick curses."
