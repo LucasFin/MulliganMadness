@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
 using Photon.Pun;
@@ -13,6 +15,7 @@ namespace MulliganMadness.Utils
     {
         private static readonly HashSet<int> UsedThisGame = new HashSet<int>();
         private static bool _busy;
+        private static MethodInfo _getPickerDraws;
 
         public static void ResetForNewGame()
         {
@@ -51,10 +54,28 @@ namespace MulliganMadness.Utils
             return PlayerManager.instance.players.FirstOrDefault(p => p.playerID == choice.pickrID);
         }
 
+        /// <summary>
+        /// True once the offered hand has finished spawning (important with Pick N Cards draw delay).
+        /// </summary>
+        public static bool IsOfferedHandReady()
+        {
+            var spawned = GetSpawnedCards();
+            if (spawned == null || spawned.Count == 0) return false;
+
+            var expected = GetExpectedDrawCount();
+            if (expected > 0)
+            {
+                return spawned.Count >= expected;
+            }
+
+            return true;
+        }
+
         public static bool TryTakeAll()
         {
             if (_busy || !IsEnabled) return false;
             if (!IsLocalPlayersTurn()) return false;
+            if (!IsOfferedHandReady()) return false;
 
             var picker = GetCurrentPicker();
             if (picker == null || !HasRemaining(picker)) return false;
@@ -69,7 +90,7 @@ namespace MulliganMadness.Utils
                 var visual = go.GetComponent<CardInfo>();
                 if (visual == null) continue;
                 var source = CardChoice.instance.GetSourceCard(visual) ?? visual;
-                if (source == null) continue;
+                if (source == null || IsUnusableCard(source)) continue;
                 objectNames.Add(source.gameObject.name);
             }
 
@@ -109,11 +130,11 @@ namespace MulliganMadness.Utils
                 try
                 {
                     var card = Cards.instance.GetCardWithObjectName(objectName);
-                    if (card != null) cards.Add(card);
+                    if (card != null && !IsUnusableCard(card)) cards.Add(card);
                 }
                 catch
                 {
-                    // Skip unknown / inactive names rather than aborting the whole take.
+                    // Skip unknown names rather than aborting the whole take.
                 }
             }
 
@@ -136,10 +157,10 @@ namespace MulliganMadness.Utils
                 }
             }
 
-            // Picking client finishes the hand via normal Pick so the pick phase ends cleanly.
+            // Give AssignCard RPCs a moment to land before ending the pick (helps with Pick N Cards / lag).
             if (picker.data?.view != null && picker.data.view.IsMine)
             {
-                Plugin.Instance.ExecuteAfterSeconds(0.15f, () => FinishPickWithFirstCard(cards[0].gameObject.name));
+                Plugin.Instance.ExecuteAfterSeconds(0.35f, () => FinishPickWithFirstCard(cards[0].gameObject.name));
             }
             else
             {
@@ -180,6 +201,43 @@ namespace MulliganMadness.Utils
             {
                 _busy = false;
             }
+        }
+
+        private static bool IsUnusableCard(CardInfo card)
+        {
+            if (card == null) return true;
+            var n = card.gameObject != null ? card.gameObject.name : card.name;
+            if (string.IsNullOrEmpty(n)) return true;
+            // NullManager / CardChoiceSpawnUniqueCardPatch placeholders
+            if (n.IndexOf("Null", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            return false;
+        }
+
+        private static int GetExpectedDrawCount()
+        {
+            try
+            {
+                if (_getPickerDraws == null)
+                {
+                    var type = AccessTools.TypeByName("DrawNCards.DrawNCards")
+                               ?? AccessTools.TypeByName("PickNCards.DrawNCards");
+                    if (type != null)
+                    {
+                        _getPickerDraws = AccessTools.Method(type, "GetPickerDraws", new[] { typeof(int) });
+                    }
+                }
+
+                if (_getPickerDraws != null && CardChoice.instance != null)
+                {
+                    return (int)_getPickerDraws.Invoke(null, new object[] { CardChoice.instance.pickrID });
+                }
+            }
+            catch
+            {
+                // Pick N Cards not present or API changed — fall back to "any cards shown".
+            }
+
+            return -1;
         }
 
         [UnboundRPC]

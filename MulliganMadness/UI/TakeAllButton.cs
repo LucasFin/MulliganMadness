@@ -152,7 +152,8 @@ namespace MulliganMadness.UI
             var remaining = TakeAllManager.HasRemaining(picker);
             var show = TakeAllManager.IsEnabled
                        && TakeAllManager.IsLocalPlayersTurn()
-                       && remaining;
+                       && remaining
+                       && TakeAllManager.IsOfferedHandReady();
 
             _root.SetActive(show);
             if (!show) return;
