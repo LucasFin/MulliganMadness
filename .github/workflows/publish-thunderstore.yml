@@ -3,8 +3,14 @@ name: Publish to Thunderstore
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - "v*"
+
+concurrency:
+  group: thunderstore-publish
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -32,7 +38,6 @@ jobs:
       - name: Sync version from git tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
           python3 - <<'PY'
           import re, os, pathlib
           version = os.environ["GITHUB_REF_NAME"].lstrip("v")
@@ -43,6 +48,51 @@ jobs:
               raise SystemExit("Failed to update versionNumber in thunderstore.toml")
           path.write_text(text)
           print(f"Publishing version {version}")
+          PY
+
+      - name: Ensure unique Thunderstore version
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, re, urllib.request
+
+          def parse(v):
+              parts = [int(x) for x in v.split(".")]
+              while len(parts) < 3:
+                  parts.append(0)
+              return tuple(parts[:3])
+
+          def inc(v):
+              a, b, c = parse(v)
+              return f"{a}.{b}.{c + 1}"
+
+          latest = "0.0.0"
+          try:
+              url = "https://thunderstore.io/api/experimental/package/LJIndustries/MulliganMadness/"
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  data = json.load(response)
+              latest = data.get("latest", {}).get("version_number") or latest
+          except Exception as ex:
+              print(f"Could not read Thunderstore latest version: {ex}")
+
+          toml = pathlib.Path("thunderstore.toml")
+          current = re.search(r'(?m)^versionNumber = "(.*)"$', toml.read_text()).group(1)
+          version = current
+          while parse(version) <= parse(latest):
+              version = inc(version)
+
+          text, n = re.subn(r'(?m)^versionNumber = ".*"$', f'versionNumber = "{version}"', toml.read_text(), count=1)
+          if n != 1:
+              raise SystemExit("Failed to update thunderstore.toml")
+          toml.write_text(text)
+
+          manifest = pathlib.Path("manifest.json")
+          if manifest.exists():
+              text, n = re.subn(r'"version_number"\s*:\s*"[^"]+"', f'"version_number": "{version}"', manifest.read_text(), count=1)
+              if n != 1:
+                  raise SystemExit("Failed to update manifest.json")
+              manifest.write_text(text)
+          print(f"Publishing version {version} (repo {current}, thunderstore {latest})")
           PY
 
       - name: Install tcli

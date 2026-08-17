@@ -21,7 +21,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.1.6";
+        public const string Version = "0.1.7";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
 

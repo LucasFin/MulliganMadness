@@ -11,8 +11,10 @@ Copies `MulliganMadness.dll` into `package/` and your local r2modman Default pro
 
 ## Publish to Thunderstore
 
+Pushes to `main` publish automatically. The workflow bumps the patch version if Thunderstore already has the repo version.
+
+You can still **Actions → Publish to Thunderstore → Run workflow**, or tag `v0.1.x` and push.
+
 1. `thunderstore.toml` `namespace` must match the Thunderstore team (`LJIndustries`)
 2. Repo secret: `THUNDERSTORE_API_KEY`
-3. Bump `versionNumber` in `thunderstore.toml` and `manifest.json`
-4. Commit updated `package/MulliganMadness.dll` after building
-5. **Actions → Publish to Thunderstore → Run workflow**, or tag `v0.1.x` and push
+3. Commit updated `package/MulliganMadness.dll` after building
