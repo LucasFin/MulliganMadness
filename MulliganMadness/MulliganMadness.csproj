@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <AssemblyName>MulliganMadness</AssemblyName>
+    <RootNamespace>MulliganMadness</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RoundsFolder Condition="'$(RoundsFolder)' == ''">/home/bukey/.local/share/Steam/steamapps/common/ROUNDS</RoundsFolder>
+    <R2Profile Condition="'$(R2Profile)' == ''">/home/bukey/.var/app/io.github.ebkr.r2modman/config/r2modmanPlus-local/ROUNDS/profiles/Default</R2Profile>
+    <Managed>$(RoundsFolder)/ROUNDS_Data/Managed</Managed>
+    <BepInExCore>$(R2Profile)/BepInEx/core</BepInExCore>
+    <Plugins>$(R2Profile)/BepInEx/plugins</Plugins>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>$(BepInExCore)/BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCore)/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnboundLib">
+      <HintPath>$(Plugins)/willis81808-UnboundLib/UnboundLib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ModdingUtils">
+      <HintPath>$(Plugins)/Pykess-ModdingUtils/ModdingUtils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="CardChoiceSpawnUniqueCardPatch">
+      <HintPath>$(Plugins)/Pykess-CardChoiceSpawnUniqueCardPatch/CardChoiceSpawnUniqueCardPatch.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="WillsWackyManagers">
+      <HintPath>$(Plugins)/willuwontu-WillsWackyManagers/WillsWackyManagers.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="MMHOOK_Assembly-CSharp">
+      <HintPath>$(Plugins)/willis81808-MMHook/MMHOOK_Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(Managed)/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(Managed)/UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(Managed)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(Managed)/UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(Managed)/UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(Managed)/UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(Managed)/UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(Managed)/Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonUnityNetworking">
+      <HintPath>$(Managed)/PhotonUnityNetworking.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonRealtime">
+      <HintPath>$(Managed)/PhotonRealtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="CopyToProfile" AfterTargets="Build" Condition="Exists('$(R2Profile)/BepInEx/plugins')">
+    <MakeDir Directories="$(R2Profile)/BepInEx/plugins/local-MulliganMadness" ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(R2Profile)/BepInEx/plugins/local-MulliganMadness" ContinueOnError="true" />
+  </Target>
+</Project>
