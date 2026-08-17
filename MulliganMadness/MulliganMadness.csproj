@@ -87,6 +87,10 @@
       <HintPath>$(Managed)/PhotonRealtime.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Photon3Unity3D">
+      <HintPath>$(Managed)/Photon3Unity3D.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <Target Name="CopyOutputs" AfterTargets="Build">
