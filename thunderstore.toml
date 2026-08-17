@@ -8,8 +8,8 @@ repository = "https://thunderstore.io"
 # Must match your Thunderstore team name exactly
 namespace = "LJIndustries"
 name = "MulliganMadness"
-versionNumber = "0.1.7"
-description = "Once-per-game Take All button, plus mutually exclusive auto-pick curses."
+versionNumber = "0.3.0"
+description = "Take All, card manipulation, stats HUD/tab/compare/preview (Infoholic + TabInfo replacement)."
 websiteUrl = "https://github.com/LucasFin/MulliganMadness"
 containsNsfwContent = false
 
@@ -28,6 +28,14 @@ outdir = "./build"
 [[build.copy]]
 source = "./package/MulliganMadness.dll"
 target = "MulliganMadness.dll"
+
+[[build.copy]]
+source = "./package/TabInfo.dll"
+target = "TabInfo.dll"
+
+[[build.copy]]
+source = "./package/Art"
+target = "Art"
 
 [publish]
 repository = "https://thunderstore.io"

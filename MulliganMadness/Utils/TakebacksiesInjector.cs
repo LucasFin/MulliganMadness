@@ -1,0 +1,54 @@
+using System;
+using System.Reflection;
+using HarmonyLib;
+using MulliganMadness.Cards;
+using UnityEngine;
+
+namespace MulliganMadness.Utils
+{
+    internal static class TakebacksiesInjector
+    {
+        private static bool _registered;
+
+        internal static void Register()
+        {
+            if (_registered) return;
+
+            try
+            {
+                var type = AccessTools.TypeByName("PickPhaseImprovements.PickManager");
+                var method = type == null
+                    ? null
+                    : AccessTools.Method(type, "RegisterHandModificationFunction", new[] { typeof(Func<CardInfo[], CardInfo[]>), typeof(int) });
+                if (method == null) return;
+
+                method.Invoke(null, new object[] { (Func<CardInfo[], CardInfo[]>)InjectTakebacksies, 0 });
+                _registered = true;
+                Plugin.Instance.Log("Registered Takebacksies hand injector.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance.LogWarn($"Takebacksies injector unavailable: {ex.Message}");
+            }
+        }
+
+        private static CardInfo[] InjectTakebacksies(CardInfo[] hand)
+        {
+            if (hand == null || hand.Length == 0) return hand;
+            if (Takebacksies.Card == null) return hand;
+
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker == null || !StealLedger.HasPendingTakeback(picker.playerID)) return hand;
+
+            foreach (var card in hand)
+            {
+                if (card == Takebacksies.Card) return hand;
+            }
+
+            var result = new CardInfo[hand.Length];
+            Array.Copy(hand, 0, result, 1, hand.Length - 1);
+            result[0] = Takebacksies.Card;
+            return result;
+        }
+    }
+}

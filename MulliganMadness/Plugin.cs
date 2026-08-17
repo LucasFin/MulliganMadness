@@ -1,6 +1,7 @@
 using System.Collections;
 using BepInEx;
 using HarmonyLib;
+using MulliganMadness.Cards;
 using MulliganMadness.Curses;
 using MulliganMadness.UI;
 using MulliganMadness.Utils;
@@ -21,7 +22,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.1.7";
+        public const string Version = "0.3.0";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
 
@@ -39,6 +40,8 @@ namespace MulliganMadness
         private void Start()
         {
             AutoPickCurse.RegisterAll();
+            CardRegistration.RegisterAll();
+            TakebacksiesBlacklist.EnsureGlobalBlacklist();
 
             Unbound.RegisterMenu(ModName, () => { }, DrawSettingsMenu, null, true);
             Unbound.RegisterHandshake(ModId, OnHandshake);
@@ -50,6 +53,8 @@ namespace MulliganMadness
 
             gameObject.GetOrAddComponent<TakeAllButton>();
             gameObject.GetOrAddComponent<AutoPickController>();
+            gameObject.GetOrAddComponent<StatsController>();
+            StatsController.RegisterHooks();
         }
 
         private static void OnHandshake()
@@ -61,8 +66,11 @@ namespace MulliganMadness
         {
             TakeAllManager.ResetForNewGame();
             AutoPickController.ResetForNewGame();
+            StealLedger.ResetForNewGame();
+            SandbagManager.ResetForNewGame();
             KeysUnlockReset.Reapply();
             Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
+            Instance.ExecuteAfterSeconds(0.5f, TakebacksiesBlacklist.EnsureGlobalBlacklist);
             yield break;
         }
 
@@ -71,6 +79,7 @@ namespace MulliganMadness
             TakeAllManager.ApplyDeferredKnowledge();
             TakeAllButton.RefreshVisibility();
             AutoPickController.NotifyPlayerPickStarted();
+            StealLedger.TryOpenDeferredThiefPrompt();
             yield break;
         }
 

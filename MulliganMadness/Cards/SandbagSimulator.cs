@@ -1,0 +1,47 @@
+using MulliganMadness.Utils;
+using UnityEngine;
+
+namespace MulliganMadness.Cards
+{
+    public class SandbagSimulator : MMCard
+    {
+        public const string Title = "Sandbag Simulator";
+        internal static CardInfo Card;
+
+        protected override string GetTitle() => Title;
+
+        protected override string GetDescription() =>
+            "Once per game, reroll any player's current pick hand — including your own.";
+
+        protected override CardInfo.Rarity GetRarity() => RarityHelper.Legendary;
+
+        protected override GameObject GetCardArt() => CardArtFactory.Create("sandbag");
+
+        protected override CardInfoStat[] GetStats() => new[]
+        {
+            new CardInfoStat
+            {
+                positive = true,
+                stat = "Reroll",
+                amount = "Any player",
+                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
+            },
+            new CardInfoStat
+            {
+                positive = false,
+                stat = "Uses",
+                amount = "Once per game",
+                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
+            }
+        };
+
+        public override bool GetEnabled() => Plugin.Configs == null || Plugin.Configs.EnableSandbagSimulator.Value;
+
+        public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
+            Gravity gravity, Block block, CharacterStatModifiers characterStats)
+        {
+            if (player?.data?.view == null || !player.data.view.IsMine) return;
+            SandbagManager.TryPromptSandbag(player);
+        }
+    }
+}

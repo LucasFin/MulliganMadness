@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
+using CardsApi = ModdingUtils.Utils.Cards;
 using Photon.Pun;
 using UnboundLib;
 using UnboundLib.Networking;
@@ -26,6 +27,8 @@ namespace MulliganMadness.Utils
         private static float _spawnStableSince;
 
         internal static bool CollectingAll;
+
+        public static bool IsBusy => _busy;
 
         public static void ResetForNewGame()
         {
@@ -101,7 +104,7 @@ namespace MulliganMadness.Utils
                 return false;
             }
 
-            var expected = GetExpectedDrawCount();
+            var expected = GetExpectedDrawCountInternal();
             // Distill / shuffle redraws are often smaller than Pick N Cards' draw count.
             if (expected > 0 && spawned.Count < expected && Time.unscaledTime - _spawnStableSince < 0.45f)
             {
@@ -144,6 +147,7 @@ namespace MulliganMadness.Utils
 
             if (keep.Count == 0 && !hasNullToCashOut) return false;
 
+            AutoPickController.ResetForCurrentPick();
             _busy = true;
             NetworkingManager.RPC(
                 typeof(TakeAllManager),
@@ -246,7 +250,7 @@ namespace MulliganMadness.Utils
             {
                 var codes = Enumerable.Repeat("", grant.Count).ToArray();
                 var zeros = new float[grant.Count];
-                Cards.instance.AddCardsToPlayer(picker, grant.ToArray(), false, codes, zeros, zeros, true);
+                CardsApi.instance.AddCardsToPlayer(picker, grant.ToArray(), false, codes, zeros, zeros, true);
             }
 
             if (hasKnowledge)
@@ -428,16 +432,16 @@ namespace MulliganMadness.Utils
             CardInfo card = null;
             if (!string.IsNullOrEmpty(objectName))
             {
-                try { card = Cards.instance.GetCardWithObjectName(objectName); }
+                try { card = CardsApi.instance.GetCardWithObjectName(objectName); }
                 catch { /* ignore */ }
             }
 
             if (card == null && !string.IsNullOrEmpty(cardName))
             {
-                try { card = Cards.instance.GetCardWithName(cardName); }
+                try { card = CardsApi.instance.GetCardWithName(cardName); }
                 catch { /* throws if missing */ }
 
-                card ??= Cards.all?.FirstOrDefault(c =>
+                card ??= CardsApi.all?.FirstOrDefault(c =>
                     c != null && !string.IsNullOrEmpty(c.cardName)
                     && string.Equals(c.cardName, cardName, StringComparison.OrdinalIgnoreCase));
             }
@@ -774,7 +778,12 @@ namespace MulliganMadness.Utils
             }
         }
 
-        private static int GetExpectedDrawCount()
+        public static int GetExpectedDrawCount()
+        {
+            return GetExpectedDrawCountInternal();
+        }
+
+        private static int GetExpectedDrawCountInternal()
         {
             try
             {

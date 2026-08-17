@@ -153,14 +153,18 @@ namespace MulliganMadness.UI
             var show = TakeAllManager.IsEnabled
                        && TakeAllManager.IsLocalPlayersTurn()
                        && remaining
-                       && TakeAllManager.IsOfferedHandReady();
+                       && TakeAllManager.IsOfferedHandReady()
+                       && !ItemShopGuard.AnyPlayerInShop();
 
             _root.SetActive(show);
             if (!show) return;
 
             if (_subtitle != null)
             {
-                _subtitle.text = "once per game · unused";
+                var drawCount = TakeAllManager.GetExpectedDrawCount();
+                _subtitle.text = drawCount > 1
+                    ? "once per game · current hand only"
+                    : "once per game · unused";
             }
 
             if (_button != null) _button.interactable = true;

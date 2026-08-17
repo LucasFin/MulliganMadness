@@ -71,6 +71,10 @@
       <HintPath>$(Managed)/UnityEngine.IMGUIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(Managed)/UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>$(Managed)/UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
@@ -91,10 +95,20 @@
       <HintPath>$(Managed)/Photon3Unity3D.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <ProjectReference Include="../TabInfoShim/TabInfoShim.csproj" />
   </ItemGroup>
 
   <Target Name="CopyOutputs" AfterTargets="Build">
     <MakeDir Directories="$(MSBuildProjectDirectory)/../package" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)/../package/Art" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)/../package" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../TabInfoShim/bin/Debug/TabInfo.dll" DestinationFolder="$(MSBuildProjectDirectory)/../package" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/../TabInfoShim/bin/Debug/TabInfo.dll')" />
+    <Copy SourceFiles="@(ArtFiles)" DestinationFolder="$(MSBuildProjectDirectory)/../package/Art" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/Art')" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(Plugins)/LJIndustries-MulliganMadness" Condition="Exists('$(Plugins)/LJIndustries-MulliganMadness')" />
+    <Copy SourceFiles="@(ArtFiles)" DestinationFolder="$(Plugins)/LJIndustries-MulliganMadness/Art" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/Art') And Exists('$(Plugins)/LJIndustries-MulliganMadness')" />
   </Target>
+
+  <ItemGroup>
+    <ArtFiles Include="$(MSBuildProjectDirectory)/Art/*.png" />
+  </ItemGroup>
 </Project>

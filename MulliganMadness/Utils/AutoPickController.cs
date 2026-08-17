@@ -21,6 +21,11 @@ namespace MulliganMadness.Utils
 
         public static void ResetForNewGame()
         {
+            ResetForCurrentPick();
+        }
+
+        public static void ResetForCurrentPick()
+        {
             if (_instance == null) return;
             if (_instance._running != null)
             {
@@ -72,6 +77,12 @@ namespace MulliganMadness.Utils
             List<GameObject> spawned = null;
             while (timeout > 0f && generation == _pickGeneration)
             {
+                if (TakeAllManager.IsBusy)
+                {
+                    _running = null;
+                    yield break;
+                }
+
                 if (CardChoice.instance != null && CardChoice.instance.IsPicking)
                 {
                     var picker = TakeAllManager.GetCurrentPicker();
@@ -98,6 +109,12 @@ namespace MulliganMadness.Utils
                 float elapsed = 0f;
                 while (elapsed < wait && generation == _pickGeneration && CardChoice.instance != null && CardChoice.instance.IsPicking)
                 {
+                    if (TakeAllManager.IsBusy)
+                    {
+                        _running = null;
+                        yield break;
+                    }
+
                     // If the player already picked, abort.
                     if (TakeAllManager.GetSpawnedCards() == null || TakeAllManager.GetSpawnedCards().Count == 0)
                     {

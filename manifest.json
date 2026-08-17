@@ -1,8 +1,8 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.1.7",
+  "version_number": "0.3.0",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
-  "description": "Once-per-game Take All button, plus mutually exclusive auto-pick curses.",
+  "description": "Take All, card manipulation, and built-in stats HUD/tab/compare/preview (Infoholic + TabInfo replacement).",
   "dependencies": [
     "BepInEx-BepInExPack_ROUNDS-5.4.1900",
     "willis81808-UnboundLib-3.2.14",
