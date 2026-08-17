@@ -1,6 +1,6 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.1.3",
+  "version_number": "0.1.4",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
   "description": "Once-per-game Take All button, plus mutually exclusive auto-pick curses.",
   "dependencies": [

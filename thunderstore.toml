@@ -8,7 +8,7 @@ repository = "https://thunderstore.io"
 # Must match your Thunderstore team name exactly
 namespace = "LJIndustries"
 name = "MulliganMadness"
-versionNumber = "0.1.3"
+versionNumber = "0.1.4"
 description = "Once-per-game Take All button, plus mutually exclusive auto-pick curses."
 websiteUrl = "https://github.com/LucasFin/MulliganMadness"
 containsNsfwContent = false
