@@ -19,6 +19,9 @@ Mutually exclusive (sharing one blocks the others):
 | **Panic Pick** | Gives you a short timer, then auto-picks at random |
 | **Leftmost Luck** | Always takes the leftmost card |
 
+## Install
+Install from Thunderstore with r2modman / Thunderstore Mod Manager once published, or drop `package/MulliganMadness.dll` into your profile `BepInEx/plugins/` folder.
+
 ## Dependencies
 - BepInExPack_ROUNDS
 - UnboundLib
@@ -27,15 +30,23 @@ Mutually exclusive (sharing one blocks the others):
 - WillsWackyManagers
 - MMHook (usually pulled in by UnboundLib)
 
-## Build / install (local)
+## Build (local)
 
 ```bash
 export PATH="$HOME/.dotnet:$PATH"
 dotnet build MulliganMadness/MulliganMadness.csproj -c Release
 ```
 
-The build copies `MulliganMadness.dll` into your r2modman Default profile:
+The build copies the DLL into `package/` (for Thunderstore) and your r2modman Default profile plugins folder.
 
-`.../ROUNDS/profiles/Default/BepInEx/plugins/local-MulliganMadness/`
+## Publish to Thunderstore
 
-Then launch ROUNDS via r2modman (**Start modded**).
+1. Ensure `thunderstore.toml` `namespace` matches your Thunderstore **team name**
+2. Repo secret: `THUNDERSTORE_API_KEY` (service account token)
+3. Bump `versionNumber` in `thunderstore.toml` (and `manifest.json` if you keep them aligned)
+4. Commit the updated `package/MulliganMadness.dll` after building
+5. Either:
+   - **Actions → Publish to Thunderstore → Run workflow**, or
+   - `git tag v0.1.1 && git push origin v0.1.1`
+
+Players then update through r2modman as usual.

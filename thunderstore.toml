@@ -1,0 +1,37 @@
+[config]
+schemaVersion = "0.0.1"
+
+[general]
+repository = "https://thunderstore.io"
+
+[package]
+# Must match your Thunderstore team name exactly
+namespace = "LucasFin"
+name = "MulliganMadness"
+versionNumber = "0.1.0"
+description = "Once-per-game Take All button, plus mutually exclusive auto-pick curses."
+websiteUrl = "https://github.com/LucasFin/MulliganMadness"
+containsNsfwContent = false
+
+[package.dependencies]
+"BepInEx-BepInExPack_ROUNDS" = "5.4.1900"
+"willis81808-UnboundLib" = "3.2.14"
+"Pykess-ModdingUtils" = "0.4.8"
+"Pykess-CardChoiceSpawnUniqueCardPatch" = "0.1.10"
+"willuwontu-WillsWackyManagers" = "1.5.13"
+
+[build]
+icon = "./icon.png"
+readme = "./README.md"
+outdir = "./build"
+
+[[build.copy]]
+source = "./package/MulliganMadness.dll"
+target = "MulliganMadness.dll"
+
+[publish]
+repository = "https://thunderstore.io"
+communities = ["rounds"]
+
+[publish.categories]
+rounds = ["gameplay", "custom-cards"]

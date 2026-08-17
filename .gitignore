@@ -1,7 +1,9 @@
 bin/
 obj/
+build/
 *.user
 *.suo
 .vs/
 *.dll
+!package/*.dll
 !**/plugins/**/*.dll

@@ -89,7 +89,9 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="CopyToProfile" AfterTargets="Build" Condition="Exists('$(R2Profile)/BepInEx/plugins')">
+  <Target Name="CopyOutputs" AfterTargets="Build">
+    <MakeDir Directories="$(MSBuildProjectDirectory)/../package" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)/../package" />
     <MakeDir Directories="$(R2Profile)/BepInEx/plugins/local-MulliganMadness" ContinueOnError="true" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(R2Profile)/BepInEx/plugins/local-MulliganMadness" ContinueOnError="true" />
   </Target>

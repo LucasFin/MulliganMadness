@@ -1,0 +1,60 @@
+name: Publish to Thunderstore
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Verify package DLL
+        run: |
+          test -f package/MulliganMadness.dll || {
+            echo "Missing package/MulliganMadness.dll"
+            echo "Build locally, copy the Release DLL into package/, commit, then re-run."
+            exit 1
+          }
+
+      - name: Sync version from git tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          python3 - <<'PY'
+          import re, os, pathlib
+          version = os.environ["GITHUB_REF_NAME"].lstrip("v")
+          path = pathlib.Path("thunderstore.toml")
+          text = path.read_text()
+          text, n = re.subn(r'(?m)^versionNumber = ".*"$', f'versionNumber = "{version}"', text, count=1)
+          if n != 1:
+              raise SystemExit("Failed to update versionNumber in thunderstore.toml")
+          path.write_text(text)
+          print(f"Publishing version {version}")
+          PY
+
+      - name: Install tcli
+        run: dotnet tool install -g tcli
+
+      - name: Publish
+        env:
+          TCLI_AUTH_TOKEN: ${{ secrets.THUNDERSTORE_API_KEY }}
+        run: |
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          if [ -z "$TCLI_AUTH_TOKEN" ]; then
+            echo "THUNDERSTORE_API_KEY secret is empty"
+            exit 1
+          fi
+          tcli publish --config-path thunderstore.toml --token "$TCLI_AUTH_TOKEN"
