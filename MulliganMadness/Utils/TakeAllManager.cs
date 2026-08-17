@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,14 +15,23 @@ namespace MulliganMadness.Utils
     public static class TakeAllManager
     {
         private static readonly HashSet<int> UsedThisGame = new HashSet<int>();
+        private static readonly Dictionary<int, int> DeferredKnowledge = new Dictionary<int, int>();
         private static bool _busy;
         private static MethodInfo _getPickerDraws;
         private static MethodInfo _isShuffleCard;
+        private static Type _distillAcquisition;
+        private static Type _powerDistillation;
+        private static Type _nullCardInfo;
+        private static int _lastSpawnCount;
+        private static float _spawnStableSince;
 
         public static void ResetForNewGame()
         {
             UsedThisGame.Clear();
+            DeferredKnowledge.Clear();
             _busy = false;
+            _lastSpawnCount = 0;
+            _spawnStableSince = 0f;
         }
 
         public static bool IsEnabled => Plugin.Configs == null || Plugin.Configs.EnableTakeAll.Value;
@@ -55,15 +65,44 @@ namespace MulliganMadness.Utils
             return PlayerManager.instance.players.FirstOrDefault(p => p.playerID == choice.pickrID);
         }
 
+        public static void ApplyDeferredKnowledge()
+        {
+            var picker = GetCurrentPicker();
+            if (picker == null) return;
+            if (!DeferredKnowledge.TryGetValue(picker.playerID, out var extra) || extra <= 0) return;
+
+            var current = ReadKnowledge(picker) ?? 0;
+            WriteKnowledge(picker, current + extra);
+            DeferredKnowledge.Remove(picker.playerID);
+            Plugin.Instance.Log($"Applied {extra} deferred Distill Power Nulls for player {picker.playerID}.");
+        }
+
         public static bool IsOfferedHandReady()
         {
             var spawned = GetSpawnedCards();
-            if (spawned == null || spawned.Count == 0) return false;
+            if (spawned == null || spawned.Count == 0)
+            {
+                _lastSpawnCount = 0;
+                return false;
+            }
+
+            if (spawned.Count != _lastSpawnCount)
+            {
+                _lastSpawnCount = spawned.Count;
+                _spawnStableSince = Time.unscaledTime;
+                return false;
+            }
+
+            if (Time.unscaledTime - _spawnStableSince < 0.2f)
+            {
+                return false;
+            }
 
             var expected = GetExpectedDrawCount();
-            if (expected > 0)
+            // Distill / shuffle redraws are often smaller than Pick N Cards' draw count.
+            if (expected > 0 && spawned.Count < expected && Time.unscaledTime - _spawnStableSince < 0.45f)
             {
-                return spawned.Count >= expected;
+                return false;
             }
 
             return true;
@@ -81,22 +120,33 @@ namespace MulliganMadness.Utils
             var spawned = GetSpawnedCards();
             if (spawned == null || spawned.Count == 0) return false;
 
-            var payloads = new List<string>();
+            var keep = new List<string>();
+            var hasNullToCashOut = false;
             foreach (var go in spawned)
             {
                 if (go == null) continue;
-                var visual = go.GetComponent<CardInfo>();
-                if (visual == null) continue;
-                var source = CardChoice.instance.GetSourceCard(visual) ?? visual.sourceCard ?? visual;
-                if (source == null || IsPlaceholderCard(source)) continue;
-                payloads.Add(EncodeCard(source));
+                var source = SourceOf(go);
+                if (source == null) continue;
+
+                if (IsPlaceholderCard(source, go))
+                {
+                    hasNullToCashOut = true;
+                    continue;
+                }
+
+                keep.Add(EncodeCard(source));
             }
 
-            if (payloads.Count == 0) return false;
+            if (keep.Count == 0 && !hasNullToCashOut) return false;
 
             _busy = true;
-            NetworkingManager.RPC(typeof(TakeAllManager), nameof(RPCA_TakeAll), picker.playerID, payloads.ToArray());
-            Plugin.Instance.Log($"Player {picker.playerID} requested Take All ({payloads.Count} cards).");
+            NetworkingManager.RPC(
+                typeof(TakeAllManager),
+                nameof(RPCA_TakeAll),
+                picker.playerID,
+                keep.ToArray(),
+                hasNullToCashOut);
+            Plugin.Instance.Log($"Player {picker.playerID} requested Take All ({keep.Count} cards, cashOutNull={hasNullToCashOut}).");
             return true;
         }
 
@@ -109,52 +159,102 @@ namespace MulliganMadness.Utils
         }
 
         [UnboundRPC]
-        public static void RPCA_TakeAll(int playerID, string[] payloads)
+        public static void RPCA_TakeAll(int playerID, string[] payloads, bool cashOutWithNull)
         {
             UsedThisGame.Add(playerID);
             UI.TakeAllButton.RefreshVisibility();
 
             var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerID);
-            if (picker == null || payloads == null || payloads.Length == 0)
+            if (picker == null)
             {
                 _busy = false;
                 return;
             }
 
-            var cards = new List<CardInfo>();
-            foreach (var payload in payloads)
-            {
-                var card = ResolveCard(payload);
-                if (card != null && !IsPlaceholderCard(card)) cards.Add(card);
-            }
+            var knowledgeBefore = ReadKnowledge(picker) ?? 0;
 
-            if (cards.Count == 0)
+            var rest = new List<CardInfo>();
+            var knowledgeCards = new List<CardInfo>();
+            var powerCards = new List<CardInfo>();
+            if (payloads != null)
             {
-                Plugin.Instance.LogWarn($"Take All resolved 0/{payloads.Length} cards for player {playerID}.");
-                _busy = false;
-                return;
-            }
-
-            // Prefer ending the pick on a normal card. Shuffle cards (Distill Knowledge, etc.)
-            // must be granted via AddCardsToPlayer — Pick() would start a redraw instead.
-            var pickIndex = cards.FindIndex(c => !IsShuffleCard(c));
-            if (pickIndex < 0) pickIndex = 0;
-
-            if (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)
-            {
-                var extras = cards.Where((_, i) => i != pickIndex).ToArray();
-                if (extras.Length > 0)
+                foreach (var payload in payloads)
                 {
-                    var codes = Enumerable.Repeat("", extras.Length).ToArray();
-                    var zeros = new float[extras.Length];
-                    Cards.instance.AddCardsToPlayer(picker, extras, false, codes, zeros, zeros, true);
+                    var card = ResolveCard(payload);
+                    if (card == null || IsPlaceholderCard(card, null)) continue;
+
+                    if (IsDistillKnowledge(card, null)) knowledgeCards.Add(card);
+                    else if (IsDistillPower(card, null)) powerCards.Add(card);
+                    else rest.Add(card);
                 }
             }
 
+            var hasKnowledge = knowledgeCards.Count > 0;
+            var hasPower = powerCards.Count > 0;
+
+            // Don't Distill the cards we're about to grant from this hand.
+            WriteKnowledge(picker, 0);
+
+            var grant = new List<CardInfo>();
+            if (hasKnowledge)
+            {
+                grant.AddRange(rest);
+                grant.AddRange(rest);
+            }
+            else
+            {
+                grant.AddRange(rest);
+            }
+
+            grant.AddRange(knowledgeCards);
+            grant.AddRange(powerCards);
+
+            // Reroll / Table Flip OnAdd only flags WWM for PickEnd — they still fire after this grant.
+            if ((PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient) && grant.Count > 0)
+            {
+                var codes = Enumerable.Repeat("", grant.Count).ToArray();
+                var zeros = new float[grant.Count];
+                Cards.instance.AddCardsToPlayer(picker, grant.ToArray(), false, codes, zeros, zeros, true);
+            }
+
+            if (hasKnowledge)
+            {
+                GiveDistillNulls(playerID, rest.Count * 2);
+            }
+
+            int? knowledgeHold = 0;
+            if (hasKnowledge || cashOutWithNull)
+            {
+                knowledgeHold = 0;
+            }
+            else if (hasPower)
+            {
+                var after = ReadKnowledge(picker) ?? 0;
+                if (after > knowledgeBefore)
+                {
+                    DeferredKnowledge[playerID] = after - knowledgeBefore;
+                }
+
+                knowledgeHold = knowledgeBefore;
+            }
+            else
+            {
+                knowledgeHold = knowledgeBefore;
+            }
+
+            StabilizeAfterGrant(picker, knowledgeHold);
+            StripDistillAcquisitionFromHand();
+
+            Plugin.Instance.ExecuteAfterSeconds(0.12f, () => StabilizeAfterGrant(picker, knowledgeHold));
+            Plugin.Instance.ExecuteAfterSeconds(0.28f, () => StabilizeAfterGrant(picker, knowledgeHold));
+
             if (picker.data?.view != null && picker.data.view.IsMine)
             {
-                var pickId = EncodeCard(cards[pickIndex]);
-                Plugin.Instance.ExecuteAfterSeconds(0.35f, () => FinishPick(pickId));
+                Plugin.Instance.ExecuteAfterSeconds(0.35f, () =>
+                {
+                    StabilizeAfterGrant(picker, knowledgeHold);
+                    FinishPick(cashOutWithNull);
+                });
             }
             else
             {
@@ -162,7 +262,14 @@ namespace MulliganMadness.Utils
             }
         }
 
-        private static void FinishPick(string pickPayload)
+        private static void StabilizeAfterGrant(Player picker, int? knowledgeHold)
+        {
+            if (picker == null) return;
+            WriteKnowledge(picker, knowledgeHold);
+            CancelQueuedShuffles(picker);
+        }
+
+        private static void FinishPick(bool cashOutWithNull)
         {
             try
             {
@@ -171,28 +278,35 @@ namespace MulliganMadness.Utils
                 var spawned = GetSpawnedCards();
                 if (spawned == null || spawned.Count == 0) return;
 
-                GameObject pickVisual = FindSpawnedMatching(spawned, pickPayload);
-                if (pickVisual == null)
+                StripDistillAcquisitionFromHand();
+
+                GameObject visual = null;
+
+                if (cashOutWithNull)
                 {
-                    foreach (var go in spawned)
-                    {
-                        if (go == null) continue;
-                        var visual = go.GetComponent<CardInfo>();
-                        if (visual == null) continue;
-                        var source = CardChoice.instance.GetSourceCard(visual) ?? visual.sourceCard ?? visual;
-                        if (source != null && !IsShuffleCard(source) && !IsPlaceholderCard(source))
-                        {
-                            pickVisual = go;
-                            break;
-                        }
-                    }
+                    visual = FindSpawned(spawned, (source, go) => IsPlaceholderCard(source, go));
                 }
 
-                pickVisual ??= spawned.FirstOrDefault(go => go != null);
-                if (pickVisual != null)
+                if (visual == null)
                 {
-                    CardChoice.instance.Pick(pickVisual, true);
+                    visual = FindSpawned(spawned, (source, go) =>
+                        !IsPlaceholderCard(source, go)
+                        && !IsDistillKnowledge(source, go)
+                        && !IsShuffleRitual(source, go));
                 }
+
+                if (visual == null)
+                {
+                    visual = FindSpawned(spawned, (source, go) => !IsDistillKnowledge(source, go));
+                }
+
+                if (visual == null)
+                {
+                    visual = spawned.FirstOrDefault(go => go != null);
+                }
+
+                // Close the UI without ApplyCardStats.Pick — cards were already granted.
+                ClosePickWithoutApplying(visual);
             }
             finally
             {
@@ -200,33 +314,42 @@ namespace MulliganMadness.Utils
             }
         }
 
-        private static GameObject FindSpawnedMatching(List<GameObject> spawned, string payload)
+        private static void ClosePickWithoutApplying(GameObject visual)
         {
-            DecodeCard(payload, out var objectName, out var cardName);
-            objectName = StripClone(objectName);
+            var choice = CardChoice.instance;
+            if (choice == null || visual == null) return;
 
+            var view = choice.GetComponent<PhotonView>();
+            var visualView = visual.GetComponent<PhotonView>();
+            var pub = visual.GetComponent<PublicInt>();
+            var cardIDs = AccessTools.Method(typeof(CardChoice), "CardIDs")?.Invoke(choice, null) as int[];
+            if (view == null || visualView == null || pub == null || cardIDs == null)
+            {
+                choice.StartCoroutine(choice.IDoEndPick(visual, pub != null ? pub.theInt : 0, choice.pickrID));
+                return;
+            }
+
+            view.RPC("RPCA_DoEndPick", RpcTarget.All, cardIDs, visualView.ViewID, pub.theInt, choice.pickrID);
+        }
+
+        private static GameObject FindSpawned(List<GameObject> spawned, Func<CardInfo, GameObject, bool> match)
+        {
             foreach (var go in spawned)
             {
                 if (go == null) continue;
-                var visual = go.GetComponent<CardInfo>();
-                if (visual == null) continue;
-                var source = CardChoice.instance.GetSourceCard(visual) ?? visual.sourceCard ?? visual;
-                if (source == null) continue;
-
-                var sourceObject = StripClone(source.gameObject != null ? source.gameObject.name : "");
-                if (!string.IsNullOrEmpty(objectName) && string.Equals(sourceObject, objectName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return go;
-                }
-
-                if (!string.IsNullOrEmpty(cardName) && !string.IsNullOrEmpty(source.cardName)
-                    && string.Equals(source.cardName, cardName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return go;
-                }
+                var source = SourceOf(go);
+                if (source != null && match(source, go)) return go;
             }
 
             return null;
+        }
+
+        private static CardInfo SourceOf(GameObject go)
+        {
+            if (go == null) return null;
+            var visual = go.GetComponent<CardInfo>();
+            if (visual == null) return null;
+            return CardChoice.instance.GetSourceCard(visual) ?? visual.sourceCard ?? visual;
         }
 
         private static string EncodeCard(CardInfo card)
@@ -262,14 +385,11 @@ namespace MulliganMadness.Utils
             if (card == null && !string.IsNullOrEmpty(cardName))
             {
                 try { card = Cards.instance.GetCardWithName(cardName); }
-                catch { /* GetCardWithName throws if missing */ }
+                catch { /* throws if missing */ }
 
-                if (card == null)
-                {
-                    card = Cards.instance.allCards?.FirstOrDefault(c =>
-                        c != null && !string.IsNullOrEmpty(c.cardName)
-                        && string.Equals(c.cardName, cardName, StringComparison.OrdinalIgnoreCase));
-                }
+                card ??= Cards.all?.FirstOrDefault(c =>
+                    c != null && !string.IsNullOrEmpty(c.cardName)
+                    && string.Equals(c.cardName, cardName, StringComparison.OrdinalIgnoreCase));
             }
 
             return card;
@@ -286,21 +406,69 @@ namespace MulliganMadness.Utils
             return name.Trim();
         }
 
-        private static bool IsPlaceholderCard(CardInfo card)
+        private static string Identity(CardInfo card)
         {
-            if (card == null) return true;
-            var objectName = card.gameObject != null ? card.gameObject.name : "";
+            var objectName = card.gameObject != null ? StripClone(card.gameObject.name) : "";
             var cardName = card.cardName ?? "";
-            // Real "Null" placeholder cards — not Distill Knowledge / Null-themed names on real cards.
-            if (string.Equals(cardName, "Null", StringComparison.OrdinalIgnoreCase)) return true;
-            if (string.Equals(StripClone(objectName), "Null", StringComparison.OrdinalIgnoreCase)) return true;
-            if (string.Equals(StripClone(objectName), "NullCard", StringComparison.OrdinalIgnoreCase)) return true;
+            return (cardName + " " + objectName).Trim();
+        }
+
+        private static bool NameIs(CardInfo card, params string[] names)
+        {
+            var objectName = card.gameObject != null ? StripClone(card.gameObject.name) : "";
+            var cardName = card.cardName ?? "";
+            foreach (var name in names)
+            {
+                if (string.Equals(cardName, name, StringComparison.OrdinalIgnoreCase)) return true;
+                if (string.Equals(objectName, name, StringComparison.OrdinalIgnoreCase)) return true;
+            }
             return false;
         }
 
-        private static bool IsShuffleCard(CardInfo card)
+        private static bool HasComponentNamed(GameObject go, ref Type cached, string typeName)
+        {
+            if (go == null) return false;
+            cached ??= AccessTools.TypeByName(typeName);
+            if (cached == null) return false;
+            return go.GetComponent(cached) != null || go.GetComponentInChildren(cached) != null;
+        }
+
+        private static bool IsPlaceholderCard(CardInfo card, GameObject visual)
+        {
+            if (card == null) return true;
+            if (HasComponentNamed(visual, ref _nullCardInfo, "Nullmanager.NullCardInfo")) return true;
+            if (HasComponentNamed(card.gameObject, ref _nullCardInfo, "Nullmanager.NullCardInfo")) return true;
+            if (NameIs(card, "Null", "NullCard", "Null Card", "nullCard", "___NULL___", "__NULL__")) return true;
+
+            var cardName = (card.cardName ?? "").Trim();
+            if (cardName.Equals("null", StringComparison.OrdinalIgnoreCase)) return true;
+
+            return false;
+        }
+
+        private static bool IsDistillKnowledge(CardInfo card, GameObject visual)
         {
             if (card == null) return false;
+            if (HasComponentNamed(visual, ref _distillAcquisition, "RootNulledCards.DistillAcquisition")) return true;
+            if (HasComponentNamed(card.gameObject, ref _distillAcquisition, "RootNulledCards.DistillAcquisition")) return true;
+            if (NameIs(card, "Null_Knowledge")) return true;
+            return Identity(card).IndexOf("Distill Knowledge", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsDistillPower(CardInfo card, GameObject visual)
+        {
+            if (card == null) return false;
+            if (HasComponentNamed(visual, ref _powerDistillation, "RootNulledCards.PowerDistillation")) return true;
+            if (HasComponentNamed(card.gameObject, ref _powerDistillation, "RootNulledCards.PowerDistillation")) return true;
+            if (NameIs(card, "Null_Power", "Distill Power")) return true;
+            return Identity(card).IndexOf("Distill Power", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsShuffleRitual(CardInfo card, GameObject visual)
+        {
+            if (card == null) return false;
+            if (IsDistillKnowledge(card, visual)) return true;
+
             try
             {
                 if (_isShuffleCard == null)
@@ -309,18 +477,130 @@ namespace MulliganMadness.Utils
                     _isShuffleCard = type != null ? AccessTools.Method(type, "IsShuffleCard", new[] { typeof(CardInfo) }) : null;
                 }
 
-                if (_isShuffleCard != null)
+                if (_isShuffleCard != null && (bool)_isShuffleCard.Invoke(null, new object[] { card }))
                 {
-                    return (bool)_isShuffleCard.Invoke(null, new object[] { card });
+                    return true;
                 }
+            }
+            catch
+            {
+                // PPI not loaded, or instance method
+            }
+
+            return NameIs(card, "Shuffle");
+        }
+
+        private static void GiveDistillNulls(int playerID, int amount)
+        {
+            if (amount <= 0) return;
+            try
+            {
+                var type = AccessTools.TypeByName("RootNulledCards.Patches.CardChoicePatchIDoEndPick");
+                var method = type == null ? null : AccessTools.Method(type, "GiveNulls", new[] { typeof(int), typeof(int) });
+                if (method != null)
+                {
+                    method.Invoke(null, new object[] { playerID, amount });
+                    return;
+                }
+            }
+            catch
+            {
+                // Nulled Cards not loaded
+            }
+
+            var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerID);
+            if (picker?.data?.stats == null) return;
+            try
+            {
+                var ext = AccessTools.TypeByName("Nullmanager.CharacterStatModifiersExtension");
+                AccessTools.Method(ext, "AjustNulls", new[] { typeof(CharacterStatModifiers), typeof(int) })
+                    ?.Invoke(null, new object[] { picker.data.stats, (int)(amount * 3.5f) });
+            }
+            catch
+            {
+                // NullManager not loaded
+            }
+        }
+
+        private static void StripDistillAcquisitionFromHand()
+        {
+            var spawned = GetSpawnedCards();
+            if (spawned == null) return;
+            _distillAcquisition ??= AccessTools.TypeByName("RootNulledCards.DistillAcquisition");
+            if (_distillAcquisition == null) return;
+
+            foreach (var go in spawned)
+            {
+                if (go == null) continue;
+                var component = go.GetComponent(_distillAcquisition) ?? go.GetComponentInChildren(_distillAcquisition);
+                if (component != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(component);
+                }
+            }
+        }
+
+        private static int? ReadKnowledge(Player player)
+        {
+            try
+            {
+                var data = GetRootData(player);
+                if (data == null) return null;
+                var field = AccessTools.Field(data.GetType(), "knowledge");
+                return field == null ? (int?)null : (int)field.GetValue(data);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void WriteKnowledge(Player player, int? value)
+        {
+            if (value == null) return;
+            try
+            {
+                var data = GetRootData(player);
+                if (data == null) return;
+                AccessTools.Field(data.GetType(), "knowledge")?.SetValue(data, value.Value);
+            }
+            catch
+            {
+                // Root Core not loaded
+            }
+        }
+
+        private static object GetRootData(Player player)
+        {
+            var ext = AccessTools.TypeByName("RootCore.CharacterStatModifiersExtension");
+            if (ext == null || player == null) return null;
+            var method = AccessTools.Method(ext, "GetRootData", new[] { typeof(Player) })
+                         ?? AccessTools.Method(ext, "GetRootData", new[] { typeof(CharacterStatModifiers) });
+            if (method == null) return null;
+            if (method.GetParameters()[0].ParameterType == typeof(Player))
+            {
+                return method.Invoke(null, new object[] { player });
+            }
+
+            return method.Invoke(null, new object[] { player.data.stats });
+        }
+
+        private static void CancelQueuedShuffles(Player picker)
+        {
+            if (picker == null) return;
+            try
+            {
+                var type = AccessTools.TypeByName("PickPhaseImprovements.PickManager");
+                var field = type == null ? null : AccessTools.Field(type, "ShuffleQueue");
+                if (field?.GetValue(null) is not IDictionary queue) return;
+                if (!queue.Contains(picker)) return;
+                var list = queue[picker];
+                list?.GetType().GetMethod("Clear")?.Invoke(list, null);
             }
             catch
             {
                 // PPI not loaded
             }
-
-            var n = (card.cardName ?? "") + " " + (card.gameObject != null ? card.gameObject.name : "");
-            return n.IndexOf("Distill Knowledge", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static int GetExpectedDrawCount()
