@@ -61,6 +61,8 @@ namespace MulliganMadness
         {
             TakeAllManager.ResetForNewGame();
             AutoPickController.ResetForNewGame();
+            KeysUnlockReset.Reapply();
+            Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
             yield break;
         }
 

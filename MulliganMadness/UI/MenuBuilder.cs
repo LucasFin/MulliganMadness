@@ -19,6 +19,13 @@ namespace MulliganMadness.UI
                 40);
 
             MenuHandler.CreateToggle(
+                Plugin.Configs.FixPristineHealth.Value,
+                "Fix Pristine Perseverance HP collapse",
+                menu,
+                (UnityAction<bool>)(value => Plugin.Configs.FixPristineHealth.Value = value),
+                40);
+
+            MenuHandler.CreateToggle(
                 Plugin.Configs.EnableAutoPickCurses.Value,
                 "Enable auto-pick curses",
                 menu,

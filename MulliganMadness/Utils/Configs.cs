@@ -7,6 +7,7 @@ namespace MulliganMadness.Utils
         public ConfigEntry<bool> EnableTakeAll { get; }
         public ConfigEntry<bool> EnableAutoPickCurses { get; }
         public ConfigEntry<float> PanicTimerSeconds { get; }
+        public ConfigEntry<bool> FixPristineHealth { get; }
 
         public Configs(ConfigFile config)
         {
@@ -15,6 +16,12 @@ namespace MulliganMadness.Utils
                 "Enabled",
                 true,
                 "When enabled, each player gets one Take All during card pick, usable once per game.");
+
+            FixPristineHealth = config.Bind(
+                "Fixes",
+                "FixPristineHealth",
+                true,
+                "Stop Pristine Perseverance from collapsing HP when a later card reduces health.");
 
             EnableAutoPickCurses = config.Bind(
                 "Curses",

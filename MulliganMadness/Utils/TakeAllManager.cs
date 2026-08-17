@@ -25,6 +25,8 @@ namespace MulliganMadness.Utils
         private static int _lastSpawnCount;
         private static float _spawnStableSince;
 
+        internal static bool CollectingAll;
+
         public static void ResetForNewGame()
         {
             UsedThisGame.Clear();
@@ -32,6 +34,7 @@ namespace MulliganMadness.Utils
             _busy = false;
             _lastSpawnCount = 0;
             _spawnStableSince = 0f;
+            CollectingAll = false;
         }
 
         public static bool IsEnabled => Plugin.Configs == null || Plugin.Configs.EnableTakeAll.Value;
@@ -131,6 +134,8 @@ namespace MulliganMadness.Utils
                 if (IsPlaceholderCard(source, go))
                 {
                     hasNullToCashOut = true;
+                    var encoded = EncodeNull(source, go);
+                    if (!string.IsNullOrEmpty(encoded)) keep.Add(encoded);
                     continue;
                 }
 
@@ -176,10 +181,18 @@ namespace MulliganMadness.Utils
             var rest = new List<CardInfo>();
             var knowledgeCards = new List<CardInfo>();
             var powerCards = new List<CardInfo>();
+            var nullCards = new List<CardInfo>();
             if (payloads != null)
             {
                 foreach (var payload in payloads)
                 {
+                    if (IsNullPayload(payload))
+                    {
+                        var nulled = ResolveNull(payload, picker);
+                        if (nulled != null) nullCards.Add(nulled);
+                        continue;
+                    }
+
                     var card = ResolveCard(payload);
                     if (card == null || IsPlaceholderCard(card, null)) continue;
 
@@ -187,6 +200,11 @@ namespace MulliganMadness.Utils
                     else if (IsDistillPower(card, null)) powerCards.Add(card);
                     else rest.Add(card);
                 }
+            }
+
+            if (nullCards.Count == 0 && cashOutWithNull)
+            {
+                nullCards.AddRange(CollectOfferedNulls(picker));
             }
 
             var hasKnowledge = knowledgeCards.Count > 0;
@@ -208,6 +226,20 @@ namespace MulliganMadness.Utils
 
             grant.AddRange(knowledgeCards);
             grant.AddRange(powerCards);
+            grant.AddRange(nullCards);
+
+            if (nullCards.Count > 0)
+            {
+                Plugin.Instance.Log($"Take All granting {nullCards.Count} Null cards for player {playerID}.");
+            }
+
+            // Simulacrum doubles ApplyStats by adding the picker twice in Pick. Take All
+            // grants through AddCardsToPlayer, so copy the grant list here instead.
+            if (HasSimulacrum(picker) && grant.Count > 0)
+            {
+                grant.AddRange(grant.ToArray());
+                Plugin.Instance.Log($"Simulacrum: doubled Take All grant to {grant.Count} cards for player {playerID}.");
+            }
 
             // Reroll / Table Flip OnAdd only flags WWM for PickEnd — they still fire after this grant.
             if ((PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient) && grant.Count > 0)
@@ -244,6 +276,7 @@ namespace MulliganMadness.Utils
 
             StabilizeAfterGrant(picker, knowledgeHold);
             StripDistillAcquisitionFromHand();
+            CollectingAll = true;
 
             Plugin.Instance.ExecuteAfterSeconds(0.12f, () => StabilizeAfterGrant(picker, knowledgeHold));
             Plugin.Instance.ExecuteAfterSeconds(0.28f, () => StabilizeAfterGrant(picker, knowledgeHold));
@@ -306,6 +339,7 @@ namespace MulliganMadness.Utils
                 }
 
                 // Close the UI without ApplyCardStats.Pick — cards were already granted.
+                CollectingAll = true;
                 ClosePickWithoutApplying(visual);
             }
             finally
@@ -342,6 +376,22 @@ namespace MulliganMadness.Utils
             }
 
             return null;
+        }
+
+        private static bool HasSimulacrum(Player player)
+        {
+            var cards = player?.data?.currentCards;
+            if (cards == null) return false;
+
+            foreach (var card in cards)
+            {
+                if (card == null) continue;
+                if (string.Equals(card.cardName, "Simulacrum", StringComparison.OrdinalIgnoreCase)) return true;
+                var objectName = card.gameObject != null ? card.gameObject.name : "";
+                if (objectName.IndexOf("Simulacrum", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
+
+            return false;
         }
 
         private static CardInfo SourceOf(GameObject go)
@@ -431,6 +481,127 @@ namespace MulliganMadness.Utils
             cached ??= AccessTools.TypeByName(typeName);
             if (cached == null) return false;
             return go.GetComponent(cached) != null || go.GetComponentInChildren(cached) != null;
+        }
+
+        private const string NullPayloadPrefix = "___NULL___";
+
+        private static string EncodeNull(CardInfo card, GameObject visual)
+        {
+            var sourceName = GetNulledSourceName(card, visual);
+            if (string.IsNullOrEmpty(sourceName)) return null;
+            return NullPayloadPrefix + "\n" + sourceName;
+        }
+
+        private static bool IsNullPayload(string payload)
+        {
+            if (string.IsNullOrEmpty(payload)) return false;
+            return payload.StartsWith(NullPayloadPrefix, StringComparison.Ordinal);
+        }
+
+        private static CardInfo ResolveNull(string payload, Player picker)
+        {
+            DecodeCard(payload, out _, out var sourceName);
+            if (string.IsNullOrEmpty(sourceName))
+            {
+                sourceName = payload.Length > NullPayloadPrefix.Length
+                    ? payload.Substring(NullPayloadPrefix.Length).TrimStart('\n', '_')
+                    : "";
+            }
+
+            return ResolveNullBySourceName(sourceName, picker);
+        }
+
+        private static List<CardInfo> CollectOfferedNulls(Player picker)
+        {
+            var result = new List<CardInfo>();
+            var spawned = GetSpawnedCards();
+            if (spawned == null || picker == null) return result;
+
+            foreach (var go in spawned)
+            {
+                if (go == null) continue;
+                var source = SourceOf(go);
+                if (!IsPlaceholderCard(source, go)) continue;
+                var resolved = ResolveNullBySourceName(GetNulledSourceName(source, go), picker);
+                if (resolved != null) result.Add(resolved);
+            }
+
+            return result;
+        }
+
+        private static string GetNulledSourceName(CardInfo card, GameObject visual)
+        {
+            var info = GetNullCardInfoComponent(card, visual);
+            if (info != null)
+            {
+                try
+                {
+                    var field = AccessTools.Field(info.GetType(), "NulledSorce");
+                    if (field?.GetValue(info) is CardInfo source && source.gameObject != null)
+                    {
+                        return StripClone(source.gameObject.name);
+                    }
+                }
+                catch
+                {
+                    // NullManager layout changed
+                }
+            }
+
+            var name = card?.cardName ?? "";
+            if (name.StartsWith("[]", StringComparison.Ordinal)) name = name.Substring(2);
+            name = StripClone(name);
+            return string.IsNullOrEmpty(name) ? null : name;
+        }
+
+        private static object GetNullCardInfoComponent(CardInfo card, GameObject visual)
+        {
+            _nullCardInfo ??= AccessTools.TypeByName("Nullmanager.NullCardInfo");
+            if (_nullCardInfo == null) return null;
+
+            if (visual != null)
+            {
+                var fromVisual = visual.GetComponent(_nullCardInfo) ?? visual.GetComponentInChildren(_nullCardInfo);
+                if (fromVisual != null) return fromVisual;
+            }
+
+            if (card != null && _nullCardInfo.IsInstanceOfType(card)) return card;
+            if (card?.gameObject != null)
+            {
+                return card.gameObject.GetComponent(_nullCardInfo)
+                       ?? card.gameObject.GetComponentInChildren(_nullCardInfo);
+            }
+
+            return null;
+        }
+
+        private static CardInfo ResolveNullBySourceName(string sourceName, Player picker)
+        {
+            sourceName = StripClone(sourceName);
+            if (string.IsNullOrEmpty(sourceName) || picker == null) return null;
+
+            try
+            {
+                var type = AccessTools.TypeByName("Nullmanager.NullManager");
+                var instance = type == null ? null : AccessTools.Property(type, "instance")?.GetValue(null);
+                if (instance == null) return null;
+
+                var method = AccessTools.Method(type, "GetNullCardInfo", new[] { typeof(string), typeof(Player) })
+                             ?? AccessTools.Method(type, "GetNullCardInfo", new[] { typeof(string), typeof(int) });
+                if (method == null) return null;
+
+                if (method.GetParameters()[1].ParameterType == typeof(Player))
+                {
+                    return method.Invoke(instance, new object[] { sourceName, picker }) as CardInfo;
+                }
+
+                return method.Invoke(instance, new object[] { sourceName, picker.playerID }) as CardInfo;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance.LogWarn($"Failed to resolve Null '{sourceName}': {ex.Message}");
+                return null;
+            }
         }
 
         private static bool IsPlaceholderCard(CardInfo card, GameObject visual)
