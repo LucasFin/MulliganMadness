@@ -69,6 +69,7 @@ namespace MulliganMadness.Utils
             if (string.Equals(name, Thief.Title, StringComparison.OrdinalIgnoreCase)) return true;
             if (string.Equals(name, Takebacksies.Title, StringComparison.OrdinalIgnoreCase)) return true;
             if (string.Equals(name, SandbagSimulator.Title, StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.Equals(name, JarOfDirt.Title, StringComparison.OrdinalIgnoreCase)) return true;
 
             if (card.categories != null)
             {

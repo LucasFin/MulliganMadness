@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace MulliganMadness.Stats
 {
-    internal readonly struct StatValue
+    internal struct StatValue
     {
         public readonly string Label;
         public readonly string Value;
@@ -49,6 +49,18 @@ namespace MulliganMadness.Stats
             snapshot.Set("HP", data.health, $"{data.health:F0}/{data.maxHealth:F0}");
             snapshot.Set("MaxHP", data.maxHealth, $"{data.maxHealth:F0}");
             snapshot.Set("DMG", damage, $"{damage:F0}");
+
+            var remainingNulls = NullStatReader.GetRemaining(player);
+            if (remainingNulls > 0.05f)
+            {
+                snapshot.Set("Nulls", remainingNulls, FormatCount(remainingNulls));
+            }
+
+            var ownedNulls = NullStatReader.GetOwned(player);
+            if (ownedNulls > 0)
+            {
+                snapshot.Set("NullCards", ownedNulls, ownedNulls.ToString("F0"));
+            }
             snapshot.Set("Lives", data.stats.respawns + 1f, $"{data.stats.respawns + 1:F0}");
             snapshot.Set("BlockCD", block.Cooldown(), $"{block.Cooldown():F2}s");
             snapshot.Set("BlockCount", block.additionalBlocks + 1f, $"{block.additionalBlocks + 1:F0}");
@@ -110,6 +122,8 @@ namespace MulliganMadness.Stats
         {
             yield return new StatValue("HP", GetDisplay("HP"), GetNumeric("HP"));
             yield return new StatValue("DMG", GetDisplay("DMG"), GetNumeric("DMG"));
+            if (HasCount("Nulls")) yield return new StatValue("Nulls", GetDisplay("Nulls"), GetNumeric("Nulls"));
+            if (HasCount("NullCards")) yield return new StatValue("Null cards", GetDisplay("NullCards"), GetNumeric("NullCards"));
             yield return new StatValue("Block CD", GetDisplay("BlockCD"), GetNumeric("BlockCD"));
             yield return new StatValue("Move", GetDisplay("MoveSPD"), GetNumeric("MoveSPD"));
             yield return new StatValue("Atk SPD", GetDisplay("AttackSPD"), GetNumeric("AttackSPD"));
@@ -119,6 +133,8 @@ namespace MulliganMadness.Stats
         {
             yield return new StatValue("HP", GetDisplay("HP"), GetNumeric("HP"));
             yield return new StatValue("DMG", GetDisplay("DMG"), GetNumeric("DMG"));
+            if (HasCount("Nulls")) yield return new StatValue("Nulls", GetDisplay("Nulls"), GetNumeric("Nulls"));
+            if (HasCount("NullCards")) yield return new StatValue("Null cards", GetDisplay("NullCards"), GetNumeric("NullCards"));
             yield return new StatValue("Lives", GetDisplay("Lives"), GetNumeric("Lives"));
             yield return new StatValue("Block CD", GetDisplay("BlockCD"), GetNumeric("BlockCD"));
             yield return new StatValue("Blocks", GetDisplay("BlockCount"), GetNumeric("BlockCount"));
@@ -197,6 +213,8 @@ namespace MulliganMadness.Stats
         {
             switch (label)
             {
+                case "Nulls": return "Nulls";
+                case "Null cards": return "NullCards";
                 case "HP": return "HP";
                 case "DMG": return "DMG";
                 case "Lives": return "Lives";
@@ -226,6 +244,21 @@ namespace MulliganMadness.Stats
         }
 
         private float GetNumeric(string key) => _numbers.TryGetValue(key, out var value) ? value : float.NaN;
+
+        private bool HasCount(string key) => TryGetNumeric(key, out var value) && value > 0.05f;
+
+        private static string FormatCount(float value)
+        {
+            return Mathf.Abs(value - Mathf.Round(value)) < 0.05f
+                ? Mathf.Round(value).ToString("F0")
+                : value.ToString("F1");
+        }
+
+        internal void WriteCount(string key, float value)
+        {
+            var clamped = Mathf.Max(0f, value);
+            Set(key, clamped, FormatCount(clamped));
+        }
 
         private void Set(string key, float numeric, string display)
         {

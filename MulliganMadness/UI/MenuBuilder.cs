@@ -54,6 +54,13 @@ namespace MulliganMadness.UI
                 (UnityAction<bool>)(value => Plugin.Configs.EnableSandbagSimulator.Value = value),
                 40);
 
+            MenuHandler.CreateToggle(
+                Plugin.Configs.EnableJarOfDirt.Value,
+                "Enable Jar of Dirt card",
+                menu,
+                (UnityAction<bool>)(value => Plugin.Configs.EnableJarOfDirt.Value = value),
+                40);
+
             MenuHandler.CreateText(
                 "Curses: Forced Choice, Panic Pick, Leftmost Luck — mutually exclusive.",
                 menu,

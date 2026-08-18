@@ -1,0 +1,47 @@
+using MulliganMadness.Utils;
+using UnityEngine;
+
+namespace MulliganMadness.Cards
+{
+    public class JarOfDirt : MMCard
+    {
+        public const string Title = "Jar of Dirt";
+        internal static CardInfo Card;
+
+        protected override string GetTitle() => Title;
+
+        protected override string GetDescription() =>
+            "Replace every Null you currently own with a treasure. Disabled Nulls stay Nulls.";
+
+        protected override CardInfo.Rarity GetRarity() => RarityHelper.Unique;
+
+        protected override GameObject GetCardArt() => CardArtFactory.Create("jarofdirt");
+
+        protected override CardInfoStat[] GetStats() => new[]
+        {
+            new CardInfoStat
+            {
+                positive = true,
+                stat = "Nulls",
+                amount = "Become treasures",
+                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
+            },
+            new CardInfoStat
+            {
+                positive = false,
+                stat = "Disabled Nulls",
+                amount = "Unchanged",
+                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
+            }
+        };
+
+        public override bool GetEnabled() => Plugin.Configs == null || Plugin.Configs.EnableJarOfDirt.Value;
+
+        public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
+            Gravity gravity, Block block, CharacterStatModifiers characterStats)
+        {
+            if (player?.data?.view == null || !player.data.view.IsMine) return;
+            JarOfDirtManager.TryConvert(player);
+        }
+    }
+}

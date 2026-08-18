@@ -19,6 +19,7 @@ namespace MulliganMadness.UI
         private CompactComparePanel _compare;
         private StatsTabOverlay _tab;
         private CardInfo _hoveredCard;
+        private CardInfo _hoveredVisual;
         private PlayerStatsSnapshot _previewDelta;
         private float _refreshTimer;
 
@@ -89,7 +90,7 @@ namespace MulliganMadness.UI
             yield break;
         }
 
-        internal void NotifyHoveredCard(CardInfo cardInfo)
+        internal void NotifyHoveredCard(CardInfo cardInfo, CardInfo pickVisual = null)
         {
             if (!Plugin.Configs.EnableCardHoverPreview.Value) return;
             if (!Utils.TakeAllManager.IsLocalPlayersTurn())
@@ -98,8 +99,9 @@ namespace MulliganMadness.UI
                 return;
             }
 
-            if (_hoveredCard == cardInfo) return;
+            if (_hoveredCard == cardInfo && _hoveredVisual == pickVisual) return;
             _hoveredCard = cardInfo;
+            _hoveredVisual = pickVisual;
 
             var local = PlayerStatsSnapshot.LocalPlayer();
             if (local == null || cardInfo == null)
@@ -108,7 +110,7 @@ namespace MulliganMadness.UI
                 return;
             }
 
-            if (CardStatPreview.TryPreview(local, cardInfo, out var delta))
+            if (CardStatPreview.TryPreview(local, cardInfo, out var delta, pickVisual))
             {
                 _previewDelta = delta;
             }
@@ -123,8 +125,32 @@ namespace MulliganMadness.UI
         internal void ClearPreview()
         {
             _hoveredCard = null;
+            _hoveredVisual = null;
             _previewDelta = null;
             _hud?.SetPreviewDelta(null);
+        }
+
+        internal static bool InActiveMatch()
+        {
+            if (GameManager.instance != null && GameManager.instance.isPlaying) return true;
+
+            try
+            {
+                var id = GameModeManager.CurrentHandlerID;
+                if (!string.IsNullOrEmpty(id) &&
+                    id.IndexOf("Sandbox", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                if (GameModeManager.CurrentHandler is SandboxHandler) return true;
+            }
+            catch
+            {
+                // handler not ready
+            }
+
+            return GM_Test.instance != null && GM_Test.instance.isActiveAndEnabled;
         }
 
         private void Update()
@@ -198,6 +224,7 @@ namespace MulliganMadness.UI
             }
 
             CardInfo hovered = null;
+            CardInfo visual = null;
             foreach (var item in spawned)
             {
                 if (!(item is GameObject go) || go == null) continue;
@@ -208,6 +235,7 @@ namespace MulliganMadness.UI
 
                 var cardInfo = go.GetComponent<CardInfo>();
                 if (cardInfo == null) continue;
+                visual = cardInfo;
                 hovered = CardChoice.instance.GetSourceCard(cardInfo) ?? cardInfo.sourceCard ?? cardInfo;
                 break;
             }
@@ -218,7 +246,7 @@ namespace MulliganMadness.UI
                 return;
             }
 
-            NotifyHoveredCard(hovered);
+            NotifyHoveredCard(hovered, visual);
         }
     }
 }

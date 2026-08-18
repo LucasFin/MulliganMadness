@@ -22,6 +22,11 @@ namespace MulliganMadness.Cards
             {
                 CustomCard.BuildCard<SandbagSimulator>(info => SandbagSimulator.Card = info);
             }
+
+            if (Plugin.Configs != null && Plugin.Configs.EnableJarOfDirt.Value)
+            {
+                CustomCard.BuildCard<JarOfDirt>(info => JarOfDirt.Card = info);
+            }
         }
     }
 }

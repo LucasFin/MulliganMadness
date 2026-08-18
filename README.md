@@ -1,6 +1,6 @@
 # Mulligan Madness
 
-Once-per-game **Take All** during card picks, auto-pick curses, three manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
+Once-per-game **Take All** during card picks, auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
 
 ## Take All
 When enabled (Mods → Mulligan Madness), a **TAKE ALL** button appears on your pick turn. Each player can use it **once per game**.
@@ -27,6 +27,7 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | **Thief** | Legendary | Once per game, steal one card from another player |
 | **Takebacksies** | Common | Appears in your pick pool after being stolen from; yoinks your card back from whoever holds it |
 | **Sandbag Simulator** | Legendary | Once per game, reroll any player’s current pick hand (including yourself) |
+| **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
 
 ## Stats (v0.3.0 — replaces Infoholic + TabInfo)
 

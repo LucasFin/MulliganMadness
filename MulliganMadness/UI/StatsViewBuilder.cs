@@ -19,6 +19,8 @@ namespace MulliganMadness.UI
 
             AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, baseline, preview, isHero: true);
             AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, preview, isHero: true);
+            if (HasCount(snap, "Nulls")) AppendRow(sb, "Nulls", snap.GetDisplay("Nulls"), "Nulls", snap, baseline, preview);
+            if (HasCount(snap, "NullCards")) AppendRow(sb, "Null cards", snap.GetDisplay("NullCards"), "NullCards", snap, baseline, preview);
 
             if (!simple)
             {
@@ -64,6 +66,7 @@ namespace MulliganMadness.UI
                 string lastCategory = null;
                 foreach (var ext in extensions)
                 {
+                    if (IsNullStat(ext.label)) continue;
                     if (ext.category != lastCategory)
                     {
                         AppendSection(sb, ext.category);
@@ -83,6 +86,8 @@ namespace MulliganMadness.UI
             sb.AppendLine($"<size=108%><b>{snap.PlayerName}</b></size>");
             AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, baseline, null, true);
             AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, null, true);
+            if (HasCount(snap, "Nulls")) AppendRow(sb, "Nulls", snap.GetDisplay("Nulls"), "Nulls", snap, baseline, null);
+            if (HasCount(snap, "NullCards")) AppendRow(sb, "Null cards", snap.GetDisplay("NullCards"), "NullCards", snap, baseline, null);
             AppendRow(sb, "Block", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, null);
             AppendRow(sb, "Move", snap.GetDisplay("MoveSPD"), "MoveSPD", snap, baseline, null);
             AppendRow(sb, "Atk", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, null);
@@ -92,6 +97,17 @@ namespace MulliganMadness.UI
         internal static string BuildTabBlock(PlayerStatsSnapshot snap, IEnumerable<(string category, string label, string value)> extensions)
         {
             return BuildHud(snap, simple: false, baseline: null, preview: null, extensions);
+        }
+
+        private static bool HasCount(PlayerStatsSnapshot snap, string key) =>
+            snap != null && snap.TryGetNumeric(key, out var value) && value > 0.05f;
+
+        private static bool IsNullStat(string label)
+        {
+            if (string.IsNullOrEmpty(label)) return false;
+            return label.Equals("Nulls", System.StringComparison.OrdinalIgnoreCase)
+                   || label.Equals("Null", System.StringComparison.OrdinalIgnoreCase)
+                   || label.Equals("Null cards", System.StringComparison.OrdinalIgnoreCase);
         }
 
         private static void AppendSection(StringBuilder sb, string title)
@@ -138,7 +154,7 @@ namespace MulliganMadness.UI
 
         private static string FormatDelta(string key, float diff)
         {
-            if (key == "DMG" || key == "HP" || key == "MaxHP" || key == "Bullets" || key == "Bounces" || key == "Bursts" || key == "Ammo" || key == "BlockCount" || key == "Lives")
+            if (key == "DMG" || key == "HP" || key == "MaxHP" || key == "Bullets" || key == "Bounces" || key == "Bursts" || key == "Ammo" || key == "BlockCount" || key == "Lives" || key == "Nulls" || key == "NullCards")
             {
                 return diff.ToString("F0");
             }
@@ -153,6 +169,8 @@ namespace MulliganMadness.UI
         {
             switch (label)
             {
+                case "Nulls": return "Nulls";
+                case "Null cards": return "NullCards";
                 case "HP": return "HP";
                 case "DMG": return "DMG";
                 case "Lives": return "Lives";

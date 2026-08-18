@@ -47,12 +47,24 @@ namespace MulliganMadness.UI
             if (_root == null) return;
 
             var enabled = Plugin.Configs.EnableStatsHud.Value && Plugin.Configs.StatsHudVisible.Value;
-            var inGame = GameManager.instance != null && GameManager.instance.isPlaying;
+            var inGame = StatsController.InActiveMatch();
             var hidePick = Plugin.Configs.HideStatsHudDuringPick.Value && StatsController.InPickPhase;
             var hideBattle = Plugin.Configs.HideStatsHudDuringBattle.Value && StatsController.InBattlePhase;
             _root.SetActive(enabled && inGame && !hidePick && !hideBattle);
 
             if (!_root.activeSelf) return;
+
+            var player = PlayerStatsSnapshot.LocalPlayer();
+            if (player == null || !PlayerStatsSnapshot.TryFrom(player, out var snapshot))
+            {
+                _body.text = "Stats unavailable";
+                return;
+            }
+
+            var extraRows = 0;
+            if (snapshot.TryGetNumeric("Nulls", out var remaining) && remaining > 0.05f) extraRows++;
+            if (snapshot.TryGetNumeric("NullCards", out var owned) && owned > 0.05f) extraRows++;
+            var height = (Plugin.Configs.StatsHudSimpleMode.Value ? 168f : 300f) + extraRows * 20f;
 
             var scale = StatsUiHelper.UiScale;
             StatsUiHelper.ApplyRect(
@@ -61,20 +73,13 @@ namespace MulliganMadness.UI
                 new Vector2(0f, 0f),
                 new Vector2(0f, 0f),
                 new Vector2(Plugin.Configs.StatsHudOffsetX.Value * scale, Plugin.Configs.StatsHudOffsetY.Value * scale),
-                new Vector2(268f * scale, Plugin.Configs.StatsHudSimpleMode.Value ? 168f * scale : 300f * scale));
+                new Vector2(268f * scale, height * scale));
 
             var image = _root.GetComponent<UnityEngine.UI.Image>();
             if (image != null)
             {
                 var c = image.color;
                 image.color = new Color(c.r, c.g, c.b, Plugin.Configs.StatsHudOpacity.Value);
-            }
-
-            var player = PlayerStatsSnapshot.LocalPlayer();
-            if (player == null || !PlayerStatsSnapshot.TryFrom(player, out var snapshot))
-            {
-                _body.text = "Stats unavailable";
-                return;
             }
 
             _body.fontSize = StatsUiHelper.BaseFont * Plugin.Configs.StatsHudFontScale.Value;

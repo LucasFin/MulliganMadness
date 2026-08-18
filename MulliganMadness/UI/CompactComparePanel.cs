@@ -108,7 +108,7 @@ namespace MulliganMadness.UI
             if (_root == null) return;
 
             var enabled = Plugin.Configs.EnableCompactCompare.Value;
-            var inGame = GameManager.instance != null && GameManager.instance.isPlaying;
+            var inGame = StatsController.InActiveMatch();
             _root.SetActive(enabled && inGame);
             if (!_root.activeSelf) return;
 

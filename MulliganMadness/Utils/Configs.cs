@@ -12,6 +12,7 @@ namespace MulliganMadness.Utils
         public ConfigEntry<bool> EnableThiefCard { get; }
         public ConfigEntry<bool> EnableTakebacksies { get; }
         public ConfigEntry<bool> EnableSandbagSimulator { get; }
+        public ConfigEntry<bool> EnableJarOfDirt { get; }
         public ConfigEntry<bool> SandbagOncePerGame { get; }
 
         public ConfigEntry<bool> EnableStatsHud { get; }
@@ -81,6 +82,12 @@ namespace MulliganMadness.Utils
                 "EnableSandbagSimulator",
                 true,
                 "Register the Sandbag Simulator legendary card.");
+
+            EnableJarOfDirt = config.Bind(
+                "Cards",
+                "EnableJarOfDirt",
+                true,
+                "Register the Jar of Dirt unique card (Nulls become treasures).");
 
             SandbagOncePerGame = config.Bind(
                 "Cards",

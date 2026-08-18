@@ -15,6 +15,9 @@ namespace MulliganMadness.Utils
             }
         }
 
+        internal static CardInfo.Rarity Unique =>
+            TryGetNamedRarity("Unique") ?? Legendary;
+
         internal static Color GetRarityColor(CardInfo card, bool selected = true)
         {
             if (card == null) return Color.white;

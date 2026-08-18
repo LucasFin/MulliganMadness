@@ -9,7 +9,7 @@ namespace MulliganMadness.Stats
     {
         private static readonly object Gate = new object();
 
-        public static bool TryPreview(Player player, CardInfo cardInfo, out PlayerStatsSnapshot delta)
+        public static bool TryPreview(Player player, CardInfo cardInfo, out PlayerStatsSnapshot delta, CardInfo pickVisual = null)
         {
             delta = null;
             if (player == null || cardInfo == null) return false;
@@ -18,7 +18,9 @@ namespace MulliganMadness.Stats
             lock (Gate)
             {
                 var backup = PlayerStatRawBackup.Capture(player);
-                if (!ApplyPreview(player, cardInfo))
+                var pick = pickVisual ?? cardInfo;
+                var applied = ApplyPreview(player, cardInfo);
+                if (!applied && !NullStatReader.IsPlaceholder(pick))
                 {
                     backup.Apply(player);
                     return false;
@@ -30,6 +32,7 @@ namespace MulliganMadness.Stats
                     return false;
                 }
 
+                NullStatReader.ApplyPickPreview(player, pick, after);
                 delta = after.Delta(before);
                 backup.Apply(player);
                 return delta != null;

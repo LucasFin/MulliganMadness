@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using BepInEx;
 using HarmonyLib;
@@ -34,7 +35,14 @@ namespace MulliganMadness
         {
             Instance = this;
             Configs = new Configs(Config);
-            new Harmony(ModId).PatchAll();
+            try
+            {
+                new Harmony(ModId).PatchAll();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Harmony PatchAll failed: {ex}");
+            }
         }
 
         private void Start()
