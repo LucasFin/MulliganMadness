@@ -67,17 +67,21 @@ jobs:
               return f"{a}.{b}.{c + 1}"
 
           latest = "0.0.0"
+          fetch_ok = False
           try:
               url = "https://thunderstore.io/api/experimental/package/LJIndustries/MulliganMadness/"
               with urllib.request.urlopen(url, timeout=30) as response:
                   data = json.load(response)
               latest = data.get("latest", {}).get("version_number") or latest
+              fetch_ok = True
           except Exception as ex:
               print(f"Could not read Thunderstore latest version: {ex}")
 
           toml = pathlib.Path("thunderstore.toml")
           current = re.search(r'(?m)^versionNumber = "(.*)"$', toml.read_text()).group(1)
           version = current
+          if not fetch_ok:
+              version = inc(current)
           while parse(version) <= parse(latest):
               version = inc(version)
 

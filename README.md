@@ -29,7 +29,7 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | **Sandbag Simulator** | Legendary | Once per game, reroll any player’s current pick hand (including yourself) |
 | **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
 
-## Stats (v0.3.0 — replaces Infoholic + TabInfo)
+## Stats (v0.3.1 — replaces Infoholic + TabInfo)
 
 All stats UI is client-side and works for host and regular players.
 
