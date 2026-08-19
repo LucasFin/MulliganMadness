@@ -102,10 +102,8 @@
     <MakeDir Directories="$(MSBuildProjectDirectory)/../package" />
     <MakeDir Directories="$(MSBuildProjectDirectory)/../package/Art" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildProjectDirectory)/../package" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)/../TabInfoShim/bin/Debug/TabInfo.dll" DestinationFolder="$(MSBuildProjectDirectory)/../package" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/../TabInfoShim/bin/Debug/TabInfo.dll')" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../TabInfoShim/bin/$(Configuration)/TabInfo.dll" DestinationFolder="$(MSBuildProjectDirectory)/../package" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/../TabInfoShim/bin/$(Configuration)/TabInfo.dll')" />
     <Copy SourceFiles="@(ArtFiles)" DestinationFolder="$(MSBuildProjectDirectory)/../package/Art" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/Art')" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(Plugins)/LJIndustries-MulliganMadness" Condition="Exists('$(Plugins)/LJIndustries-MulliganMadness')" />
-    <Copy SourceFiles="@(ArtFiles)" DestinationFolder="$(Plugins)/LJIndustries-MulliganMadness/Art" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildProjectDirectory)/Art') And Exists('$(Plugins)/LJIndustries-MulliganMadness')" />
   </Target>
 
   <ItemGroup>

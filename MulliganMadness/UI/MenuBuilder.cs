@@ -85,7 +85,7 @@ namespace MulliganMadness.UI
 
             MenuHandler.CreateToggle(
                 Plugin.Configs.EnableCompactCompare.Value,
-                "Enable compact compare panel",
+                "Enable compare panel (shown with Tab overlay)",
                 menu,
                 (UnityAction<bool>)(value => Plugin.Configs.EnableCompactCompare.Value = value),
                 40);
@@ -111,7 +111,7 @@ namespace MulliganMadness.UI
                 value => Plugin.Configs.StatsPanelScale.Value = value, out scaleSlider);
 
             Slider opacitySlider;
-            MenuHandler.CreateSlider("HUD opacity", menu, 35, 0.35f, 1f, Plugin.Configs.StatsHudOpacity.Value,
+            MenuHandler.CreateSlider("HUD opacity", menu, 35, 0.08f, 0.85f, Plugin.Configs.StatsHudOpacity.Value,
                 value => Plugin.Configs.StatsHudOpacity.Value = value, out opacitySlider);
 
             Slider fontSlider;

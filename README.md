@@ -29,15 +29,15 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | **Sandbag Simulator** | Legendary | Once per game, reroll any player’s current pick hand (including yourself) |
 | **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
 
-## Stats (v0.3.1 — replaces Infoholic + TabInfo)
+## Stats (v0.3.2 — replaces Infoholic + TabInfo)
 
 All stats UI is client-side and works for host and regular players.
 
 | Feature | Default | Controls |
 | --- | --- | --- |
-| **Always-on HUD** | On | Bottom-left panel with your live stats. Toggle with **O**. |
-| **Tab overlay** | On | Press **Tab** for full stats on every player. |
-| **Compact compare** | On | Top-right panel shows up to **4 players**. **Pin** locks a baseline; **Reset** clears it. Deltas show in green/red. |
+| **Always-on HUD** | On | Bottom-left transparent live stats. Toggle with **O**. Hidden outside a match. |
+| **Tab overlay** | On | Press **Tab during a match** for full stats on every player. Does not open in menus. |
+| **Compact compare** | On | Shown **only with the Tab overlay**. **Pin** locks a baseline; **Reset** clears it. |
 | **Card hover preview** | On | During **your** pick, hover a card to see green `[+/-]` deltas on your HUD for how it would change your build. |
 
 Configure under **Mods → Mulligan Madness**. Simple HUD mode shows fewer stats (Infoholic-style).

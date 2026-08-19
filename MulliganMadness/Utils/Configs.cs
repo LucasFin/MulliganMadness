@@ -134,8 +134,12 @@ namespace MulliganMadness.Utils
             StatsHudOpacity = config.Bind(
                 "Stats HUD",
                 "Opacity",
-                0.78f,
+                0.32f,
                 "Background opacity for the HUD panel.");
+            if (Mathf.Abs(StatsHudOpacity.Value - 0.78f) < 0.001f)
+            {
+                StatsHudOpacity.Value = 0.32f;
+            }
 
             StatsHudFontScale = config.Bind(
                 "Stats HUD",

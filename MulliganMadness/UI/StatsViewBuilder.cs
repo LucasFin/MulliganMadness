@@ -77,7 +77,7 @@ namespace MulliganMadness.UI
                 }
             }
 
-            return sb.ToString().TrimEnd();
+            return sb.ToString().Trim();
         }
 
         internal static string BuildCompareColumn(PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline)
@@ -91,7 +91,7 @@ namespace MulliganMadness.UI
             AppendRow(sb, "Block", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, null);
             AppendRow(sb, "Move", snap.GetDisplay("MoveSPD"), "MoveSPD", snap, baseline, null);
             AppendRow(sb, "Atk", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, null);
-            return sb.ToString().TrimEnd();
+            return sb.ToString().Trim();
         }
 
         internal static string BuildTabBlock(PlayerStatsSnapshot snap, IEnumerable<(string category, string label, string value)> extensions)

@@ -12,8 +12,10 @@ namespace MulliganMadness.UI
         internal static StatsController Instance { get; private set; }
         internal static bool InPickPhase { get; private set; }
         internal static bool InBattlePhase { get; private set; }
+        internal static bool MatchSessionActive { get; private set; }
         internal static int CurrentRound { get; private set; }
         internal static int CurrentPoint { get; private set; }
+        internal static bool TabIsOpen => Instance?._tab != null && Instance._tab.IsOpen;
 
         private StatsHudPanel _hud;
         private CompactComparePanel _compare;
@@ -44,6 +46,7 @@ namespace MulliganMadness.UI
 
         private static System.Collections.IEnumerator OnGameStart(IGameModeHandler gm)
         {
+            MatchSessionActive = true;
             CurrentRound = 0;
             CurrentPoint = 0;
             InPickPhase = false;
@@ -55,6 +58,7 @@ namespace MulliganMadness.UI
 
         private static System.Collections.IEnumerator OnGameEnd(IGameModeHandler gm)
         {
+            MatchSessionActive = false;
             InPickPhase = false;
             InBattlePhase = false;
             Instance?._tab?.SetOpen(false);
@@ -132,25 +136,42 @@ namespace MulliganMadness.UI
 
         internal static bool InActiveMatch()
         {
-            if (GameManager.instance != null && GameManager.instance.isPlaying) return true;
+            if (!HasReadyPlayers()) return false;
+            if (MatchSessionActive) return true;
+            return IsSandboxMode();
+        }
 
+        private static bool HasReadyPlayers()
+        {
+            var players = PlayerManager.instance?.players;
+            if (players == null || players.Count == 0) return false;
+
+            foreach (var player in players)
+            {
+                if (PlayerStatsSnapshot.TryFrom(player, out _)) return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsSandboxMode()
+        {
             try
             {
+                if (GameModeManager.CurrentHandler is SandboxHandler) return true;
                 var id = GameModeManager.CurrentHandlerID;
                 if (!string.IsNullOrEmpty(id) &&
                     id.IndexOf("Sandbox", System.StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return true;
                 }
-
-                if (GameModeManager.CurrentHandler is SandboxHandler) return true;
             }
             catch
             {
                 // handler not ready
             }
 
-            return GM_Test.instance != null && GM_Test.instance.isActiveAndEnabled;
+            return false;
         }
 
         private void Update()
@@ -173,7 +194,14 @@ namespace MulliganMadness.UI
 
         private static void HandleTabToggle()
         {
-            if (!Plugin.Configs.EnableStatsTab.Value || Instance == null) return;
+            if (Instance?._tab == null) return;
+
+            if (!Plugin.Configs.EnableStatsTab.Value || !InActiveMatch())
+            {
+                if (Instance._tab.IsOpen) Instance._tab.SetOpen(false);
+                return;
+            }
+
             if (Input.GetKeyDown(KeyCode.Tab))
             {
                 Instance._tab.Toggle();
@@ -187,16 +215,12 @@ namespace MulliganMadness.UI
             {
                 Plugin.Configs.StatsHudVisible.Value = !Plugin.Configs.StatsHudVisible.Value;
             }
-
-            if (!Plugin.Configs.StatsHudVisible.Value && Instance._hud != null)
-            {
-                Instance._hud.EnsureBuilt();
-            }
         }
 
         private static void HandleCompareShortcuts()
         {
             if (Instance?._compare == null || !Plugin.Configs.EnableCompactCompare.Value) return;
+            if (!TabIsOpen || !InActiveMatch()) return;
             if (Input.GetKeyDown(KeyCode.P)) Instance._compare.PinBaseline();
             if (Input.GetKeyDown(KeyCode.Backspace) || Input.GetKeyDown(KeyCode.Delete)) Instance._compare.ResetBaseline();
         }

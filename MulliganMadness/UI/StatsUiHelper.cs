@@ -30,17 +30,6 @@ namespace MulliganMadness.UI
             accent.GetComponent<Image>().color = AccentColor;
             accent.GetComponent<Image>().raycastTarget = false;
 
-            var border = new GameObject("Border", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            border.transform.SetParent(root.transform, false);
-            var borderRect = border.GetComponent<RectTransform>();
-            borderRect.anchorMin = Vector2.zero;
-            borderRect.anchorMax = Vector2.one;
-            borderRect.offsetMin = Vector2.zero;
-            borderRect.offsetMax = Vector2.zero;
-            var borderImage = border.GetComponent<Image>();
-            borderImage.color = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.22f);
-            borderImage.raycastTarget = false;
-
             return root;
         }
 

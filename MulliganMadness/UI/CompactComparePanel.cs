@@ -104,13 +104,17 @@ namespace MulliganMadness.UI
 
         internal void Refresh()
         {
+            var enabled = Plugin.Configs.EnableCompactCompare.Value;
+            var show = enabled && StatsController.InActiveMatch() && StatsController.TabIsOpen;
+            if (!show)
+            {
+                if (_root != null) _root.SetActive(false);
+                return;
+            }
+
             EnsureBuilt();
             if (_root == null) return;
-
-            var enabled = Plugin.Configs.EnableCompactCompare.Value;
-            var inGame = StatsController.InActiveMatch();
-            _root.SetActive(enabled && inGame);
-            if (!_root.activeSelf) return;
+            _root.SetActive(true);
 
             var scale = StatsUiHelper.UiScale;
             StatsUiHelper.ApplyRect(

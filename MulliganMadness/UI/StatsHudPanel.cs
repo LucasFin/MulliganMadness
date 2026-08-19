@@ -43,23 +43,21 @@ namespace MulliganMadness.UI
 
         internal void Refresh(PlayerStatsSnapshot baseline)
         {
-            EnsureBuilt();
-            if (_root == null) return;
-
             var enabled = Plugin.Configs.EnableStatsHud.Value && Plugin.Configs.StatsHudVisible.Value;
             var inGame = StatsController.InActiveMatch();
             var hidePick = Plugin.Configs.HideStatsHudDuringPick.Value && StatsController.InPickPhase;
             var hideBattle = Plugin.Configs.HideStatsHudDuringBattle.Value && StatsController.InBattlePhase;
-            _root.SetActive(enabled && inGame && !hidePick && !hideBattle);
-
-            if (!_root.activeSelf) return;
-
             var player = PlayerStatsSnapshot.LocalPlayer();
-            if (player == null || !PlayerStatsSnapshot.TryFrom(player, out var snapshot))
+            if (!enabled || !inGame || hidePick || hideBattle || player == null ||
+                !PlayerStatsSnapshot.TryFrom(player, out var snapshot))
             {
-                _body.text = "Stats unavailable";
+                if (_root != null) _root.SetActive(false);
                 return;
             }
+
+            EnsureBuilt();
+            if (_root == null) return;
+            _root.SetActive(true);
 
             var extraRows = 0;
             if (snapshot.TryGetNumeric("Nulls", out var remaining) && remaining > 0.05f) extraRows++;

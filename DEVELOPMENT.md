@@ -7,7 +7,7 @@ export PATH="$HOME/.dotnet:$PATH"
 dotnet build MulliganMadness/MulliganMadness.csproj -c Release
 ```
 
-Copies `MulliganMadness.dll` into `package/` and your local r2modman Default profile plugins folder.
+Copies `MulliganMadness.dll` and `TabInfo.dll` into `package/` only. Do not copy into r2modman profiles; install and test through r2modman / Thunderstore.
 
 ## Publish to Thunderstore
 

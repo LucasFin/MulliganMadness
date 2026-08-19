@@ -97,10 +97,11 @@ namespace MulliganMadness.UI
 
         internal void SetOpen(bool open)
         {
-            EnsureBuilt();
-            IsOpen = open;
-            if (_root != null) _root.SetActive(open && Plugin.Configs.EnableStatsTab.Value);
-            if (open) Refresh();
+            var allow = open && Plugin.Configs.EnableStatsTab.Value && StatsController.InActiveMatch();
+            if (allow) EnsureBuilt();
+            IsOpen = allow;
+            if (_root != null) _root.SetActive(allow);
+            if (allow) Refresh();
         }
 
         internal void Toggle() => SetOpen(!IsOpen);

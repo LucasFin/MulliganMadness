@@ -25,6 +25,7 @@ namespace TabInfo
 
         private void Start()
         {
+            TabInfoManager.EnsureTemplates();
             GameModeManager.AddHook(GameModeHooks.HookRoundStart, OnRoundStart);
             GameModeManager.AddHook(GameModeHooks.HookPointStart, OnPointStart);
             GameModeManager.AddHook(GameModeHooks.HookGameStart, OnGameStart);

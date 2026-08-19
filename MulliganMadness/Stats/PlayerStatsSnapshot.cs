@@ -206,7 +206,7 @@ namespace MulliganMadness.Stats
                 sb.AppendLine();
             }
 
-            return sb.ToString().TrimEnd();
+            return sb.ToString().Trim();
         }
 
         private static string StatKey(string label)
