@@ -42,14 +42,14 @@ namespace MulliganMadness.UI
             headerRect.anchoredPosition = new Vector2(12f, -10f);
             headerRect.sizeDelta = new Vector2(-150f, 22f);
 
-            var pinBtn = StatsUiHelper.CreateButton(_root.transform, "Pin", PinBaseline, new Vector2(62f, 22f));
+            var pinBtn = StatsUiHelper.CreateButton(_root.transform, "Pin (P)", PinBaseline, new Vector2(78f, 22f));
             var pinRect = pinBtn.GetComponent<RectTransform>();
             pinRect.anchorMin = new Vector2(1f, 1f);
             pinRect.anchorMax = new Vector2(1f, 1f);
             pinRect.pivot = new Vector2(1f, 1f);
-            pinRect.anchoredPosition = new Vector2(-74f, -10f);
+            pinRect.anchoredPosition = new Vector2(-92f, -10f);
 
-            var resetBtn = StatsUiHelper.CreateButton(_root.transform, "Reset", ResetBaseline, new Vector2(62f, 22f));
+            var resetBtn = StatsUiHelper.CreateButton(_root.transform, "Reset", ResetBaseline, new Vector2(78f, 22f));
             var resetRect = resetBtn.GetComponent<RectTransform>();
             resetRect.anchorMin = new Vector2(1f, 1f);
             resetRect.anchorMax = new Vector2(1f, 1f);
@@ -72,7 +72,7 @@ namespace MulliganMadness.UI
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = true;
 
-            _hint = StatsUiHelper.CreateText(_root.transform, "Hint", "Pin locks baseline · Reset clears", StatsUiHelper.BaseFont * 0.82f, TextAlignmentOptions.BottomRight, new Color(0.68f, 0.74f, 0.80f, 0.92f));
+            _hint = StatsUiHelper.CreateText(_root.transform, "Hint", "Pin (P) locks baseline · Reset (Bksp) clears", StatsUiHelper.BaseFont * 0.82f, TextAlignmentOptions.BottomRight, new Color(0.68f, 0.74f, 0.80f, 0.92f));
             var hintRect = _hint.rectTransform;
             hintRect.anchorMin = new Vector2(0f, 0f);
             hintRect.anchorMax = new Vector2(1f, 0f);
@@ -117,13 +117,29 @@ namespace MulliganMadness.UI
             _root.SetActive(true);
 
             var scale = StatsUiHelper.UiScale;
-            StatsUiHelper.ApplyRect(
-                _root,
-                new Vector2(1f, 1f),
-                new Vector2(1f, 1f),
-                new Vector2(1f, 1f),
-                new Vector2(Plugin.Configs.CompareOffsetX.Value * scale, Plugin.Configs.CompareOffsetY.Value * scale),
-                new Vector2(500f * scale, 196f * scale));
+            var narrow = Screen.width < 1280f || Screen.height < 820f;
+            var panelSize = new Vector2((narrow ? 420f : 500f) * scale, 196f * scale);
+
+            if (narrow)
+            {
+                StatsUiHelper.ApplyRect(
+                    _root,
+                    new Vector2(1f, 0f),
+                    new Vector2(1f, 0f),
+                    new Vector2(1f, 0f),
+                    new Vector2(-14f * scale, 14f * scale),
+                    panelSize);
+            }
+            else
+            {
+                StatsUiHelper.ApplyRect(
+                    _root,
+                    new Vector2(1f, 1f),
+                    new Vector2(1f, 1f),
+                    new Vector2(1f, 1f),
+                    new Vector2(Plugin.Configs.CompareOffsetX.Value * scale, Plugin.Configs.CompareOffsetY.Value * scale),
+                    panelSize);
+            }
 
             var players = new List<Player>();
             foreach (var player in PlayerStatsSnapshot.ActivePlayers())
@@ -158,7 +174,7 @@ namespace MulliganMadness.UI
                 _columnTexts[i].text = StatsViewBuilder.BuildCompareColumn(current, baseline);
             }
 
-            _hint.text = CompareActive ? "Baseline pinned" : "Pin locks baseline · Reset clears";
+            _hint.text = CompareActive ? "Baseline pinned (P / Bksp)" : "Pin (P) locks baseline · Reset (Bksp) clears";
         }
     }
 }

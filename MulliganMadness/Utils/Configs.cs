@@ -5,7 +5,18 @@ namespace MulliganMadness.Utils
 {
     public class Configs
     {
-        public ConfigEntry<bool> EnableTakeAll { get; }
+        // Session defaults (host; persisted locally, synced to lobby)
+        public ConfigEntry<TakeAllMode> DefaultTakeAllMode { get; }
+        public ConfigEntry<int> DefaultTakeAllUsesPerPlayer { get; }
+        public ConfigEntry<float> DefaultVoteThreshold { get; }
+        public ConfigEntry<float> DefaultVoteTimeoutSeconds { get; }
+        public ConfigEntry<bool> DefaultVoteConsumesUse { get; }
+        public ConfigEntry<bool> DefaultTakeAllCurseCost { get; }
+        public ConfigEntry<TakeAllCurseOnExisting> DefaultCurseOnExisting { get; }
+        public ConfigEntry<bool> DefaultEnableMercyVote { get; }
+        public ConfigEntry<int> DefaultMercyRoundDeficit { get; }
+        public ConfigEntry<bool> DefaultMercyOncePerGame { get; }
+
         public ConfigEntry<bool> EnableAutoPickCurses { get; }
         public ConfigEntry<float> PanicTimerSeconds { get; }
         public ConfigEntry<bool> FixPristineHealth { get; }
@@ -15,9 +26,14 @@ namespace MulliganMadness.Utils
         public ConfigEntry<bool> EnableJarOfDirt { get; }
         public ConfigEntry<bool> SandbagOncePerGame { get; }
 
+        // Client-local stats UI
         public ConfigEntry<bool> EnableStatsHud { get; }
         public ConfigEntry<bool> StatsHudVisible { get; }
+        public ConfigEntry<bool> StatsHudCollapsed { get; }
         public ConfigEntry<bool> StatsHudSimpleMode { get; }
+        public ConfigEntry<bool> StatsHudUltraCompact { get; }
+        public ConfigEntry<bool> StatsHudPeekMode { get; }
+        public ConfigEntry<KeyCode> StatsHudPeekKey { get; }
         public ConfigEntry<bool> HideStatsHudDuringPick { get; }
         public ConfigEntry<bool> HideStatsHudDuringBattle { get; }
         public ConfigEntry<KeyCode> StatsHudToggleKey { get; }
@@ -41,59 +57,120 @@ namespace MulliganMadness.Utils
 
         public Configs(ConfigFile config)
         {
-            EnableTakeAll = config.Bind(
-                "Take All",
-                "Enabled",
+            DefaultTakeAllMode = config.Bind(
+                "Session Defaults",
+                "TakeAllMode",
+                TakeAllMode.OncePerGame,
+                "0=Disabled, 1=Once per game, 2=Multi-use, 3=Vote");
+
+            DefaultTakeAllUsesPerPlayer = config.Bind(
+                "Session Defaults",
+                "TakeAllUsesPerPlayer",
+                1,
+                "Take All uses per player per game (0-3).");
+
+            DefaultVoteThreshold = config.Bind(
+                "Session Defaults",
+                "VoteThreshold",
+                0.5f,
+                "Fraction of voters who must accept (excluding requester).");
+
+            DefaultVoteTimeoutSeconds = config.Bind(
+                "Session Defaults",
+                "VoteTimeoutSeconds",
+                15f,
+                "Seconds before a Take All vote expires.");
+
+            DefaultVoteConsumesUse = config.Bind(
+                "Session Defaults",
+                "VoteConsumesUse",
                 true,
-                "When enabled, each player gets one Take All during card pick, usable once per game.");
+                "Whether a passed vote consumes a Take All use.");
+
+            DefaultTakeAllCurseCost = config.Bind(
+                "Session Defaults",
+                "TakeAllCurseCost",
+                false,
+                "Take All grants a random Mulligan Madness auto-pick curse afterward.");
+
+            DefaultCurseOnExisting = config.Bind(
+                "Session Defaults",
+                "CurseOnExisting",
+                TakeAllCurseOnExisting.ReplaceExisting,
+                "0=Replace existing MM curse, 1=Skip curse if player already has one.");
+
+            DefaultEnableMercyVote = config.Bind(
+                "Session Defaults",
+                "EnableMercyVote",
+                false,
+                "Auto-offer a Take All vote when a player is down by MercyRoundDeficit round wins.");
+
+            DefaultMercyRoundDeficit = config.Bind(
+                "Session Defaults",
+                "MercyRoundDeficit",
+                2,
+                "Round-win deficit vs the leader before mercy vote can trigger.");
+
+            DefaultMercyOncePerGame = config.Bind(
+                "Session Defaults",
+                "MercyOncePerGame",
+                true,
+                "Limit mercy vote to once per player per game.");
 
             FixPristineHealth = config.Bind(
-                "Fixes",
+                "Session Defaults",
                 "FixPristineHealth",
                 true,
                 "Stop Pristine Perseverance from collapsing HP when a later card reduces health.");
 
             EnableAutoPickCurses = config.Bind(
-                "Curses",
+                "Session Defaults",
                 "EnableAutoPickCurses",
                 true,
                 "Register the auto-pick curse set (mutually exclusive with each other).");
 
             PanicTimerSeconds = config.Bind(
-                "Curses",
+                "Session Defaults",
                 "PanicTimerSeconds",
                 3f,
                 "How long Panic Pick waits before choosing for you.");
 
             EnableThiefCard = config.Bind(
-                "Cards",
+                "Session Defaults",
                 "EnableThief",
                 true,
-                "Register the Thief legendary card.");
+                "Allow the Thief legendary card in this session.");
 
             EnableTakebacksies = config.Bind(
-                "Cards",
+                "Session Defaults",
                 "EnableTakebacksies",
                 true,
-                "Register Takebacksies and inject it for stolen-from players.");
+                "Allow Takebacksies and inject it for stolen-from players.");
 
             EnableSandbagSimulator = config.Bind(
-                "Cards",
+                "Session Defaults",
                 "EnableSandbagSimulator",
                 true,
-                "Register the Sandbag Simulator legendary card.");
+                "Allow the Sandbag Simulator legendary card in this session.");
 
             EnableJarOfDirt = config.Bind(
-                "Cards",
+                "Session Defaults",
                 "EnableJarOfDirt",
                 true,
-                "Register the Jar of Dirt unique card (Nulls become treasures).");
+                "Allow the Jar of Dirt unique card in this session.");
 
             SandbagOncePerGame = config.Bind(
-                "Cards",
+                "Session Defaults",
                 "SandbagOncePerGame",
                 true,
                 "Limit Sandbag Simulator to once per game per player.");
+
+            // Legacy migration: old "Take All.Enabled" key
+            var legacyTakeAll = config.Bind("Take All", "Enabled", true, "Deprecated — use Session Defaults.TakeAllMode.");
+            if (!legacyTakeAll.Value && DefaultTakeAllMode.Value != TakeAllMode.Disabled)
+            {
+                DefaultTakeAllMode.Value = TakeAllMode.Disabled;
+            }
 
             EnableStatsHud = config.Bind(
                 "Stats HUD",
@@ -107,16 +184,40 @@ namespace MulliganMadness.Utils
                 true,
                 "Whether the HUD is currently shown (toggle in-game with StatsHudToggleKey).");
 
+            StatsHudCollapsed = config.Bind(
+                "Stats HUD",
+                "Collapsed",
+                false,
+                "Show the HUD as a minimal strip instead of the full panel.");
+
             StatsHudSimpleMode = config.Bind(
                 "Stats HUD",
                 "SimpleMode",
                 true,
                 "Show a compact stat list instead of every stat.");
 
+            StatsHudUltraCompact = config.Bind(
+                "Stats HUD",
+                "UltraCompact",
+                false,
+                "Narrow HUD with fewer lines.");
+
+            StatsHudPeekMode = config.Bind(
+                "Stats HUD",
+                "PeekMode",
+                false,
+                "Only show the HUD while holding the peek key.");
+
+            StatsHudPeekKey = config.Bind(
+                "Stats HUD",
+                "PeekKey",
+                KeyCode.LeftAlt,
+                "Hold to show HUD when PeekMode is enabled.");
+
             HideStatsHudDuringPick = config.Bind(
                 "Stats HUD",
                 "HideDuringPick",
-                false,
+                true,
                 "Hide the always-on HUD during card pick.");
 
             HideStatsHudDuringBattle = config.Bind(

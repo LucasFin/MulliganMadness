@@ -1,4 +1,5 @@
 using CardChoiceSpawnUniqueCardPatch.CustomCategories;
+using MulliganMadness.Utils;
 using UnboundLib.Cards;
 using UnityEngine;
 using WillsWackyManagers.UnityTools;
@@ -33,22 +34,10 @@ namespace MulliganMadness.Curses
         {
         }
 
-        protected override GameObject GetCardArt() => null;
-
-        protected override CardThemeColor.CardThemeColorType GetTheme() => CardThemeColor.CardThemeColorType.EvilPurple;
-
-        public override string GetModName() => Plugin.CurseInitials;
-
-        public override bool GetEnabled() => Plugin.Configs == null || Plugin.Configs.EnableAutoPickCurses.Value;
+        public override bool GetEnabled() => SessionSettings.Current.EnableAutoPickCurses;
 
         public static void RegisterAll()
         {
-            if (Plugin.Configs != null && !Plugin.Configs.EnableAutoPickCurses.Value)
-            {
-                Plugin.Instance.Log("Auto-pick curses disabled in config; skipping registration.");
-                return;
-            }
-
             CustomCard.BuildCard<ForcedChoice>(info =>
             {
                 ForcedChoice.Card = info;
@@ -65,5 +54,17 @@ namespace MulliganMadness.Curses
                 CurseManager.instance.RegisterCurse(info);
             });
         }
+
+        protected override GameObject GetCardArt()
+        {
+            var artName = GetArtName();
+            return string.IsNullOrEmpty(artName) ? null : CardArtFactory.Create(artName);
+        }
+
+        protected abstract string GetArtName();
+
+        protected override CardThemeColor.CardThemeColorType GetTheme() => CardThemeColor.CardThemeColorType.EvilPurple;
+
+        public override string GetModName() => Plugin.CurseInitials;
     }
 }

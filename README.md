@@ -2,6 +2,22 @@
 
 Once-per-game **Take All** during card picks, auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
 
+## Host session settings (Mods → Mulligan Madness)
+
+Match rules are set by the **host** and sync to everyone in the lobby when players connect. A one-line summary appears at the **first card pick** of each game.
+
+| Setting | Description |
+| --- | --- |
+| **Take All mode** | Off, once per game, multi-use (0–3), or **vote** (others accept/decline during your pick) |
+| **Take All curse cost** | Take All works but you receive a random MM auto-pick curse afterward |
+| **Mercy vote** | Auto-offers a Take All vote when you're down ≥ N round wins vs the leader |
+| **Presets** | **Chaos** (vote Take All, curse cost, fast Panic, unlimited Sandbag) · **Competitive** (Take All/curses off) |
+| **Card / curse toggles** | Thief, Takebacksies, Sandbag, Jar of Dirt, auto-pick curses |
+| **Panic Pick timer** | Seconds before auto-pick |
+| **Sandbag limit** | Once per game toggle |
+
+Stats HUD / Tab / compare settings remain **personal** (not synced).
+
 ## Take All
 When enabled (Mods → Mulligan Madness), a **TAKE ALL** button appears on your pick turn. Each player can use it **once per game**.
 
@@ -29,14 +45,14 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | **Sandbag Simulator** | Legendary | Once per game, reroll any player’s current pick hand (including yourself) |
 | **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
 
-## Stats (v0.3.2 — replaces Infoholic + TabInfo)
+## Stats (v0.3.5 — replaces Infoholic + TabInfo)
 
 All stats UI is client-side and works for host and regular players.
 
 | Feature | Default | Controls |
 | --- | --- | --- |
-| **Always-on HUD** | On | Bottom-left transparent live stats. Toggle with **O**. Hidden outside a match. |
-| **Tab overlay** | On | Press **Tab during a match** for full stats on every player. Does not open in menus. |
+| **Always-on HUD** | On | Bottom-left transparent live stats. Toggle with **O**. Collapse with **−** on the panel. Hidden during pick by default. |
+| **Tab overlay** | On | Press **Tab during a match** for full stats. **Esc** closes. Does not open in menus. |
 | **Compact compare** | On | Shown **only with the Tab overlay**. **Pin** locks a baseline; **Reset** clears it. |
 | **Card hover preview** | On | During **your** pick, hover a card to see green `[+/-]` deltas on your HUD for how it would change your build. |
 

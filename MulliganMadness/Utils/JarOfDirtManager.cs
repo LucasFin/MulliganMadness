@@ -22,7 +22,7 @@ namespace MulliganMadness.Utils
         internal static void TryConvert(Player player)
         {
             if (player == null) return;
-            if (Plugin.Configs != null && !Plugin.Configs.EnableJarOfDirt.Value) return;
+            if (!SessionSettings.Current.EnableJarOfDirt) return;
             NetworkingManager.RPC(typeof(JarOfDirtManager), nameof(RPCA_ConvertNulls), player.playerID);
         }
 

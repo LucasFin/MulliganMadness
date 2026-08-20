@@ -1,4 +1,5 @@
 using HarmonyLib;
+using MulliganMadness.Utils;
 using UnityEngine;
 
 namespace MulliganMadness.Patches
@@ -10,7 +11,7 @@ namespace MulliganMadness.Patches
     // bonus off before card stats so the new % applies to real max HP.
     internal static class PristineHealth
     {
-        internal static bool Enabled => Plugin.Configs == null || Plugin.Configs.FixPristineHealth.Value;
+        internal static bool Enabled => SessionSettings.Current.FixPristineHealth;
 
         internal static void Strip(Player player)
         {

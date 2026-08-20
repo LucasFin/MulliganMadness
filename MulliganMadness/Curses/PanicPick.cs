@@ -6,6 +6,8 @@ namespace MulliganMadness.Curses
     {
         internal static CardInfo Card;
 
+        protected override string GetArtName() => "panicpick";
+
         protected override string GetTitle() => "Panic Pick";
 
         protected override string GetDescription() =>

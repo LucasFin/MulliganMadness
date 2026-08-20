@@ -45,7 +45,7 @@ namespace MulliganMadness.Utils
 
         internal static void TryPromptSteal(Player thief)
         {
-            if (thief == null || !Plugin.Configs.EnableThiefCard.Value) return;
+            if (thief == null || !SessionSettings.Current.EnableThiefCard) return;
             if (HasUsedThief(thief))
             {
                 Plugin.Instance.Log($"Player {thief.playerID} already used Thief this game.");

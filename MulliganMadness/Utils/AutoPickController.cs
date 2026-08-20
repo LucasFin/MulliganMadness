@@ -105,7 +105,7 @@ namespace MulliganMadness.Utils
 
             if (mode == AutoPickMode.PanicTimer)
             {
-                var wait = Plugin.Configs != null ? Plugin.Configs.PanicTimerSeconds.Value : 3f;
+                var wait = SessionSettings.Current.PanicTimerSeconds;
                 float elapsed = 0f;
                 while (elapsed < wait && generation == _pickGeneration && CardChoice.instance != null && CardChoice.instance.IsPicking)
                 {

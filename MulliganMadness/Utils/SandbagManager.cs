@@ -19,8 +19,8 @@ namespace MulliganMadness.Utils
 
         internal static bool HasRemaining(Player player) =>
             player != null
-            && (Plugin.Configs == null || Plugin.Configs.EnableSandbagSimulator.Value)
-            && (Plugin.Configs == null || !Plugin.Configs.SandbagOncePerGame.Value || !UsedThisGame.Contains(player.playerID));
+            && SessionSettings.Current.EnableSandbagSimulator
+            && (!SessionSettings.Current.SandbagOncePerGame || !UsedThisGame.Contains(player.playerID));
 
         internal static void TryPromptSandbag(Player user)
         {
@@ -45,7 +45,7 @@ namespace MulliganMadness.Utils
             var target = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == targetId);
             if (user == null || target == null) return;
 
-            if (Plugin.Configs != null && Plugin.Configs.SandbagOncePerGame.Value)
+            if (SessionSettings.Current.SandbagOncePerGame)
             {
                 UsedThisGame.Add(userId);
             }

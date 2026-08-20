@@ -30,9 +30,12 @@ namespace MulliganMadness.UI
                 new Vector2(0.5f, 0.5f),
                 Vector2.zero,
                 new Vector2(Mathf.Min(Screen.width * 0.88f, 960f * scale), Mathf.Min(Screen.height * 0.82f, 700f * scale)),
-                0.95f);
+                0.97f);
 
-            _title = StatsUiHelper.CreateText(_root.transform, "Title", "Player Stats", StatsUiHelper.TitleFont, TextAlignmentOptions.TopLeft, StatsUiHelper.AccentColor);
+            var panelImage = _root.GetComponent<Image>();
+            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, 0.97f);
+
+            _title = StatsUiHelper.CreateText(_root.transform, "Title", "Player Stats", StatsUiHelper.TitleFont * 1.1f, TextAlignmentOptions.TopLeft, StatsUiHelper.AccentColor);
             var titleRect = _title.rectTransform;
             titleRect.anchorMin = new Vector2(0f, 1f);
             titleRect.anchorMax = new Vector2(1f, 1f);
@@ -40,7 +43,7 @@ namespace MulliganMadness.UI
             titleRect.anchoredPosition = new Vector2(14f, -10f);
             titleRect.sizeDelta = new Vector2(-120f, 30f);
 
-            var closeBtn = StatsUiHelper.CreateButton(_root.transform, "Close", () => SetOpen(false), new Vector2(72f, 26f));
+            var closeBtn = StatsUiHelper.CreateButton(_root.transform, "Close", () => SetOpen(false), new Vector2(88f, 32f));
             var closeRect = closeBtn.GetComponent<RectTransform>();
             closeRect.anchorMin = new Vector2(1f, 1f);
             closeRect.anchorMax = new Vector2(1f, 1f);
@@ -54,7 +57,8 @@ namespace MulliganMadness.UI
             scrollRect.anchorMax = new Vector2(1f, 1f);
             scrollRect.offsetMin = new Vector2(12f, 12f);
             scrollRect.offsetMax = new Vector2(-12f, -44f);
-            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.12f);
+            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.22f);
+            scrollGo.GetComponent<Image>().raycastTarget = false;
 
             var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
             viewport.transform.SetParent(scrollGo.transform, false);
@@ -90,7 +94,39 @@ namespace MulliganMadness.UI
             scroll.content = _content;
             scroll.horizontal = false;
             scroll.vertical = true;
+            scroll.scrollSensitivity = 28f;
             scroll.movementType = ScrollRect.MovementType.Clamped;
+
+            var scrollbarGo = new GameObject("Scrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));
+            scrollbarGo.transform.SetParent(scrollGo.transform, false);
+            var scrollbarRect = scrollbarGo.GetComponent<RectTransform>();
+            scrollbarRect.anchorMin = new Vector2(1f, 0f);
+            scrollbarRect.anchorMax = new Vector2(1f, 1f);
+            scrollbarRect.pivot = new Vector2(1f, 1f);
+            scrollbarRect.sizeDelta = new Vector2(14f, 0f);
+            scrollbarRect.anchoredPosition = Vector2.zero;
+            scrollbarGo.GetComponent<Image>().color = new Color(0.08f, 0.10f, 0.14f, 0.85f);
+
+            var handleGo = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+            handleGo.transform.SetParent(scrollbarGo.transform, false);
+            var handleRect = handleGo.GetComponent<RectTransform>();
+            handleRect.sizeDelta = new Vector2(12f, 24f);
+            var handleImage = handleGo.GetComponent<Image>();
+            handleImage.color = new Color(0.35f, 0.82f, 0.72f, 0.85f);
+
+            var scrollbar = scrollbarGo.GetComponent<Scrollbar>();
+            scrollbar.handleRect = handleRect;
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+
+            if (_root != null)
+            {
+                var rootImage = _root.GetComponent<Image>();
+                if (rootImage != null) rootImage.raycastTarget = false;
+            }
 
             _root.SetActive(false);
         }

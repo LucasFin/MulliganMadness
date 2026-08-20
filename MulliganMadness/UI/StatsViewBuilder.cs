@@ -10,12 +10,11 @@ namespace MulliganMadness.UI
         private static readonly Color LabelColor = new Color(0.62f, 0.72f, 0.82f, 1f);
         private static readonly Color ValueColor = new Color(0.94f, 0.97f, 1f, 1f);
         private static readonly Color SectionColor = new Color(0.45f, 0.58f, 0.72f, 0.95f);
-        private static readonly Color Accent = new Color(0.35f, 0.82f, 0.72f, 1f);
 
         internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"<size=105%><color=#{ColorToHex(Accent)}><b>{snap.PlayerName}</b></color></size>");
+            sb.AppendLine($"<size=105%><color=#{ColorToHex(StatsUiHelper.AccentColor)}><b>{snap.PlayerName}</b></color></size>");
 
             AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, baseline, preview, isHero: true);
             AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, preview, isHero: true);

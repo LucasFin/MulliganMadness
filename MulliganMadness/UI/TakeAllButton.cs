@@ -62,18 +62,15 @@ namespace MulliganMadness.UI
             rect.anchoredPosition = new Vector2(0f, 36f);
             rect.sizeDelta = new Vector2(320f, 64f);
 
-            // Soft shadow
             var shadowGo = CreateChild("Shadow", _root.transform, Vector2.zero, Vector2.one, new Vector2(6f, -6f), Vector2.zero);
             var shadow = shadowGo.AddComponent<Image>();
             shadow.color = new Color(0f, 0f, 0f, 0.45f);
             shadow.raycastTarget = false;
 
-            // Border plate
             var borderGo = CreateChild("Border", _root.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             _border = borderGo.AddComponent<Image>();
             _border.color = new Color(0.95f, 0.82f, 0.35f, 1f);
 
-            // Inner fill
             var fillGo = CreateChild("Fill", borderGo.transform, Vector2.zero, Vector2.one, new Vector2(3f, 3f), new Vector2(-3f, -3f));
             _fill = fillGo.AddComponent<Image>();
             _fill.color = new Color(0.10f, 0.42f, 0.28f, 0.98f);
@@ -87,15 +84,8 @@ namespace MulliganMadness.UI
             colors.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.7f);
             colors.fadeDuration = 0.08f;
             _button.colors = colors;
-            _button.onClick.AddListener(() =>
-            {
-                if (TakeAllManager.TryTakeAll())
-                {
-                    RefreshVisibility();
-                }
-            });
+            _button.onClick.AddListener(OnClick);
 
-            // Hover brighten
             var hover = fillGo.AddComponent<TakeAllHover>();
             hover.fill = _fill;
             hover.border = _border;
@@ -118,6 +108,17 @@ namespace MulliganMadness.UI
             _subtitle.color = new Color(0.92f, 0.88f, 0.70f, 0.95f);
             _subtitle.text = "once per game";
             _subtitle.raycastTarget = false;
+        }
+
+        private void OnClick()
+        {
+            if (SessionSettings.Current.TakeAllMode == TakeAllMode.Vote)
+            {
+                if (TakeAllVoteManager.TryRequestVote()) RefreshVisibility();
+                return;
+            }
+
+            if (TakeAllManager.TryTakeAll()) RefreshVisibility();
         }
 
         private static GameObject CreateChild(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
@@ -150,21 +151,32 @@ namespace MulliganMadness.UI
 
             var picker = TakeAllManager.GetCurrentPicker();
             var remaining = TakeAllManager.HasRemaining(picker);
+            var voteMode = SessionSettings.Current.TakeAllMode == TakeAllMode.Vote;
             var show = TakeAllManager.IsEnabled
                        && TakeAllManager.IsLocalPlayersTurn()
                        && remaining
                        && TakeAllManager.IsOfferedHandReady()
-                       && !ItemShopGuard.AnyPlayerInShop();
+                       && !ItemShopGuard.AnyPlayerInShop()
+                       && !TakeAllVoteManager.IsActive;
 
             _root.SetActive(show);
             if (!show) return;
 
+            var usesLeft = TakeAllManager.UsesRemaining(picker);
+            var curse = SessionSettings.Current.TakeAllCurseCost;
+            if (_title != null)
+            {
+                if (voteMode) _title.text = curse ? "REQUEST TAKE ALL (curse!)" : "REQUEST TAKE ALL VOTE";
+                else _title.text = curse ? "TAKE ALL (curse!)" : "TAKE ALL";
+            }
+
             if (_subtitle != null)
             {
                 var drawCount = TakeAllManager.GetExpectedDrawCount();
+                var modeLabel = voteMode ? "vote during your pick" : usesLeft > 1 ? $"{usesLeft} uses left" : "once per game";
                 _subtitle.text = drawCount > 1
-                    ? "once per game · current hand only"
-                    : "once per game · unused";
+                    ? $"{modeLabel} · current hand only"
+                    : $"{modeLabel} · unused";
             }
 
             if (_button != null) _button.interactable = true;

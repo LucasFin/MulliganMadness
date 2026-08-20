@@ -174,6 +174,8 @@ namespace MulliganMadness.UI
             return false;
         }
 
+        internal void RebuildHud() => _hud?.Rebuild();
+
         private void Update()
         {
             if (Unbound.Instance?.canvas == null) return;
@@ -206,9 +208,14 @@ namespace MulliganMadness.UI
             {
                 Instance._tab.Toggle();
             }
+
+            if (Input.GetKeyDown(KeyCode.Escape) && Instance._tab.IsOpen)
+            {
+                Instance._tab.SetOpen(false);
+            }
         }
 
-        private static void HandleHudToggle()
+        internal static void HandleHudToggle()
         {
             if (!Plugin.Configs.EnableStatsHud.Value || Instance == null) return;
             if (Input.GetKeyDown(Plugin.Configs.StatsHudToggleKey.Value))

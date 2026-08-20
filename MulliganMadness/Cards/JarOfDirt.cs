@@ -35,7 +35,7 @@ namespace MulliganMadness.Cards
             }
         };
 
-        public override bool GetEnabled() => Plugin.Configs == null || Plugin.Configs.EnableJarOfDirt.Value;
+        public override bool GetEnabled() => SessionSettings.Current.EnableJarOfDirt;
 
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
             Gravity gravity, Block block, CharacterStatModifiers characterStats)
