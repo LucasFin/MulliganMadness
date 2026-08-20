@@ -24,7 +24,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.3.5";
+        public const string Version = "0.3.7";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
 
@@ -88,9 +88,12 @@ namespace MulliganMadness
             AutoPickController.ResetForNewGame();
             StealLedger.ResetForNewGame();
             SandbagManager.ResetForNewGame();
+            DefaultAppearance.ResetForNewGame();
             KeysUnlockReset.Reapply();
             Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
             Instance.ExecuteAfterSeconds(0.5f, TakebacksiesBlacklist.EnsureGlobalBlacklist);
+            Instance.ExecuteAfterSeconds(0.6f, () => DefaultAppearance.TryApply());
+            Instance.ExecuteAfterSeconds(1.2f, () => DefaultAppearance.TryApply());
             yield break;
         }
 

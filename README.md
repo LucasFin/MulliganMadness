@@ -45,18 +45,41 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | **Sandbag Simulator** | Legendary | Once per game, reroll any player’s current pick hand (including yourself) |
 | **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
 
-## Stats (v0.3.5 — replaces Infoholic + TabInfo)
+## Default appearance (Mods → Mulligan Madness)
 
-All stats UI is client-side and works for host and regular players.
+Save your face and color once, then optionally **apply each game** at spawn. You can still change them in character select whenever you want.
 
-| Feature | Default | Controls |
+- **Save current face & color** — capture from lobby/character select
+- **Default color index** — palette slot on the color wheel
+- **Apply saved appearance now** — test without restarting
+
+## Stats (v0.3.7 — replaces Infoholic + TabInfo)
+
+All stats UI is client-side. Two surfaces only — no overlapping panels.
+
+### Quick controls
+
+| Key | What it does |
+| --- | --- |
+| **O** | Show/hide bottom-left live stats |
+| **Tab** | Open/close the stats panel (left side by default) |
+| **Esc** | Close Tab panel |
+| **C** | In Tab: toggle compare vs another player |
+| **[ / ]** | In compare mode: switch opponent |
+
+**Bottom-left HUD:** transparent text, always on unless hidden. In battle shows your stats. During card picks it switches to **whoever is picking** — hover a card to preview how it would change their build `[+/-]`.
+
+**Tab panel:** scroll through every player. **Compare mode (C)** shows your stats with green/red `(delta)` vs one opponent, plus their full build below for reference.
+
+Adjust panel size, position, and opacity under **Mods → Mulligan Madness**.
+
+| Feature | Default | Notes |
 | --- | --- | --- |
-| **Always-on HUD** | On | Bottom-left transparent live stats. Toggle with **O**. Collapse with **−** on the panel. Hidden during pick by default. |
-| **Tab overlay** | On | Press **Tab during a match** for full stats. **Esc** closes. Does not open in menus. |
-| **Compact compare** | On | Shown **only with the Tab overlay**. **Pin** locks a baseline; **Reset** clears it. |
-| **Card hover preview** | On | During **your** pick, hover a card to see green `[+/-]` deltas on your HUD for how it would change your build. |
+| **Always-on HUD** | On | Bottom-left · **O** toggles · pick phase follows active picker |
+| **Tab overlay** | On | Left-side scroll panel · **C** compare · auto-closes on pick |
+| **Compare** | In Tab | One opponent at a time with stat deltas — no extra overlay |
 
-Configure under **Mods → Mulligan Madness**. Simple HUD mode shows fewer stats (Infoholic-style).
+Configure under **Mods → Mulligan Madness**. Host rules vs personal UI are labeled in the menu.
 
 ## Install
 Install with **r2modman** / Thunderstore Mod Manager. Dependencies are pulled in automatically.

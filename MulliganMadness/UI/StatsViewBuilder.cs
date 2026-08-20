@@ -11,10 +11,11 @@ namespace MulliganMadness.UI
         private static readonly Color ValueColor = new Color(0.94f, 0.97f, 1f, 1f);
         private static readonly Color SectionColor = new Color(0.45f, 0.58f, 0.72f, 0.95f);
 
-        internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions)
+        internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"<size=105%><color=#{ColorToHex(StatsUiHelper.AccentColor)}><b>{snap.PlayerName}</b></color></size>");
+            var suffix = string.IsNullOrEmpty(headerSuffix) ? "" : headerSuffix;
+            sb.AppendLine($"<size=105%><b>{snap.PlayerName}{suffix}</b></size>");
 
             AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, baseline, preview, isHero: true);
             AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, preview, isHero: true);
@@ -90,6 +91,27 @@ namespace MulliganMadness.UI
             AppendRow(sb, "Block", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, null);
             AppendRow(sb, "Move", snap.GetDisplay("MoveSPD"), "MoveSPD", snap, baseline, null);
             AppendRow(sb, "Atk", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, null);
+            return sb.ToString().Trim();
+        }
+
+        internal static string BuildTabCompare(
+            PlayerStatsSnapshot local,
+            PlayerStatsSnapshot opponent,
+            PlayerStatsSnapshot pinnedLocal,
+            IEnumerable<(string category, string label, string value)> extensions)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"<size=108%><b>You vs {opponent.PlayerName}</b></size>");
+            sb.AppendLine("<size=82%><color=#9AA8B5>Numbers in ( ) compare you to their current build</color></size>");
+            sb.AppendLine();
+            sb.Append(BuildHud(local, simple: false, baseline: opponent, preview: null, extensions));
+            if (pinnedLocal != null)
+            {
+                sb.AppendLine();
+                sb.AppendLine("<size=88%><color=#9AA8B5>— Since your pin —</color></size>");
+                sb.Append(BuildHud(local, simple: true, baseline: pinnedLocal, preview: null, extensions: null));
+            }
+
             return sb.ToString().Trim();
         }
 

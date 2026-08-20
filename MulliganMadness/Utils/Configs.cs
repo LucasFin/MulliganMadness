@@ -43,17 +43,34 @@ namespace MulliganMadness.Utils
         public ConfigEntry<float> StatsHudColorG { get; }
         public ConfigEntry<float> StatsHudColorB { get; }
         public ConfigEntry<bool> EnableStatsTab { get; }
-        public ConfigEntry<bool> EnableCompactCompare { get; }
-        public ConfigEntry<int> CompactCompareMaxPlayers { get; }
-        public ConfigEntry<bool> EnableCardHoverPreview { get; }
+        public ConfigEntry<bool> EnableTabCompare { get; }
+        public ConfigEntry<float> TabPanelWidth { get; }
+        public ConfigEntry<float> TabPanelHeightFraction { get; }
+        public ConfigEntry<float> TabPanelOpacity { get; }
+        public ConfigEntry<bool> TabAnchorLeft { get; }
+        public ConfigEntry<bool> ShowPickDeltasOnHud { get; }
         public ConfigEntry<float> StatsPanelScale { get; }
         public ConfigEntry<float> StatsHudOffsetX { get; }
         public ConfigEntry<float> StatsHudOffsetY { get; }
-        public ConfigEntry<float> CompareOffsetX { get; }
-        public ConfigEntry<float> CompareOffsetY { get; }
         public ConfigEntry<float> StatsAccentR { get; }
         public ConfigEntry<float> StatsAccentG { get; }
         public ConfigEntry<float> StatsAccentB { get; }
+
+        public ConfigEntry<bool> DefaultAppearanceEnabled { get; }
+        public ConfigEntry<int> DefaultColorIndex { get; }
+        public ConfigEntry<int> DefaultEyeId { get; }
+        public ConfigEntry<int> DefaultMouthId { get; }
+        public ConfigEntry<int> DefaultDetailId { get; }
+        public ConfigEntry<int> DefaultDetail2Id { get; }
+        public ConfigEntry<float> DefaultEyeOffsetX { get; }
+        public ConfigEntry<float> DefaultEyeOffsetY { get; }
+        public ConfigEntry<float> DefaultMouthOffsetX { get; }
+        public ConfigEntry<float> DefaultMouthOffsetY { get; }
+        public ConfigEntry<float> DefaultDetailOffsetX { get; }
+        public ConfigEntry<float> DefaultDetailOffsetY { get; }
+        public ConfigEntry<float> DefaultDetail2OffsetX { get; }
+        public ConfigEntry<float> DefaultDetail2OffsetY { get; }
+        public ConfigEntry<bool> AutoCloseTabDuringPick { get; }
 
         public Configs(ConfigFile config)
         {
@@ -217,7 +234,7 @@ namespace MulliganMadness.Utils
             HideStatsHudDuringPick = config.Bind(
                 "Stats HUD",
                 "HideDuringPick",
-                true,
+                false,
                 "Hide the always-on HUD during card pick.");
 
             HideStatsHudDuringBattle = config.Bind(
@@ -235,11 +252,11 @@ namespace MulliganMadness.Utils
             StatsHudOpacity = config.Bind(
                 "Stats HUD",
                 "Opacity",
-                0.32f,
-                "Background opacity for the HUD panel.");
+                0f,
+                "Background opacity for the HUD panel (0 = text only).");
             if (Mathf.Abs(StatsHudOpacity.Value - 0.78f) < 0.001f)
             {
-                StatsHudOpacity.Value = 0.32f;
+                StatsHudOpacity.Value = 0f;
             }
 
             StatsHudFontScale = config.Bind(
@@ -258,32 +275,79 @@ namespace MulliganMadness.Utils
                 true,
                 "Tab overlay for all players (replaces TabInfo). Press Tab in-game.");
 
-            EnableCompactCompare = config.Bind(
-                "Stats Compare",
-                "Enabled",
+            EnableTabCompare = config.Bind(
+                "Stats Tab",
+                "EnableCompare",
                 true,
-                "Compact multi-player compare panel with pin/reset baseline.");
+                "Compare mode inside the Tab overlay (C toggles, [ ] switches opponent).");
 
-            CompactCompareMaxPlayers = config.Bind(
-                "Stats Compare",
-                "MaxPlayers",
-                4,
-                "How many player columns to show (2-4).");
+            TabPanelWidth = config.Bind(
+                "Stats Tab",
+                "PanelWidth",
+                360f,
+                "Tab overlay width in pixels (before scale).");
 
-            EnableCardHoverPreview = config.Bind(
-                "Stats Preview",
-                "Enabled",
+            TabPanelHeightFraction = config.Bind(
+                "Stats Tab",
+                "PanelHeightFraction",
+                0.82f,
+                "Tab overlay height as a fraction of screen height.");
+
+            TabPanelOpacity = config.Bind(
+                "Stats Tab",
+                "PanelOpacity",
+                0.94f,
+                "Tab overlay background opacity.");
+
+            TabAnchorLeft = config.Bind(
+                "Stats Tab",
+                "AnchorLeft",
                 true,
-                "During your pick, show how hovered cards would change your stats.");
+                "Anchor Tab overlay to the left edge so card picks stay visible.");
+
+            ShowPickDeltasOnHud = config.Bind(
+                "Stats HUD",
+                "ShowPickDeltas",
+                true,
+                "During picks, show card deltas on the bottom-left HUD for whoever is picking (hover a card to preview).");
 
             StatsPanelScale = config.Bind("Stats Layout", "PanelScale", 1f, "Global UI scale multiplier.");
             StatsHudOffsetX = config.Bind("Stats Layout", "HudOffsetX", 14f, "HUD distance from left edge.");
             StatsHudOffsetY = config.Bind("Stats Layout", "HudOffsetY", 14f, "HUD distance from bottom edge.");
-            CompareOffsetX = config.Bind("Stats Layout", "CompareOffsetX", -14f, "Compare panel distance from right edge.");
-            CompareOffsetY = config.Bind("Stats Layout", "CompareOffsetY", -14f, "Compare panel distance from top edge.");
             StatsAccentR = config.Bind("Stats Layout", "AccentR", 0.35f, "Accent color red.");
             StatsAccentG = config.Bind("Stats Layout", "AccentG", 0.82f, "Accent color green.");
             StatsAccentB = config.Bind("Stats Layout", "AccentB", 0.72f, "Accent color blue.");
+
+            AutoCloseTabDuringPick = config.Bind(
+                "Stats Tab",
+                "AutoCloseDuringPick",
+                true,
+                "Close the Tab overlay when a card pick starts so cards stay clickable.");
+
+            DefaultAppearanceEnabled = config.Bind(
+                "Default Appearance",
+                "Enabled",
+                false,
+                "Apply your saved face and color at the start of each game (you can still change in character select).");
+
+            DefaultColorIndex = config.Bind(
+                "Default Appearance",
+                "ColorIndex",
+                0,
+                "Player color palette index from the character-select color wheel.");
+
+            DefaultEyeId = config.Bind("Default Appearance", "EyeId", 0, "Default eyes part ID.");
+            DefaultMouthId = config.Bind("Default Appearance", "MouthId", 0, "Default mouth part ID.");
+            DefaultDetailId = config.Bind("Default Appearance", "DetailId", 0, "Default detail part ID.");
+            DefaultDetail2Id = config.Bind("Default Appearance", "Detail2Id", 0, "Default second detail part ID.");
+            DefaultEyeOffsetX = config.Bind("Default Appearance", "EyeOffsetX", 0f, "Default eyes X offset.");
+            DefaultEyeOffsetY = config.Bind("Default Appearance", "EyeOffsetY", 0f, "Default eyes Y offset.");
+            DefaultMouthOffsetX = config.Bind("Default Appearance", "MouthOffsetX", 0f, "Default mouth X offset.");
+            DefaultMouthOffsetY = config.Bind("Default Appearance", "MouthOffsetY", 0f, "Default mouth Y offset.");
+            DefaultDetailOffsetX = config.Bind("Default Appearance", "DetailOffsetX", 0f, "Default detail X offset.");
+            DefaultDetailOffsetY = config.Bind("Default Appearance", "DetailOffsetY", 0f, "Default detail Y offset.");
+            DefaultDetail2OffsetX = config.Bind("Default Appearance", "Detail2OffsetX", 0f, "Default detail 2 X offset.");
+            DefaultDetail2OffsetY = config.Bind("Default Appearance", "Detail2OffsetY", 0f, "Default detail 2 Y offset.");
         }
     }
 }

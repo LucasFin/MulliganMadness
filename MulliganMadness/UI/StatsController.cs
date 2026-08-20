@@ -1,6 +1,7 @@
 using System.Collections;
 using HarmonyLib;
 using MulliganMadness.Stats;
+using MulliganMadness.Utils;
 using UnboundLib;
 using UnboundLib.GameModes;
 using UnityEngine;
@@ -18,11 +19,12 @@ namespace MulliganMadness.UI
         internal static bool TabIsOpen => Instance?._tab != null && Instance._tab.IsOpen;
 
         private StatsHudPanel _hud;
-        private CompactComparePanel _compare;
         private StatsTabOverlay _tab;
         private CardInfo _hoveredCard;
         private CardInfo _hoveredVisual;
         private PlayerStatsSnapshot _previewDelta;
+        private PlayerStatsSnapshot _pickBaseline;
+        private int _pickBaselinePlayerId = -1;
         private float _refreshTimer;
 
         private void Awake()
@@ -30,7 +32,6 @@ namespace MulliganMadness.UI
             Instance = this;
             DontDestroyOnLoad(gameObject);
             _hud = gameObject.AddComponent<StatsHudPanel>();
-            _compare = gameObject.AddComponent<CompactComparePanel>();
             _tab = gameObject.AddComponent<StatsTabOverlay>();
         }
 
@@ -40,46 +41,60 @@ namespace MulliganMadness.UI
             GameModeManager.AddHook(GameModeHooks.HookGameEnd, OnGameEnd);
             GameModeManager.AddHook(GameModeHooks.HookPickStart, OnPickStart);
             GameModeManager.AddHook(GameModeHooks.HookPickEnd, OnPickEnd);
+            GameModeManager.AddHook(GameModeHooks.HookPlayerPickStart, OnPlayerPickStart);
             GameModeManager.AddHook(GameModeHooks.HookRoundStart, OnRoundStart);
             GameModeManager.AddHook(GameModeHooks.HookPointStart, OnPointStart);
         }
 
-        private static System.Collections.IEnumerator OnGameStart(IGameModeHandler gm)
+        private static IEnumerator OnGameStart(IGameModeHandler gm)
         {
             MatchSessionActive = true;
             CurrentRound = 0;
             CurrentPoint = 0;
             InPickPhase = false;
             InBattlePhase = false;
-            Instance?._compare?.ResetBaseline();
             Instance?._tab?.SetOpen(false);
+            Instance?.ClearPickBaseline();
             yield break;
         }
 
-        private static System.Collections.IEnumerator OnGameEnd(IGameModeHandler gm)
+        private static IEnumerator OnGameEnd(IGameModeHandler gm)
         {
             MatchSessionActive = false;
             InPickPhase = false;
             InBattlePhase = false;
             Instance?._tab?.SetOpen(false);
+            Instance?.ClearPickBaseline();
             yield break;
         }
 
-        private static System.Collections.IEnumerator OnPickStart(IGameModeHandler gm)
+        private static IEnumerator OnPickStart(IGameModeHandler gm)
         {
             InPickPhase = true;
             InBattlePhase = false;
+            if (Plugin.Configs.AutoCloseTabDuringPick.Value)
+            {
+                Instance?._tab?.SetOpen(false);
+            }
             yield break;
         }
 
-        private static System.Collections.IEnumerator OnPickEnd(IGameModeHandler gm)
+        private static IEnumerator OnPickEnd(IGameModeHandler gm)
         {
             InPickPhase = false;
+            Instance?.ClearPreview();
+            Instance?.ClearPickBaseline();
+            yield break;
+        }
+
+        private static IEnumerator OnPlayerPickStart(IGameModeHandler gm)
+        {
+            Instance?.CapturePickBaseline();
             Instance?.ClearPreview();
             yield break;
         }
 
-        private static System.Collections.IEnumerator OnRoundStart(IGameModeHandler gm)
+        private static IEnumerator OnRoundStart(IGameModeHandler gm)
         {
             CurrentRound += 1;
             CurrentPoint = 0;
@@ -88,16 +103,60 @@ namespace MulliganMadness.UI
             yield break;
         }
 
-        private static System.Collections.IEnumerator OnPointStart(IGameModeHandler gm)
+        private static IEnumerator OnPointStart(IGameModeHandler gm)
         {
             CurrentPoint += 1;
             yield break;
         }
 
-        internal void NotifyHoveredCard(CardInfo cardInfo, CardInfo pickVisual = null)
+        private void CapturePickBaseline()
         {
-            if (!Plugin.Configs.EnableCardHoverPreview.Value) return;
-            if (!Utils.TakeAllManager.IsLocalPlayersTurn())
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker == null || !PlayerStatsSnapshot.TryFrom(picker, out var snap))
+            {
+                ClearPickBaseline();
+                return;
+            }
+
+            _pickBaselinePlayerId = picker.playerID;
+            _pickBaseline = snap;
+        }
+
+        private void ClearPickBaseline()
+        {
+            _pickBaseline = null;
+            _pickBaselinePlayerId = -1;
+        }
+
+        private PlayerStatsSnapshot GetPickBaselineFor(Player player)
+        {
+            if (player == null || _pickBaseline == null || player.playerID != _pickBaselinePlayerId) return null;
+            return _pickBaseline;
+        }
+
+        internal static Player GetHudPlayer()
+        {
+            if (InPickPhase && CardChoice.instance != null && CardChoice.instance.IsPicking)
+            {
+                return TakeAllManager.GetCurrentPicker() ?? PlayerStatsSnapshot.LocalPlayer();
+            }
+
+            return PlayerStatsSnapshot.LocalPlayer();
+        }
+
+        internal static bool IsWatchingOtherPicker()
+        {
+            if (!InPickPhase || CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
+            var picker = TakeAllManager.GetCurrentPicker();
+            var local = PlayerStatsSnapshot.LocalPlayer();
+            if (picker == null || local == null) return false;
+            return picker.playerID != local.playerID;
+        }
+
+        internal void NotifyHoveredCard(Player picker, CardInfo cardInfo, CardInfo pickVisual = null)
+        {
+            if (!Plugin.Configs.ShowPickDeltasOnHud.Value) return;
+            if (picker == null || cardInfo == null)
             {
                 ClearPreview();
                 return;
@@ -107,14 +166,7 @@ namespace MulliganMadness.UI
             _hoveredCard = cardInfo;
             _hoveredVisual = pickVisual;
 
-            var local = PlayerStatsSnapshot.LocalPlayer();
-            if (local == null || cardInfo == null)
-            {
-                ClearPreview();
-                return;
-            }
-
-            if (CardStatPreview.TryPreview(local, cardInfo, out var delta, pickVisual))
+            if (CardStatPreview.TryPreview(picker, cardInfo, out var delta, pickVisual))
             {
                 _previewDelta = delta;
             }
@@ -176,21 +228,27 @@ namespace MulliganMadness.UI
 
         internal void RebuildHud() => _hud?.Rebuild();
 
+        internal void RebuildTab() => _tab?.RebuildLayout();
+
         private void Update()
         {
             if (Unbound.Instance?.canvas == null) return;
 
             HandleTabToggle();
             HandleHudToggle();
-            HandleCompareShortcuts();
+            _tab?.HandleShortcuts();
             PollHoveredCard();
 
             _refreshTimer -= Time.unscaledDeltaTime;
             if (_refreshTimer > 0f) return;
             _refreshTimer = 0.12f;
 
-            _hud?.Refresh(_compare?.GetLocalBaseline());
-            _compare?.Refresh();
+            var hudPlayer = GetHudPlayer();
+            _hud?.Refresh(
+                null,
+                GetPickBaselineFor(hudPlayer),
+                hudPlayer,
+                IsWatchingOtherPicker());
             if (_tab != null && _tab.IsOpen) _tab.Refresh();
         }
 
@@ -199,6 +257,12 @@ namespace MulliganMadness.UI
             if (Instance?._tab == null) return;
 
             if (!Plugin.Configs.EnableStatsTab.Value || !InActiveMatch())
+            {
+                if (Instance._tab.IsOpen) Instance._tab.SetOpen(false);
+                return;
+            }
+
+            if (InPickPhase && Plugin.Configs.AutoCloseTabDuringPick.Value)
             {
                 if (Instance._tab.IsOpen) Instance._tab.SetOpen(false);
                 return;
@@ -224,23 +288,22 @@ namespace MulliganMadness.UI
             }
         }
 
-        private static void HandleCompareShortcuts()
-        {
-            if (Instance?._compare == null || !Plugin.Configs.EnableCompactCompare.Value) return;
-            if (!TabIsOpen || !InActiveMatch()) return;
-            if (Input.GetKeyDown(KeyCode.P)) Instance._compare.PinBaseline();
-            if (Input.GetKeyDown(KeyCode.Backspace) || Input.GetKeyDown(KeyCode.Delete)) Instance._compare.ResetBaseline();
-        }
-
         private void PollHoveredCard()
         {
-            if (!Plugin.Configs.EnableCardHoverPreview.Value)
+            if (!Plugin.Configs.ShowPickDeltasOnHud.Value || !InPickPhase)
             {
                 ClearPreview();
                 return;
             }
 
-            if (CardChoice.instance == null || !CardChoice.instance.IsPicking || !Utils.TakeAllManager.IsLocalPlayersTurn())
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
+            {
+                ClearPreview();
+                return;
+            }
+
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker == null)
             {
                 ClearPreview();
                 return;
@@ -277,7 +340,7 @@ namespace MulliganMadness.UI
                 return;
             }
 
-            NotifyHoveredCard(hovered, visual);
+            NotifyHoveredCard(picker, hovered, visual);
         }
     }
 }

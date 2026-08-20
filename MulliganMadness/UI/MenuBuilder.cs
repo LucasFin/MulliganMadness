@@ -151,6 +151,64 @@ namespace MulliganMadness.UI
                 25);
 
             MenuHandler.CreateText("Stats & UI (personal — not synced)", menu, out _, 40);
+            MenuHandler.CreateText(
+                "O = bottom-left live stats (toggle). Tab = scrollable stats panel. During picks the HUD follows whoever is picking.",
+                menu,
+                out _,
+                24);
+
+            MenuHandler.CreateText("Default appearance (personal)", menu, out _, 36);
+
+            MenuHandler.CreateToggle(
+                Plugin.Configs.DefaultAppearanceEnabled.Value,
+                "Apply saved face & color each game",
+                menu,
+                (UnityAction<bool>)(value => Plugin.Configs.DefaultAppearanceEnabled.Value = value),
+                35);
+
+            Slider colorSlider;
+            MenuHandler.CreateSlider(
+                "Default color index",
+                menu,
+                32,
+                0f,
+                DefaultAppearance.MaxColorIndex(),
+                Plugin.Configs.DefaultColorIndex.Value,
+                value => Plugin.Configs.DefaultColorIndex.Value = Mathf.RoundToInt(value),
+                out colorSlider,
+                wholeNumbers: true);
+
+            MenuHandler.CreateButton("Save current face & color", menu, () =>
+            {
+                if (DefaultAppearance.TryCaptureFromLocal(out var notice))
+                {
+                    ShowMenuNotice(menu, notice);
+                }
+                else
+                {
+                    ShowMenuNotice(menu, notice ?? "Could not save appearance.");
+                }
+            }, 32, false);
+
+            MenuHandler.CreateButton("Apply saved appearance now", menu, () =>
+            {
+                DefaultAppearance.TryApply(force: true);
+                ShowMenuNotice(menu, "Applied saved face & color to local player.");
+            }, 32, false);
+
+            MenuHandler.CreateToggle(
+                Plugin.Configs.AutoCloseTabDuringPick.Value,
+                "Auto-close Tab overlay during card pick",
+                menu,
+                (UnityAction<bool>)(value => Plugin.Configs.AutoCloseTabDuringPick.Value = value),
+                35);
+
+            MenuHandler.CreateToggle(
+                Plugin.Configs.ShowPickDeltasOnHud.Value,
+                "Show card deltas on HUD during picks",
+                menu,
+                (UnityAction<bool>)(value => Plugin.Configs.ShowPickDeltasOnHud.Value = value),
+                35);
 
             MenuHandler.CreateToggle(
                 Plugin.Configs.EnableStatsHud.Value,
@@ -167,22 +225,50 @@ namespace MulliganMadness.UI
                 40);
 
             MenuHandler.CreateToggle(
-                Plugin.Configs.EnableCompactCompare.Value,
-                "Enable compare panel (shown with Tab overlay)",
+                Plugin.Configs.EnableTabCompare.Value,
+                "Enable compare mode in Tab overlay (C / [ ] )",
                 menu,
-                (UnityAction<bool>)(value => Plugin.Configs.EnableCompactCompare.Value = value),
+                (UnityAction<bool>)(value => Plugin.Configs.EnableTabCompare.Value = value),
                 40);
 
             MenuHandler.CreateToggle(
-                Plugin.Configs.EnableCardHoverPreview.Value,
-                "Preview hovered card stat changes",
+                Plugin.Configs.TabAnchorLeft.Value,
+                "Anchor Tab panel to left (keeps cards visible)",
                 menu,
-                (UnityAction<bool>)(value => Plugin.Configs.EnableCardHoverPreview.Value = value),
-                40);
+                (UnityAction<bool>)(value =>
+                {
+                    Plugin.Configs.TabAnchorLeft.Value = value;
+                    StatsController.Instance?.RebuildTab();
+                }),
+                35);
+
+            Slider tabWidthSlider;
+            MenuHandler.CreateSlider("Tab panel width", menu, 32, 280f, 520f, Plugin.Configs.TabPanelWidth.Value,
+                value =>
+                {
+                    Plugin.Configs.TabPanelWidth.Value = value;
+                    StatsController.Instance?.RebuildTab();
+                }, out tabWidthSlider);
+
+            Slider tabHeightSlider;
+            MenuHandler.CreateSlider("Tab panel height %", menu, 32, 0.55f, 0.92f, Plugin.Configs.TabPanelHeightFraction.Value,
+                value =>
+                {
+                    Plugin.Configs.TabPanelHeightFraction.Value = value;
+                    StatsController.Instance?.RebuildTab();
+                }, out tabHeightSlider);
+
+            Slider tabOpacitySlider;
+            MenuHandler.CreateSlider("Tab panel opacity", menu, 32, 0.5f, 0.98f, Plugin.Configs.TabPanelOpacity.Value,
+                value =>
+                {
+                    Plugin.Configs.TabPanelOpacity.Value = value;
+                    StatsController.Instance?.RebuildTab();
+                }, out tabOpacitySlider);
 
             MenuHandler.CreateToggle(
                 Plugin.Configs.StatsHudSimpleMode.Value,
-                "HUD simple mode",
+                "HUD simple mode (Tab overlay only)",
                 menu,
                 (UnityAction<bool>)(value =>
                 {
@@ -224,11 +310,12 @@ namespace MulliganMadness.UI
                 35);
 
             Slider scaleSlider;
-            MenuHandler.CreateSlider("Panel scale", menu, 35, 0.75f, 1.35f, Plugin.Configs.StatsPanelScale.Value,
+            MenuHandler.CreateSlider("UI scale", menu, 35, 0.75f, 1.35f, Plugin.Configs.StatsPanelScale.Value,
                 value =>
                 {
                     Plugin.Configs.StatsPanelScale.Value = value;
                     StatsController.Instance?.RebuildHud();
+                    StatsController.Instance?.RebuildTab();
                 }, out scaleSlider);
 
             Slider opacitySlider;
@@ -299,7 +386,6 @@ namespace MulliganMadness.UI
                 Plugin.Configs.StatsHudOffsetX.Value = 14f;
                 Plugin.Configs.StatsHudOffsetY.Value = 14f;
                 Plugin.Configs.StatsPanelScale.Value = 1f;
-                Plugin.Configs.StatsHudCollapsed.Value = false;
                 StatsController.Instance?.RebuildHud();
             }, 35, false);
         }
