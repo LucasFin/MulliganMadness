@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using MulliganMadness.Stats;
 using TMPro;
-using UnboundLib;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,8 +24,7 @@ namespace MulliganMadness.UI
         internal void EnsureBuilt()
         {
             if (_root != null) return;
-            var canvas = Unbound.Instance?.canvas;
-            if (canvas == null) return;
+            if (!StatsUiHelper.OverlayReady) return;
 
             ApplyPanelLayout();
 
@@ -81,6 +79,7 @@ namespace MulliganMadness.UI
             viewportRect.offsetMin = Vector2.zero;
             viewportRect.offsetMax = new Vector2(-12f, 0f);
             viewport.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.02f);
+            viewport.GetComponent<Image>().raycastTarget = true;
             viewport.GetComponent<Mask>().showMaskGraphic = false;
 
             var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
@@ -93,12 +92,13 @@ namespace MulliganMadness.UI
             _content.sizeDelta = new Vector2(0f, 0f);
 
             var vlg = contentGo.GetComponent<VerticalLayoutGroup>();
-            vlg.spacing = 8f;
+            vlg.spacing = 10f;
             vlg.padding = new RectOffset(6, 6, 6, 6);
-            vlg.childControlHeight = false;
+            vlg.childControlHeight = true;
             vlg.childControlWidth = true;
             vlg.childForceExpandHeight = false;
             vlg.childForceExpandWidth = true;
+            vlg.childAlignment = TextAnchor.UpperLeft;
 
             contentGo.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
@@ -146,28 +146,36 @@ namespace MulliganMadness.UI
             ApplyPanelLayout();
             var panelImage = _root.GetComponent<Image>();
             if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, Plugin.Configs.TabPanelOpacity.Value);
+            StatsUiHelper.SetAccentVisible(_root, true);
+            var top = _root.transform.Find("AccentTop") ?? _root.transform.Find("Accent");
+            var bottom = _root.transform.Find("AccentBottom");
+            if (top != null) top.GetComponent<Image>().color = StatsUiHelper.AccentColor;
+            if (bottom != null) bottom.GetComponent<Image>().color = StatsUiHelper.AccentColor;
         }
 
         private void ApplyPanelLayout()
         {
-            var canvas = Unbound.Instance?.canvas;
-            if (canvas == null) return;
+            if (!StatsUiHelper.OverlayReady) return;
 
             var scale = StatsUiHelper.UiScale;
-            var width = Plugin.Configs.TabPanelWidth.Value * scale;
-            var height = Mathf.Min(Screen.height * Plugin.Configs.TabPanelHeightFraction.Value, 760f * scale);
+            var canvasSize = StatsUiHelper.OverlaySize;
             var margin = 12f * scale;
+            var width = Mathf.Min(Plugin.Configs.TabPanelWidth.Value * scale, canvasSize.x * 0.48f);
+            var height = Mathf.Min(
+                canvasSize.y * Plugin.Configs.TabPanelHeightFraction.Value,
+                canvasSize.y - margin * 2f);
 
             if (_root == null)
             {
+                var left = Plugin.Configs.TabAnchorLeft.Value;
                 _root = StatsUiHelper.CreateModernPanel(
-                    canvas.transform,
+                    StatsUiHelper.OverlayRoot,
                     "MM_StatsTab",
-                    Vector2.zero,
-                    Vector2.one,
-                    new Vector2(0f, 0.5f),
-                    Vector2.zero,
-                    new Vector2(width, height),
+                    left ? new Vector2(0f, 0.5f) : new Vector2(0.5f, 0.5f),
+                    left ? new Vector2(0f, 0.5f) : new Vector2(0.5f, 0.5f),
+                    left ? new Vector2(0f, 0.5f) : new Vector2(0.5f, 0.5f),
+                    left ? new Vector2(margin, 0f) : Vector2.zero,
+                    new Vector2(left ? width : Mathf.Min(width * 1.2f, canvasSize.x * 0.88f), height),
                     Plugin.Configs.TabPanelOpacity.Value);
                 return;
             }
@@ -190,7 +198,7 @@ namespace MulliganMadness.UI
                     new Vector2(0.5f, 0.5f),
                     new Vector2(0.5f, 0.5f),
                     Vector2.zero,
-                    new Vector2(Mathf.Min(width * 1.2f, Screen.width * 0.88f), height));
+                    new Vector2(Mathf.Min(width * 1.2f, canvasSize.x * 0.88f), height));
             }
         }
 
@@ -302,11 +310,9 @@ namespace MulliganMadness.UI
                         ? StatsViewBuilder.BuildHud(snap, false, baseline, null, TabInfoBridge.GetExtensionStats(players[i]))
                         : StatsViewBuilder.BuildTabBlock(snap, TabInfoBridge.GetExtensionStats(players[i]));
                 }
-
-                UpdateBlockHeight(block, _playerBlocks[i]);
             }
 
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+            RelayoutBlocks();
             _title.text = $"All players · R{StatsController.CurrentRound} P{StatsController.CurrentPoint}";
             _hint.text = "Scroll · C compare vs someone · Esc close";
         }
@@ -314,6 +320,15 @@ namespace MulliganMadness.UI
         private void RefreshCompareView()
         {
             var local = PlayerStatsSnapshot.LocalPlayer();
+            if (local == null)
+            {
+                foreach (var player in PlayerStatsSnapshot.ActivePlayers())
+                {
+                    local = player;
+                    break;
+                }
+            }
+
             var others = GetOtherPlayers();
             var opponent = others.Find(p => p.playerID == _compareTargetPlayerId) ?? (others.Count > 0 ? others[0] : null);
             if (opponent != null) _compareTargetPlayerId = opponent.playerID;
@@ -328,8 +343,7 @@ namespace MulliganMadness.UI
             if (local == null || !PlayerStatsSnapshot.TryFrom(local, out var localSnap))
             {
                 _playerBlocks[0].text = "Local player unavailable";
-                UpdateBlockHeight(_playerBlocks[0].transform.parent.gameObject, _playerBlocks[0]);
-                LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+                RelayoutBlocks();
                 _title.text = "Compare";
                 _hint.text = "No local player";
                 return;
@@ -338,8 +352,7 @@ namespace MulliganMadness.UI
             if (opponent == null || !PlayerStatsSnapshot.TryFrom(opponent, out var otherSnap))
             {
                 _playerBlocks[0].text = StatsViewBuilder.BuildTabBlock(localSnap, TabInfoBridge.GetExtensionStats(local));
-                UpdateBlockHeight(_playerBlocks[0].transform.parent.gameObject, _playerBlocks[0]);
-                LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+                RelayoutBlocks();
                 _title.text = "Compare";
                 _hint.text = "Need another player to compare";
                 return;
@@ -349,12 +362,8 @@ namespace MulliganMadness.UI
             var pinBaseline = _pinnedLocal != null && _pinnedLocalPlayerId == local.playerID ? _pinnedLocal : null;
 
             _playerBlocks[0].text = StatsViewBuilder.BuildTabCompare(localSnap, vsBaseline, pinBaseline, TabInfoBridge.GetExtensionStats(local));
-            UpdateBlockHeight(_playerBlocks[0].transform.parent.gameObject, _playerBlocks[0]);
-
             _playerBlocks[1].text = StatsViewBuilder.BuildTabBlock(otherSnap, TabInfoBridge.GetExtensionStats(opponent));
-            UpdateBlockHeight(_playerBlocks[1].transform.parent.gameObject, _playerBlocks[1]);
-
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+            RelayoutBlocks();
             _title.text = $"You vs {otherSnap.PlayerName}";
             _hint.text = "Green/red = ahead or behind them · [ ] switch player · C back to all · Esc close";
         }
@@ -392,6 +401,11 @@ namespace MulliganMadness.UI
                 list.Add(player);
             }
 
+            if (local == null && list.Count > 1)
+            {
+                list.RemoveAt(0);
+            }
+
             return list;
         }
 
@@ -399,31 +413,57 @@ namespace MulliganMadness.UI
         {
             while (_playerBlocks.Count < count)
             {
-                var blockGo = StatsUiHelper.CreatePanel(_content, $"Player_{_playerBlocks.Count}", Vector2.zero, Vector2.one, new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 120f), new Color(0.08f, 0.10f, 0.13f), 0.98f);
-                var le = blockGo.AddComponent<LayoutElement>();
+                var blockGo = new GameObject($"Player_{_playerBlocks.Count}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(LayoutElement));
+                blockGo.transform.SetParent(_content, false);
+                var blockRect = blockGo.GetComponent<RectTransform>();
+                blockRect.anchorMin = new Vector2(0f, 1f);
+                blockRect.anchorMax = new Vector2(1f, 1f);
+                blockRect.pivot = new Vector2(0.5f, 1f);
+                blockRect.sizeDelta = new Vector2(0f, 120f);
+
+                var image = blockGo.GetComponent<Image>();
+                image.color = new Color(0.08f, 0.10f, 0.13f, 0.98f);
+                image.raycastTarget = false;
+
+                var le = blockGo.GetComponent<LayoutElement>();
                 le.minHeight = 96f;
+                le.preferredHeight = 120f;
                 le.flexibleWidth = 1f;
+                le.flexibleHeight = 0f;
+
                 var text = StatsUiHelper.CreateText(blockGo.transform, "Text", "", StatsUiHelper.BaseFont);
                 text.enableWordWrapping = true;
                 text.overflowMode = TextOverflowModes.Overflow;
-                text.rectTransform.anchorMin = new Vector2(0f, 1f);
+                text.rectTransform.anchorMin = new Vector2(0f, 0f);
                 text.rectTransform.anchorMax = new Vector2(1f, 1f);
-                text.rectTransform.pivot = new Vector2(0.5f, 1f);
-                text.rectTransform.anchoredPosition = Vector2.zero;
-                text.rectTransform.sizeDelta = new Vector2(-16f, 0f);
-                var fitter = text.gameObject.AddComponent<ContentSizeFitter>();
-                fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-                fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                text.rectTransform.offsetMin = new Vector2(10f, 8f);
+                text.rectTransform.offsetMax = new Vector2(-10f, -8f);
                 _playerBlocks.Add(text);
             }
         }
 
+        private void RelayoutBlocks()
+        {
+            if (_content == null) return;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+            foreach (var text in _playerBlocks)
+            {
+                if (text == null || !text.gameObject.activeInHierarchy) continue;
+                UpdateBlockHeight(text.transform.parent.gameObject, text);
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+        }
+
         private static void UpdateBlockHeight(GameObject block, TextMeshProUGUI text)
         {
+            text.ForceMeshUpdate();
             var layout = block.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredHeight = Mathf.Max(96f, text.preferredHeight + 18f);
+                var height = Mathf.Max(96f, text.preferredHeight + 20f);
+                layout.minHeight = height;
+                layout.preferredHeight = height;
             }
         }
     }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
+using MulliganMadness.Stats;
 using CardsApi = ModdingUtils.Utils.Cards;
 using Photon.Pun;
 using UnboundLib;
@@ -71,7 +72,7 @@ namespace MulliganMadness.Utils
         {
             if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
             var picker = GetCurrentPicker();
-            return picker != null && picker.data?.view != null && picker.data.view.IsMine;
+            return picker != null && PlayerStatsSnapshot.IsLocallyControlled(picker);
         }
 
         public static Player GetCurrentPicker()
@@ -205,6 +206,24 @@ namespace MulliganMadness.Utils
             if (choice == null) return null;
             var field = AccessTools.Field(typeof(CardChoice), "spawnedCards");
             return field?.GetValue(choice) as List<GameObject>;
+        }
+
+        public static List<GameObject> GetReadySpawnedCards()
+        {
+            var spawned = GetSpawnedCards();
+            if (spawned == null) return null;
+
+            var ready = new List<GameObject>();
+            foreach (var go in spawned)
+            {
+                if (go == null) continue;
+                if (go.GetComponent<CardInfo>() == null) continue;
+                var view = go.GetComponent<PhotonView>();
+                if (view != null && view.ViewID == 0) continue;
+                ready.Add(go);
+            }
+
+            return ready;
         }
 
         [UnboundRPC]

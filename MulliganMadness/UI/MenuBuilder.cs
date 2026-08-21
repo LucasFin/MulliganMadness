@@ -198,7 +198,7 @@ namespace MulliganMadness.UI
 
             MenuHandler.CreateToggle(
                 Plugin.Configs.AutoCloseTabDuringPick.Value,
-                "Auto-close Tab overlay during card pick",
+                "Auto-close Tab when a pick starts (Tab still reopens it)",
                 menu,
                 (UnityAction<bool>)(value => Plugin.Configs.AutoCloseTabDuringPick.Value = value),
                 35);

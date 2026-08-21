@@ -1,8 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using MulliganMadness.Curses;
-using UnboundLib;
+using MulliganMadness.Stats;
 using UnityEngine;
 
 namespace MulliganMadness.Utils
@@ -12,6 +12,7 @@ namespace MulliganMadness.Utils
         private static AutoPickController _instance;
         private Coroutine _running;
         private int _pickGeneration;
+        private int _runningPlayerId = -1;
 
         private void Awake()
         {
@@ -32,6 +33,7 @@ namespace MulliganMadness.Utils
                 _instance.StopCoroutine(_instance._running);
                 _instance._running = null;
             }
+            _instance._runningPlayerId = -1;
             _instance._pickGeneration++;
         }
 
@@ -43,122 +45,186 @@ namespace MulliganMadness.Utils
 
         private void BeginForCurrentPick()
         {
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker == null || picker.data?.currentCards == null) return;
+            if (!PlayerStatsSnapshot.IsLocallyControlled(picker)) return;
+
+            var mode = ResolveMode(picker);
+            if (mode == AutoPickMode.None) return;
+
+            // Extra picks in the same turn reuse this coroutine instead of restarting
+            // (restarting was picking a half-spawned hand and looping the pick sound).
+            if (_running != null && _runningPlayerId == picker.playerID) return;
+
             if (_running != null)
             {
                 StopCoroutine(_running);
                 _running = null;
             }
 
-            var picker = TakeAllManager.GetCurrentPicker();
-            if (picker == null || picker.data?.currentCards == null) return;
-            if (picker.data.view == null || !picker.data.view.IsMine) return;
-
-            var mode = ResolveMode(picker);
-            if (mode == AutoPickMode.None) return;
-
             _pickGeneration++;
             var gen = _pickGeneration;
+            _runningPlayerId = picker.playerID;
             _running = StartCoroutine(RunAutoPick(picker.playerID, mode, gen));
         }
 
         private static AutoPickMode ResolveMode(Player player)
         {
-            var cards = player.data.currentCards;
-            if (ForcedChoice.Card != null && cards.Contains(ForcedChoice.Card)) return AutoPickMode.ForcedImmediate;
-            if (LeftmostLuck.Card != null && cards.Contains(LeftmostLuck.Card)) return AutoPickMode.Leftmost;
-            if (PanicPick.Card != null && cards.Contains(PanicPick.Card)) return AutoPickMode.PanicTimer;
+            if (HasCurse(player, ForcedChoice.Card)) return AutoPickMode.ForcedImmediate;
+            if (HasCurse(player, LeftmostLuck.Card)) return AutoPickMode.Leftmost;
+            if (HasCurse(player, PanicPick.Card)) return AutoPickMode.PanicTimer;
             return AutoPickMode.None;
+        }
+
+        private static bool HasCurse(Player player, CardInfo curse)
+        {
+            if (player?.data?.currentCards == null || curse == null) return false;
+            foreach (var card in player.data.currentCards)
+            {
+                if (card == null) continue;
+                if (card == curse) return true;
+                if (!string.IsNullOrEmpty(curse.cardName) &&
+                    string.Equals(card.cardName, curse.cardName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private IEnumerator RunAutoPick(int playerID, AutoPickMode mode, int generation)
         {
-            // Wait for the offered hand to actually spawn.
-            float timeout = 8f;
-            List<GameObject> spawned = null;
-            while (timeout > 0f && generation == _pickGeneration)
+            try
             {
-                if (TakeAllManager.IsBusy)
+                var safety = 12;
+                while (safety-- > 0 && generation == _pickGeneration)
                 {
-                    _running = null;
-                    yield break;
-                }
+                    if (!WaitForOwnPick(playerID)) yield break;
 
-                if (CardChoice.instance != null && CardChoice.instance.IsPicking)
-                {
-                    var picker = TakeAllManager.GetCurrentPicker();
-                    if (picker != null && picker.playerID == playerID)
+                    var timeout = 10f;
+                    while (timeout > 0f && generation == _pickGeneration)
                     {
-                        spawned = TakeAllManager.GetSpawnedCards();
-                        if (spawned != null && spawned.Count > 0) break;
-                    }
-                }
+                        if (TakeAllManager.IsBusy) yield break;
+                        if (!WaitForOwnPick(playerID)) yield break;
 
-                timeout -= Time.unscaledDeltaTime;
-                yield return null;
-            }
+                        if (TakeAllManager.IsOfferedHandReady() && HandIsSelectable()) break;
 
-            if (generation != _pickGeneration || spawned == null || spawned.Count == 0)
-            {
-                _running = null;
-                yield break;
-            }
-
-            if (mode == AutoPickMode.PanicTimer)
-            {
-                var wait = SessionSettings.Current.PanicTimerSeconds;
-                float elapsed = 0f;
-                while (elapsed < wait && generation == _pickGeneration && CardChoice.instance != null && CardChoice.instance.IsPicking)
-                {
-                    if (TakeAllManager.IsBusy)
-                    {
-                        _running = null;
-                        yield break;
+                        timeout -= Time.unscaledDeltaTime;
+                        yield return null;
                     }
 
-                    // If the player already picked, abort.
-                    if (TakeAllManager.GetSpawnedCards() == null || TakeAllManager.GetSpawnedCards().Count == 0)
+                    if (generation != _pickGeneration) yield break;
+                    if (!WaitForOwnPick(playerID)) yield break;
+
+                    if (mode == AutoPickMode.PanicTimer)
                     {
-                        _running = null;
-                        yield break;
+                        var wait = Mathf.Max(0.1f, SessionSettings.Current.PanicTimerSeconds);
+                        var elapsed = 0f;
+                        while (elapsed < wait && generation == _pickGeneration && WaitForOwnPick(playerID))
+                        {
+                            if (TakeAllManager.IsBusy) yield break;
+                            var live = TakeAllManager.GetSpawnedCards();
+                            if (live == null || live.Count == 0) yield break;
+                            elapsed += Time.unscaledDeltaTime;
+                            yield return null;
+                        }
+
+                        if (generation != _pickGeneration || !WaitForOwnPick(playerID)) yield break;
                     }
 
-                    elapsed += Time.unscaledDeltaTime;
-                    yield return null;
-                }
+                    var spawned = TakeAllManager.GetReadySpawnedCards();
+                    if (spawned == null || spawned.Count == 0) yield break;
 
-                if (generation != _pickGeneration || CardChoice.instance == null || !CardChoice.instance.IsPicking)
-                {
-                    _running = null;
-                    yield break;
-                }
+                    var pick = SelectCard(spawned, mode);
+                    if (pick == null || !spawned.Contains(pick))
+                    {
+                        yield return new WaitForSecondsRealtime(0.1f);
+                        continue;
+                    }
 
-                spawned = TakeAllManager.GetSpawnedCards();
-                if (spawned == null || spawned.Count == 0)
-                {
-                    _running = null;
-                    yield break;
+                    Plugin.Instance.Log($"Auto-pick ({mode}) for player {playerID}.");
+                    TryPick(pick);
+
+                    var picked = pick;
+                    var settle = 2.5f;
+                    while (settle > 0f && generation == _pickGeneration)
+                    {
+                        yield return null;
+                        settle -= Time.unscaledDeltaTime;
+                        if (!WaitForOwnPick(playerID)) yield break;
+
+                        var now = TakeAllManager.GetSpawnedCards();
+                        if (now == null || now.Count == 0 || !now.Contains(picked)) break;
+                    }
+
+                    yield return new WaitForSecondsRealtime(0.2f);
+                    if (!WaitForOwnPick(playerID)) yield break;
                 }
             }
+            finally
+            {
+                if (generation == _pickGeneration)
+                {
+                    _running = null;
+                    _runningPlayerId = -1;
+                }
+            }
+        }
 
-            GameObject pick = null;
+        private static bool WaitForOwnPick(int playerID)
+        {
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
+            var picker = TakeAllManager.GetCurrentPicker();
+            return picker != null && picker.playerID == playerID;
+        }
+
+        private static GameObject SelectCard(List<GameObject> spawned, AutoPickMode mode)
+        {
+            if (spawned == null || spawned.Count == 0) return null;
             switch (mode)
             {
                 case AutoPickMode.Leftmost:
-                    pick = spawned[0];
-                    break;
+                    return spawned[0];
                 case AutoPickMode.ForcedImmediate:
                 case AutoPickMode.PanicTimer:
-                    pick = spawned[Random.Range(0, spawned.Count)];
-                    break;
+                    return spawned[UnityEngine.Random.Range(0, spawned.Count)];
+                default:
+                    return null;
             }
+        }
 
-            if (pick != null && CardChoice.instance != null && CardChoice.instance.IsPicking)
+        private static bool HandIsSelectable()
+        {
+            var spawned = TakeAllManager.GetReadySpawnedCards();
+            var raw = TakeAllManager.GetSpawnedCards();
+            if (spawned == null || raw == null || spawned.Count == 0) return false;
+            return spawned.Count >= raw.Count;
+        }
+
+        private static void TryPick(GameObject pick)
+        {
+            var choice = CardChoice.instance;
+            if (choice == null || pick == null || !choice.IsPicking) return;
+
+            var spawned = TakeAllManager.GetSpawnedCards();
+            if (spawned == null || !spawned.Contains(pick)) return;
+
+            var pub = pick.GetComponent<PublicInt>();
+            var index = spawned.IndexOf(pick);
+            var theInt = pub != null ? pub.theInt : index;
+
+            // Pick(card, true) wipes the hand when the GO isn't ready yet, which
+            // re-deals and loops the pick sound. End the pick directly instead.
+            try
             {
-                Plugin.Instance.Log($"Auto-pick ({mode}) for player {playerID}.");
-                CardChoice.instance.Pick(pick, true);
+                choice.StartCoroutine(choice.IDoEndPick(pick, theInt, choice.pickrID));
             }
-
-            _running = null;
+            catch (Exception ex)
+            {
+                Plugin.Instance.LogWarn($"Auto-pick IDoEndPick failed: {ex.Message}");
+                choice.Pick(pick, false);
+            }
         }
 
         private enum AutoPickMode

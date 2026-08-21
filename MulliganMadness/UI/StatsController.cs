@@ -1,8 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using HarmonyLib;
 using MulliganMadness.Stats;
 using MulliganMadness.Utils;
-using UnboundLib;
 using UnboundLib.GameModes;
 using UnityEngine;
 
@@ -23,8 +23,7 @@ namespace MulliganMadness.UI
         private CardInfo _hoveredCard;
         private CardInfo _hoveredVisual;
         private PlayerStatsSnapshot _previewDelta;
-        private PlayerStatsSnapshot _pickBaseline;
-        private int _pickBaselinePlayerId = -1;
+        private readonly Dictionary<int, PlayerStatsSnapshot> _pickBaselines = new Dictionary<int, PlayerStatsSnapshot>();
         private float _refreshTimer;
 
         private void Awake()
@@ -44,6 +43,7 @@ namespace MulliganMadness.UI
             GameModeManager.AddHook(GameModeHooks.HookPlayerPickStart, OnPlayerPickStart);
             GameModeManager.AddHook(GameModeHooks.HookRoundStart, OnRoundStart);
             GameModeManager.AddHook(GameModeHooks.HookPointStart, OnPointStart);
+            GameModeManager.AddHook(GameModeHooks.HookBattleStart, OnBattleStart);
         }
 
         private static IEnumerator OnGameStart(IGameModeHandler gm)
@@ -54,7 +54,7 @@ namespace MulliganMadness.UI
             InPickPhase = false;
             InBattlePhase = false;
             Instance?._tab?.SetOpen(false);
-            Instance?.ClearPickBaseline();
+            Instance?.ClearPickBaselines();
             yield break;
         }
 
@@ -64,7 +64,7 @@ namespace MulliganMadness.UI
             InPickPhase = false;
             InBattlePhase = false;
             Instance?._tab?.SetOpen(false);
-            Instance?.ClearPickBaseline();
+            Instance?.ClearPickBaselines();
             yield break;
         }
 
@@ -76,6 +76,8 @@ namespace MulliganMadness.UI
             {
                 Instance?._tab?.SetOpen(false);
             }
+
+            Instance?.CaptureAllPickBaselines();
             yield break;
         }
 
@@ -83,7 +85,6 @@ namespace MulliganMadness.UI
         {
             InPickPhase = false;
             Instance?.ClearPreview();
-            Instance?.ClearPickBaseline();
             yield break;
         }
 
@@ -91,14 +92,14 @@ namespace MulliganMadness.UI
         {
             Instance?.CapturePickBaseline();
             Instance?.ClearPreview();
-            yield break;
+            yield return null;
+            Instance?.CapturePickBaseline();
         }
 
         private static IEnumerator OnRoundStart(IGameModeHandler gm)
         {
             CurrentRound += 1;
             CurrentPoint = 0;
-            InBattlePhase = true;
             InPickPhase = false;
             yield break;
         }
@@ -109,29 +110,49 @@ namespace MulliganMadness.UI
             yield break;
         }
 
+        private static IEnumerator OnBattleStart(IGameModeHandler gm)
+        {
+            InBattlePhase = true;
+            InPickPhase = false;
+            yield break;
+        }
+
         private void CapturePickBaseline()
         {
-            var picker = TakeAllManager.GetCurrentPicker();
-            if (picker == null || !PlayerStatsSnapshot.TryFrom(picker, out var snap))
-            {
-                ClearPickBaseline();
-                return;
-            }
-
-            _pickBaselinePlayerId = picker.playerID;
-            _pickBaseline = snap;
+            var picker = TakeAllManager.GetCurrentPicker() ?? PlayerStatsSnapshot.LocalPlayer();
+            if (picker == null || !PlayerStatsSnapshot.TryFrom(picker, out var snap)) return;
+            _pickBaselines[picker.playerID] = snap;
         }
 
-        private void ClearPickBaseline()
+        private void CaptureAllPickBaselines()
         {
-            _pickBaseline = null;
-            _pickBaselinePlayerId = -1;
+            foreach (var player in PlayerStatsSnapshot.ActivePlayers())
+            {
+                if (PlayerStatsSnapshot.TryFrom(player, out var snap))
+                {
+                    _pickBaselines[player.playerID] = snap;
+                }
+            }
         }
+
+        private void CaptureMissingPickBaselines()
+        {
+            foreach (var player in PlayerStatsSnapshot.ActivePlayers())
+            {
+                if (_pickBaselines.ContainsKey(player.playerID)) continue;
+                if (PlayerStatsSnapshot.TryFrom(player, out var snap))
+                {
+                    _pickBaselines[player.playerID] = snap;
+                }
+            }
+        }
+
+        private void ClearPickBaselines() => _pickBaselines.Clear();
 
         private PlayerStatsSnapshot GetPickBaselineFor(Player player)
         {
-            if (player == null || _pickBaseline == null || player.playerID != _pickBaselinePlayerId) return null;
-            return _pickBaseline;
+            if (player == null) return null;
+            return _pickBaselines.TryGetValue(player.playerID, out var snap) ? snap : null;
         }
 
         internal static Player GetHudPlayer()
@@ -232,8 +253,6 @@ namespace MulliganMadness.UI
 
         private void Update()
         {
-            if (Unbound.Instance?.canvas == null) return;
-
             HandleTabToggle();
             HandleHudToggle();
             _tab?.HandleShortcuts();
@@ -243,9 +262,10 @@ namespace MulliganMadness.UI
             if (_refreshTimer > 0f) return;
             _refreshTimer = 0.12f;
 
+            if (InPickPhase) CaptureMissingPickBaselines();
+
             var hudPlayer = GetHudPlayer();
             _hud?.Refresh(
-                null,
                 GetPickBaselineFor(hudPlayer),
                 hudPlayer,
                 IsWatchingOtherPicker());
@@ -257,12 +277,6 @@ namespace MulliganMadness.UI
             if (Instance?._tab == null) return;
 
             if (!Plugin.Configs.EnableStatsTab.Value || !InActiveMatch())
-            {
-                if (Instance._tab.IsOpen) Instance._tab.SetOpen(false);
-                return;
-            }
-
-            if (InPickPhase && Plugin.Configs.AutoCloseTabDuringPick.Value)
             {
                 if (Instance._tab.IsOpen) Instance._tab.SetOpen(false);
                 return;
@@ -292,20 +306,20 @@ namespace MulliganMadness.UI
         {
             if (!Plugin.Configs.ShowPickDeltasOnHud.Value || !InPickPhase)
             {
-                ClearPreview();
+                if (_previewDelta != null) ClearPreview();
                 return;
             }
 
             if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
             {
-                ClearPreview();
+                if (_previewDelta != null) ClearPreview();
                 return;
             }
 
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker == null)
             {
-                ClearPreview();
+                if (_previewDelta != null) ClearPreview();
                 return;
             }
 
@@ -313,30 +327,33 @@ namespace MulliganMadness.UI
             var spawned = spawnedField?.GetValue(CardChoice.instance) as IList;
             if (spawned == null)
             {
-                ClearPreview();
+                if (_previewDelta != null) ClearPreview();
                 return;
             }
 
             CardInfo hovered = null;
             CardInfo visual = null;
+            var bestScale = 1.08f;
             foreach (var item in spawned)
             {
                 if (!(item is GameObject go) || go == null) continue;
 
                 var visuals = go.GetComponentInChildren<CardVisuals>(true);
-                if (visuals == null) continue;
-                if (!Traverse.Create(visuals).Field("isHovered").GetValue<bool>()) continue;
+                var isHovered = visuals != null && Traverse.Create(visuals).Field("isHovered").GetValue<bool>();
+                var scale = go.transform.localScale.x;
+                if (!isHovered && scale < bestScale) continue;
 
                 var cardInfo = go.GetComponent<CardInfo>();
                 if (cardInfo == null) continue;
                 visual = cardInfo;
                 hovered = CardChoice.instance.GetSourceCard(cardInfo) ?? cardInfo.sourceCard ?? cardInfo;
-                break;
+                if (isHovered) break;
+                bestScale = scale;
             }
 
             if (hovered == null)
             {
-                ClearPreview();
+                if (_previewDelta != null) ClearPreview();
                 return;
             }
 

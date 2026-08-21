@@ -11,13 +11,14 @@ namespace MulliganMadness.UI
         private static readonly Color ValueColor = new Color(0.94f, 0.97f, 1f, 1f);
         private static readonly Color SectionColor = new Color(0.45f, 0.58f, 0.72f, 0.95f);
 
-        internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null)
+        internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null, bool omitHealthDelta = false)
         {
             var sb = new StringBuilder();
             var suffix = string.IsNullOrEmpty(headerSuffix) ? "" : headerSuffix;
             sb.AppendLine($"<size=105%><b>{snap.PlayerName}{suffix}</b></size>");
 
-            AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, baseline, preview, isHero: true);
+            var hpBaseline = omitHealthDelta ? null : baseline;
+            AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, hpBaseline, preview, isHero: true);
             AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, preview, isHero: true);
             if (HasCount(snap, "Nulls")) AppendRow(sb, "Nulls", snap.GetDisplay("Nulls"), "Nulls", snap, baseline, preview);
             if (HasCount(snap, "NullCards")) AppendRow(sb, "Null cards", snap.GetDisplay("NullCards"), "NullCards", snap, baseline, preview);

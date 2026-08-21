@@ -53,7 +53,7 @@ Save your face and color once, then optionally **apply each game** at spawn. You
 - **Default color index** — palette slot on the color wheel
 - **Apply saved appearance now** — test without restarting
 
-## Stats (v0.3.7 — replaces Infoholic + TabInfo)
+## Stats (v0.3.9 — replaces Infoholic + TabInfo)
 
 All stats UI is client-side. Two surfaces only — no overlapping panels.
 
@@ -67,16 +67,16 @@ All stats UI is client-side. Two surfaces only — no overlapping panels.
 | **C** | In Tab: toggle compare vs another player |
 | **[ / ]** | In compare mode: switch opponent |
 
-**Bottom-left HUD:** transparent text, always on unless hidden. In battle shows your stats. During card picks it switches to **whoever is picking** — hover a card to preview how it would change their build `[+/-]`.
+**Bottom-left HUD:** stays on through pick and battle unless you hide it. During picks it follows **whoever is picking**, shows green/red `(delta)` vs the start of that pick, and hover a card to preview `[+/-]`. Those pick deltas stay on the HUD into the fight (HP damage is ignored so it doesn't swamp the list).
 
-**Tab panel:** scroll through every player. **Compare mode (C)** shows your stats with green/red `(delta)` vs one opponent, plus their full build below for reference.
+**Tab panel:** **Tab** toggles it during picks and battles. Scroll through every player. **Compare mode (C)** shows your stats with green/red `(delta)` vs one opponent, plus their full build below for reference.
 
 Adjust panel size, position, and opacity under **Mods → Mulligan Madness**.
 
 | Feature | Default | Notes |
 | --- | --- | --- |
-| **Always-on HUD** | On | Bottom-left · **O** toggles · pick phase follows active picker |
-| **Tab overlay** | On | Left-side scroll panel · **C** compare · auto-closes on pick |
+| **Always-on HUD** | On | Bottom-left · **O** toggles · pick phase follows active picker · pick deltas |
+| **Tab overlay** | On | Left-side scroll panel · **C** compare · Tab works during pick |
 | **Compare** | In Tab | One opponent at a time with stat deltas — no extra overlay |
 
 Configure under **Mods → Mulligan Madness**. Host rules vs personal UI are labeled in the menu.

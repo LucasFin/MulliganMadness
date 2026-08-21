@@ -321,8 +321,8 @@ namespace MulliganMadness.Utils
             AutoCloseTabDuringPick = config.Bind(
                 "Stats Tab",
                 "AutoCloseDuringPick",
-                true,
-                "Close the Tab overlay when a card pick starts so cards stay clickable.");
+                false,
+                "Close the Tab overlay when a card pick starts so cards stay clickable. Tab still toggles it open again.");
 
             DefaultAppearanceEnabled = config.Bind(
                 "Default Appearance",
