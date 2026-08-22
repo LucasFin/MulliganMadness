@@ -1,72 +1,105 @@
 # Mulligan Madness
 
-Take the whole card offer in one go, with host rules for how often and whether the lobby has to agree. Includes a stats HUD/tab that replaces **Infoholic** and **TabInfo**, plus optional curses when Take All is expensive.
+Adds a **Take All** button during the pick phase, a pack of MM cards and curses, and a stats HUD with a Tab menu. Built to replace **Infoholic** and **TabInfo**.
 
-Host match rules live in **Mods → Mulligan Madness** and apply to everyone in the lobby.
+Host match rules live in **Mods → Mulligan Madness** and sync to the lobby. A one-line summary appears at the first card pick.
+
+## Host session settings
+
+| Setting | What it does |
+| --- | --- |
+| **Take All** | Off, once per game, multi-use, or **vote** |
+| **Take All uses** | How many times each player can Take All (0–3) |
+| **Vote timeout** | Seconds the lobby has to accept |
+| **Take All inflicts a curse** | Take All also gives a random MM curse |
+| **Mercy vote** | Auto-offers a Take All vote when you are far behind |
+| **Panic Pick timer** | Seconds before Panic Pick chooses for you |
+
+Cards and curses are not toggled here. Use **Toggle Cards** under **MulliganMadness**. Default look (save / apply face and color) is personal.
 
 ## Take All
 
-On your pick, a **Take All** button grabs every card in the current offer.
-
-The host chooses how it works:
+On your pick, **Take All** grabs every card in the current offer.
 
 - **Off / once / multi** - nobody uses it, one use each, or a few uses per player
-- **Vote** - you ask the lobby; if they accept, you can still pick a single card instead of taking everything
-- **Mercy vote** - if you're far behind on rounds, the lobby is asked automatically so you can catch up (still optional if they say yes)
+- **Vote** - you ask the lobby first. If they say yes, Take All is unlocked for that pick. It is not forced: you can still take a single card as usual.
+- **Mercy vote** - if you are far behind on rounds, the lobby is asked automatically. Same as Vote: a yes only unlocks Take All, it does not take the hand for you.
 - **Take All inflicts a curse** - grabbing the whole hand also gives you a random Mulligan Madness curse
+
+Nest Egg and Silver Egg add extra curse-free uses after they hatch.
 
 ## Stats
 
-Built-in HUD and Tab overlay, meant to replace Infoholic and TabInfo.
-
-- Bottom-left live stats (ammo, bounces, attack speed, and so on), with card-hover previews during picks
+- Bottom-left live HUD (ammo, bounces, attack speed, and so on), with card-hover previews during picks
 - **O** hides the HUD
 - **Tab** opens a full panel for every player (drag to move, compare with **C**)
 
 ## Curses
 
-If the host enables **Take All inflicts a curse**, taking the whole hand also applies one of these (Take All still only leaves you with one; Return to Sender can stack a second onto someone):
+If Take All inflicts a curse, you get one of these. Take All still only leaves you with one; Return to Sender can stack a second onto someone.
 
-- **Forced Choice** - instantly takes a random offered card
-- **Panic Pick** - short timer, then a random pick
-- **Leftmost Luck** - always takes the leftmost card
-- **Blind Draft** - your offers are face-down. Only you see the backs; everyone else can still read the cards
-- **Short Hand** - one fewer card in each of your offers (uses Pick N Cards' draw count, so keep that mod)
-- **Fumble** - **50%** chance that confirming a card takes a neighbor from the offer instead
-- **Kickback** - **+25% damage**, and your own shots knock you backward
-- **Hard Edges** - map edges bounce you **60%** harder
+### Common
 
-Turn cards and curses on or off in **Toggle Cards** under **MulliganMadness**.
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/forcedchoice_mini.png" width="72" alt="Forced Choice"> | **Forced Choice** - instantly takes a random offered card |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/leftmostluck_mini.png" width="72" alt="Leftmost Luck"> | **Leftmost Luck** - always takes the leftmost card |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/shorthand_mini.png" width="72" alt="Short Hand"> | **Short Hand** - one fewer card in each of your offers (needs Pick N Cards) |
+
+### Uncommon
+
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/blinddraft_mini.png" width="72" alt="Blind Draft"> | **Blind Draft** - your offers are face-down |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/fumble_mini.png" width="72" alt="Fumble"> | **Fumble** - 50% chance the card you confirm is swapped for a neighbor |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/hardedges_mini.png" width="72" alt="Hard Edges"> | **Hard Edges** - map edges bounce you 60% harder |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/kickback_mini.png" width="72" alt="Kickback"> | **Kickback** - +25% damage, and your shots knock you backward |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/panicpick_mini.png" width="72" alt="Panic Pick"> | **Panic Pick** - short timer, then a random pick |
 
 ## Cards
 
-- **Thief** - steal one card from another player (once per game)
-- **Takebacksies** - after you're stolen from, yoink that card back
-- **Sandbag Simulator** - reroll someone's current pick hand (once per game)
-- **Jar of Dirt** - Unique card (not a Null). Only offered if you already have Nulls; converts those Nulls into treasures. Disabled Nulls stay Nulls.
-- **Confetti** - **+2 ammo**, **25%** faster fire, **10%** less damage
-- **Shove** - **+40%** bullet knockback and **+25%** damage
-- **Pisser** - **+4 ammo**, **40%** faster fire, **no spread**, **20%** less damage
-- **Doorstop** - **+1 block**, block cooldown **20%** longer
-- **Bozo Shoes** - players you hit wear clown shoes and take **+50%** knockback from everyone for the rest of the round
-- **Draft Sniper** - during someone else's pick, click a card in their offer to replace it for everyone. Extra copies stack as extra snipes.
-- **Yeet Cannon** - **+100%** bullet knockback, **+15%** damage, and your shots kick you backward
-- **Dynamite** - **+20%** damage. Bullets plant a small delayed blast on hit (same idea as Timed Detonation, including bounces and Drop Grenade landings). Weak boom, huge knockback.
-- **TASER TASER TASER** - hits stun for **+0.5s**, **15%** faster fire, **-1 ammo**
-- **Safety Net** - map edges (top, bottom, sides) no longer deal damage
-- **Nest Egg** - Legendary. After **3 rounds**, gain **1 curse-free Take All**. If you already have a Take All left, this adds another. Extra copies each hatch another.
-- **Silver Egg** - Rare. After **2 rounds**, gain **1 curse-free Take All of half the offer** (rounded up). Stacks the same way as Nest Egg. Extra copies each hatch another.
-- **Return to Sender** - Unique. Only offered if you have a Mulligan Madness curse. Give that curse to another player. If they already have one, they keep theirs and still get yours.
+### Common
+
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/confetti_mini.png" width="72" alt="Confetti"> | **Confetti** - +2 ammo, 25% faster fire, 10% less damage |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/shove_mini.png" width="72" alt="Shove"> | **Shove** - +40% bullet knockback and +25% damage |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/takebacksies_mini.png" width="72" alt="Takebacksies"> | **Takebacksies** - after you are stolen from, yoink that card back |
+
+### Uncommon
+
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/bozoshoes_mini.png" width="72" alt="Bozo Shoes"> | **Bozo Shoes** - players you hit wear clown shoes and take +50% knockback for the rest of the round |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/doorstop_mini.png" width="72" alt="Doorstop"> | **Doorstop** - +1 block, block cooldown 20% longer |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/draftsniper_mini.png" width="72" alt="Draft Sniper"> | **Draft Sniper** - during someone else's pick, click a card to replace it. Extra copies stack. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/dynamite_mini.png" width="72" alt="Dynamite"> | **Dynamite** - +20% damage. Bullets plant a small delayed blast on hit (including bounces). Weak boom, huge knockback. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/pisser_mini.png" width="72" alt="Pisser"> | **Pisser** - +4 ammo, 40% faster fire, no spread, 20% less damage |
+
+### Rare
+
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/safetynet_mini.png" width="72" alt="Safety Net"> | **Safety Net** - map edges no longer deal damage |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/silveregg_mini.png" width="72" alt="Silver Egg"> | **Silver Egg** - after 2 rounds, gain 1 curse-free Take All of half the offer. Extra copies each hatch another. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/tasertasertaser_mini.png" width="72" alt="TASER TASER TASER"> | **TASER TASER TASER** - hits stun for +0.5s, 15% faster fire, -1 ammo |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/yeetcannon_mini.png" width="72" alt="Yeet Cannon"> | **Yeet Cannon** - +100% bullet knockback, +15% damage, and your shots kick you backward |
+
+### Legendary
+
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/nestegg_mini.png" width="72" alt="Nest Egg"> | **Nest Egg** - after 3 rounds, gain 1 curse-free Take All. Extra copies each hatch another. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/sandbag_mini.png" width="72" alt="Sandbag Simulator"> | **Sandbag Simulator** - reroll someone's current pick hand (once per game) |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/thief_mini.png" width="72" alt="Thief"> | **Thief** - steal one card from another player (once per game) |
+
+### Unique
+
+| | |
+| :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/jarofdirt_mini.png" width="72" alt="Jar of Dirt"> | **Jar of Dirt** - only offered if you have Nulls. Converts those Nulls into treasures. Disabled Nulls stay Nulls. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/returntosender_mini.png" width="72" alt="Return to Sender"> | **Return to Sender** - only offered if you have an MM curse. Give that curse to another player. They keep any curse they already have. |
 
 ## Works well with
 
-Compatibility is built in for:
-
-- Pick N Cards
-- PickPhaseImprovements
-- Genie
-- Root Curses / Root Nulled Cards
-- NullManager
-- KeysCards
-- RarityLib
-- WillsWackyManagers
+Pick N Cards, PickPhaseImprovements, Genie, Root Curses / Root Nulled Cards, NullManager, KeysCards, RarityLib, WillsWackyManagers.
