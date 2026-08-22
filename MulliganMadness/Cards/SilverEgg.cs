@@ -11,7 +11,7 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "After 2 rounds, gain 1 curse-free Take All of half the offer (rounded up). If you already have a Take All left, this adds another. Extra copies each hatch another.";
+            "Hatches after 2 rounds into a small random card haul (weaker and faster than The Golden Egg). Extra copies each hatch another.";
 
         protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Rare;
 
@@ -25,7 +25,7 @@ namespace MulliganMadness.Cards
         protected override CardInfoStat[] GetStats() => new[]
         {
             CardStatApply.Stat(true, "Hatch", "2 rounds"),
-            CardStatApply.Stat(true, "Take All", "Half the hand"),
+            CardStatApply.Stat(true, "Loot", "1-2 cards"),
             CardStatApply.Stat(true, "Per copy", "+1")
         };
 

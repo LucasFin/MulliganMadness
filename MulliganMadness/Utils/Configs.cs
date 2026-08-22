@@ -117,7 +117,7 @@ namespace MulliganMadness.Utils
                 "Session Defaults",
                 "CurseOnExisting",
                 TakeAllCurseOnExisting.ReplaceExisting,
-                "0=Replace existing MM curse, 1=Skip curse if player already has one.");
+                "0=Replace existing MulliganMadness curse, 1=Skip curse if player already has one.");
 
             DefaultEnableMercyVote = config.Bind(
                 "Session Defaults",

@@ -26,7 +26,7 @@ namespace MulliganMadness.Utils
             _shownThisGame = true;
 
             var summary = SessionRulesSummary.BuildOneLine(SessionSettings.Current);
-            CardTargetUi.ShowToast($"MM rules: {summary}");
+            CardTargetUi.ShowToast($"MulliganMadness rules: {summary}");
             Plugin.Instance?.Log($"Session rules banner: {summary}");
             yield break;
         }

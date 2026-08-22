@@ -1,6 +1,6 @@
 # Mulligan Madness
 
-Adds a **Take All** button during the pick phase, a pack of MM cards and curses, and a stats HUD with a Tab menu. Built to replace **Infoholic** and **TabInfo**.
+Adds a **Take All** button during the pick phase, a pack of MulliganMadness cards and curses, and a stats HUD with a Tab menu. Built to replace **Infoholic** and **TabInfo**.
 
 Host match rules live in **Mods → Mulligan Madness** and sync to the lobby. A one-line summary appears at the first card pick.
 
@@ -11,7 +11,7 @@ Host match rules live in **Mods → Mulligan Madness** and sync to the lobby. A 
 | **Take All** | Off, once per game, multi-use, or **vote** |
 | **Take All uses** | How many times each player can Take All (0–3) |
 | **Vote timeout** | Seconds the lobby has to accept |
-| **Take All inflicts a curse** | Take All also gives a random MM curse |
+| **Take All inflicts a curse** | Take All also gives a random MulliganMadness curse |
 | **Mercy vote** | Auto-offers a Take All vote when you are far behind |
 | **Panic Pick timer** | Seconds before Panic Pick chooses for you |
 
@@ -24,9 +24,9 @@ On your pick, **Take All** grabs every card in the current offer.
 - **Off / once / multi** - nobody uses it, one use each, or a few uses per player
 - **Vote** - you ask the lobby first. If they say yes, Take All is unlocked for that pick. It is not forced: you can still take a single card as usual.
 - **Mercy vote** - if you are far behind on rounds, the lobby is asked automatically. Same as Vote: a yes only unlocks Take All, it does not take the hand for you.
-- **Take All inflicts a curse** - grabbing the whole hand also gives you a random Mulligan Madness curse
+- **Take All inflicts a curse** - grabbing the whole hand also gives you a random MulliganMadness curse
 
-Nest Egg and Silver Egg add extra curse-free uses after they hatch.
+Nest Egg adds an extra curse-free Take All after it hatches. Silver Egg hatches into a small random card haul instead (weaker / faster cousin of KeysCards' The Golden Egg).
 
 ## Stats
 
@@ -81,7 +81,7 @@ If Take All inflicts a curse, you get one of these. Take All still only leaves y
 | | |
 | :---: | --- |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/safetynet_mini.png" width="72" alt="Safety Net"> | **Safety Net** - map edges no longer deal damage |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/silveregg_mini.png" width="72" alt="Silver Egg"> | **Silver Egg** - after 2 rounds, gain 1 curse-free Take All of half the offer. Extra copies each hatch another. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/silveregg_mini.png" width="72" alt="Silver Egg"> | **Silver Egg** - after 2 rounds, hatches into a small random card haul (weaker and faster than The Golden Egg). Extra copies each hatch another. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/tasertasertaser_mini.png" width="72" alt="TASER TASER TASER"> | **TASER TASER TASER** - hits stun for +0.5s, 15% faster fire, -1 ammo |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/yeetcannon_mini.png" width="72" alt="Yeet Cannon"> | **Yeet Cannon** - +100% bullet knockback, +15% damage, and your shots kick you backward |
 
@@ -98,7 +98,7 @@ If Take All inflicts a curse, you get one of these. Take All still only leaves y
 | | |
 | :---: | --- |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/jarofdirt_mini.png" width="72" alt="Jar of Dirt"> | **Jar of Dirt** - only offered if you have Nulls. Converts those Nulls into treasures. Disabled Nulls stay Nulls. |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/returntosender_mini.png" width="72" alt="Return to Sender"> | **Return to Sender** - only offered if you have an MM curse. Give that curse to another player. They keep any curse they already have. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/returntosender_mini.png" width="72" alt="Return to Sender"> | **Return to Sender** - only offered if you have a MulliganMadness curse. Give that curse to another player. They keep any curse they already have. |
 
 ## Works well with
 

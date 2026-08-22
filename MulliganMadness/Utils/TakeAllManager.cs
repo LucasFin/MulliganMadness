@@ -121,11 +121,9 @@ namespace MulliganMadness.Utils
             return used < limit;
         }
 
-        public static bool HasBonus(Player player) => HasNestBonus(player) || HasSilverBonus(player);
+        public static bool HasBonus(Player player) => HasNestBonus(player);
 
         public static bool HasNestBonus(Player player) => NestEggManager.HasCharge(player, EggKind.Nest);
-
-        public static bool HasSilverBonus(Player player) => NestEggManager.HasCharge(player, EggKind.Silver);
 
         public static bool CanUseTakeAll(Player player) => HasBonus(player) || HasRemaining(player);
 
@@ -271,11 +269,6 @@ namespace MulliganMadness.Utils
                 return BeginTakeAll(picker.playerID, consumeUse: false, skipCurse: true, consumeBonus: true);
             }
 
-            if (HasSilverBonus(picker))
-            {
-                return BeginTakeAll(picker.playerID, consumeUse: false, skipCurse: true, consumeBonus: false, consumeSilver: true);
-            }
-
             if (!IsEnabled) return false;
             if (!HasRemaining(picker)) return false;
 
@@ -304,15 +297,14 @@ namespace MulliganMadness.Utils
             bool consumeUse,
             bool bypassRemaining = false,
             bool skipCurse = false,
-            bool consumeBonus = false,
-            bool consumeSilver = false)
+            bool consumeBonus = false)
         {
             if (_busy) return false;
-            if (!consumeBonus && !consumeSilver && !IsEnabled) return false;
+            if (!consumeBonus && !IsEnabled) return false;
             if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
             var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerId);
             if (picker == null) return false;
-            if (!bypassRemaining && !consumeBonus && !consumeSilver && !HasRemaining(picker)) return false;
+            if (!bypassRemaining && !consumeBonus && !HasRemaining(picker)) return false;
             if ((payloads == null || payloads.Length == 0) && !cashOutWithNull) return false;
 
             AutoPickController.ResetForCurrentPick();
@@ -325,8 +317,7 @@ namespace MulliganMadness.Utils
                 cashOutWithNull,
                 consumeUse,
                 skipCurse,
-                consumeBonus,
-                consumeSilver);
+                consumeBonus);
             Plugin.Instance.Log(
                 $"Player {playerId} authorized Take All from payloads ({payloads?.Length ?? 0} cards, cashOutNull={cashOutWithNull}).");
             return true;
@@ -371,26 +362,9 @@ namespace MulliganMadness.Utils
             int playerId,
             bool consumeUse,
             bool skipCurse = false,
-            bool consumeBonus = false,
-            bool consumeSilver = false)
+            bool consumeBonus = false)
         {
-            var maxCards = 0;
-            if (consumeSilver)
-            {
-                var spawned = GetSpawnedCards();
-                var n = 0;
-                if (spawned != null)
-                {
-                    foreach (var go in spawned)
-                    {
-                        if (go != null) n++;
-                    }
-                }
-
-                maxCards = Mathf.Max(1, Mathf.CeilToInt(n * 0.5f));
-            }
-
-            if (!TryEncodeOfferedHand(out var payloads, out var cashOutWithNull, maxCards)) return false;
+            if (!TryEncodeOfferedHand(out var payloads, out var cashOutWithNull)) return false;
             return ExecuteAuthorizedTakeAllFromPayloads(
                 playerId,
                 payloads,
@@ -398,8 +372,7 @@ namespace MulliganMadness.Utils
                 consumeUse,
                 bypassRemaining: true,
                 skipCurse,
-                consumeBonus,
-                consumeSilver);
+                consumeBonus);
         }
 
 
@@ -435,10 +408,9 @@ namespace MulliganMadness.Utils
             bool cashOutWithNull,
             bool consumeUse,
             bool skipCurse,
-            bool consumeBonus,
-            bool consumeSilver)
+            bool consumeBonus)
         {
-            if (!IsEnabled && !consumeBonus && !consumeSilver)
+            if (!IsEnabled && !consumeBonus)
             {
                 _busy = false;
                 return;
@@ -513,7 +485,6 @@ namespace MulliganMadness.Utils
 
             ConsumeUse(playerID, consumeUse);
             if (consumeBonus) NestEggManager.TryConsumeCharge(playerID, EggKind.Nest);
-            if (consumeSilver) NestEggManager.TryConsumeCharge(playerID, EggKind.Silver);
             UI.TakeAllButton.RefreshVisibility();
             UI.PickAnnounceUi.ShowTookAll(playerID);
 

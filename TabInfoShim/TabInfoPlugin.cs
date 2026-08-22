@@ -13,7 +13,7 @@ namespace TabInfo
     public class TabInfoPlugin : BaseUnityPlugin
     {
         public const string ModId = "com.willuwontu.rounds.tabinfo";
-        public const string ModName = "Tab Info (MM Compat)";
+        public const string ModName = "Tab Info (MulliganMadness Compat)";
         public const string Version = "0.0.6";
         public const string ModInitials = "TI";
 
