@@ -87,10 +87,10 @@ namespace MulliganMadness.UI
             _root.SetActive(true);
 
             _body.fontSize = StatsUiHelper.BaseFont;
-            // Soft dark outline so white maps don't eat the HUD.
-            _body.color = new Color(0.97f, 0.98f, 1f, 0.96f);
-            _body.outlineWidth = 0.22f;
-            _body.outlineColor = new Color(0f, 0f, 0f, 0.85f);
+            _body.color = Color.white;
+            _body.outlineWidth = 0.35f;
+            _body.outlineColor = new Color(0f, 0f, 0f, 0.95f);
+            _body.fontMaterial.EnableKeyword("OUTLINE_ON");
             var picking = StatsController.IsCardPickActive;
             var suffix = watchingPicker ? " · picking" : "";
             if (picking && !string.IsNullOrEmpty(StatsController.HoveredCardName))
@@ -121,8 +121,8 @@ namespace MulliganMadness.UI
             var scale = StatsUiHelper.UiScale;
             var canvasSize = StatsUiHelper.OverlaySize;
             var width = GetPanelWidth() * scale;
-            // Light scrim only — readable on white geometry without looking like a panel.
-            var opacity = 0.42f;
+            // Darker scrim so bright map blocks don't wash out labels.
+            var opacity = 0.72f;
             var showChrome = false;
 
             _body.ForceMeshUpdate();

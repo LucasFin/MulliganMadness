@@ -7,11 +7,11 @@ namespace MulliganMadness.Cards
     {
         public const string Title = "Dynamite";
         internal const float DamageMult = 1.2f;
-        internal const float BlastDelay = 0.6f;
-        internal const float BlastRadius = 1.3f;
+        internal const float BlastDelay = 0.9f;
+        internal const float BlastRadius = 2.6f;
         internal const float BlastDamage = 12f;
-        internal const float BlastForce = 2200f;
-        internal const float BlastFlying = 0.55f;
+        internal const float BlastForce = 48000f;
+        internal const float BlastFlying = 2.8f;
         internal static CardInfo Card;
 
         protected override string GetTitle() => Title;

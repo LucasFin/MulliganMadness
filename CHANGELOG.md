@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.19
+
+- Clearer card-bar minis: transparent cropped icons, FancyCardBar `FancyIcon` soft-dep, strip RGB rainbow overlays.
+- HUD labels more readable on neon maps (brighter labels, stronger outline, darker scrim).
+- Bozo Shoes: visible clown-shoe markers on marked players.
+- Dynamite: longer fuse with bomb flicker, stronger knockback yeet.
+
 ## 0.3.18
 
 - Add Thunderstore `CHANGELOG.md` (this tab) with a backfilled history from prior releases.

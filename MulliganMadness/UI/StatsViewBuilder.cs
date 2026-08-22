@@ -7,9 +7,9 @@ namespace MulliganMadness.UI
 {
     internal static class StatsViewBuilder
     {
-        private static readonly Color LabelColor = new Color(0.72f, 0.74f, 0.77f, 1f);
-        private static readonly Color ValueColor = new Color(0.96f, 0.97f, 0.98f, 1f);
-        private static readonly Color SectionColor = new Color(0.58f, 0.60f, 0.64f, 0.95f);
+        private static readonly Color LabelColor = new Color(0.96f, 0.97f, 0.99f, 1f);
+        private static readonly Color ValueColor = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color SectionColor = new Color(0.88f, 0.90f, 0.94f, 1f);
 
         internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null, bool omitHealthDelta = false, bool pickHoverMode = false)
         {

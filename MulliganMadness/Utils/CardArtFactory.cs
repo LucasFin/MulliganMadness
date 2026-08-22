@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MulliganMadness.Utils
 {
@@ -12,44 +13,51 @@ namespace MulliganMadness.Utils
 
     internal static class CardArtFactory
     {
-        // Match ROUNDS center art slot; Cover-fit into ~1100x865 pick frames.
-        private const float TargetWorldWidth = 11f;
-        private const float TargetWorldHeight = 8.65f;
-
         private static readonly string ArtFolder = Path.Combine(
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "",
             "Art");
 
         private static readonly Dictionary<string, Sprite> FullSprites = new Dictionary<string, Sprite>();
         private static readonly Dictionary<string, Sprite> MiniSprites = new Dictionary<string, Sprite>();
+        private static readonly Dictionary<string, GameObject> Templates = new Dictionary<string, GameObject>();
 
         internal static GameObject Create(string artName)
         {
             if (string.IsNullOrEmpty(artName)) return null;
+            if (Templates.TryGetValue(artName, out var cached) && cached != null) return cached;
 
             var sprite = GetFullSprite(artName);
             if (sprite == null) return null;
 
-            // Fresh instance every time — Toggle Cards / picks Instantiate or reparent art.
-            var root = new GameObject("MM_CardArt_" + artName);
+            // Toggle Cards / card-bar hover / picks parent art under a UI RectTransform.
+            // SpriteRenderer never draws there — use Unity UI Image (same pattern as MADGEIOS).
+            // No Canvas on the template → invisible on the main menu until Instantiated onto a card.
+            var root = new GameObject("MM_CardArt_" + artName, typeof(RectTransform));
             Object.DontDestroyOnLoad(root);
-            root.SetActive(false);
 
             var tag = root.AddComponent<MmCardArtTag>();
             tag.ArtName = artName;
 
-            var renderer = root.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.sortingOrder = 1;
+            var image = root.AddComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.color = Color.white;
 
-            var bounds = sprite.bounds.size;
-            if (bounds.x > 0.01f && bounds.y > 0.01f)
-            {
-                var scale = Mathf.Min(TargetWorldWidth / bounds.x, TargetWorldHeight / bounds.y);
-                root.transform.localScale = new Vector3(scale, scale, 1f);
-            }
+            var rect = root.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.anchoredPosition = Vector2.zero;
+            rect.localScale = Vector3.one;
+            rect.localRotation = Quaternion.identity;
 
-            root.SetActive(true);
+            // Shake / moving bg / glow scale — see CardArtFx + CardVisualsFxPatch.
+            CardArtFx.AttachToTemplate(root, artName);
+
+            Templates[artName] = root;
             return root;
         }
 
@@ -93,6 +101,8 @@ namespace MulliganMadness.Utils
             if (string.IsNullOrEmpty(artName)) return;
             var mini = GetMiniSprite(artName);
             if (mini != null) info.sprite = mini;
+            // Soft-dep FancyCardBar: custom bar icon prefab beats muddy auto-gen.
+            CardBarMiniIcons.AttachFancyIcon(info);
         }
 
         internal static void BindLoadedCardInfos()
@@ -106,6 +116,14 @@ namespace MulliganMadness.Utils
             if (FullSprites.TryGetValue(artName, out var cached) && cached != null) return cached;
 
             var path = Path.Combine(ArtFolder, artName + ".png");
+            if (!File.Exists(path))
+            {
+                // Older installs dropped PNGs next to the DLL.
+                path = Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "",
+                    artName + ".png");
+            }
+
             if (!File.Exists(path)) return null;
 
             try

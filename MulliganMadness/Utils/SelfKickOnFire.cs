@@ -11,10 +11,10 @@ namespace MulliganMadness.Utils
     /// </summary>
     internal static class SelfKick
     {
-        internal const float YeetForce = 780f;
-        internal const float KickbackForce = 620f;
-        internal const float YeetFlying = 0.12f;
-        internal const float KickbackFlying = 0.08f;
+        internal const float YeetForce = 2400f;
+        internal const float KickbackForce = 1700f;
+        internal const float YeetFlying = 0.32f;
+        internal const float KickbackFlying = 0.22f;
 
         private static float _lastKickTime;
         private static int _lastKickPlayer = -1;
@@ -66,8 +66,8 @@ namespace MulliganMadness.Utils
             }
 
             var force = -aim.normalized * forceMag;
-            // Slight upward bias so horizontal shots still work as a hop.
-            force += Vector2.up * (forceMag * 0.08f);
+            // Upward bias so horizontal shots still hop; aiming down is a real jump.
+            force += Vector2.up * (forceMag * 0.12f);
             player.data.healthHandler.CallTakeForce(force, ForceMode2D.Impulse, true, true, flying);
         }
 

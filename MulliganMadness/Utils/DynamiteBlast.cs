@@ -101,21 +101,38 @@ namespace MulliganMadness.Utils
         private IEnumerator Run()
         {
             var pulse = MakePulse();
+            var stick = MakeStick();
             var elapsed = 0f;
             while (elapsed < Dynamite.BlastDelay)
             {
                 elapsed += Time.deltaTime;
                 var t = elapsed / Dynamite.BlastDelay;
+                // Bomb fuse: slow blink early, frantic white flashes near boom.
+                var hz = Mathf.Lerp(3.5f, 22f, t * t);
+                var on = Mathf.PingPong(elapsed * hz, 1f) > 0.45f;
+                var hot = t > 0.55f;
+
                 if (pulse != null)
                 {
-                    var scale = Mathf.Lerp(0.4f, 1.35f, t);
+                    var scale = Mathf.Lerp(0.55f, 1.85f, t);
+                    if (on && hot) scale *= 1.18f;
                     pulse.transform.localScale = new Vector3(scale, scale, 1f);
                     var sr = pulse.GetComponent<SpriteRenderer>();
                     if (sr != null)
                     {
-                        var flash = t > 0.65f && Mathf.PingPong(elapsed * 14f, 1f) > 0.5f;
-                        sr.color = flash ? Color.white : new Color(1f, 0.18f, 0.12f, 0.95f);
+                        if (on)
+                            sr.color = hot ? Color.white : new Color(1f, 0.85f, 0.25f, 1f);
+                        else
+                            sr.color = new Color(1f, 0.12f, 0.08f, 0.9f);
                     }
+                }
+
+                if (stick != null)
+                {
+                    var sr = stick.GetComponent<SpriteRenderer>();
+                    if (sr != null)
+                        sr.color = on ? new Color(1f, 0.95f, 0.75f, 1f) : Color.white;
+                    stick.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(elapsed * 40f) * (8f + t * 18f));
                 }
 
                 yield return null;
@@ -123,6 +140,7 @@ namespace MulliganMadness.Utils
 
             Detonate();
             if (pulse != null) Object.Destroy(pulse);
+            if (stick != null) Object.Destroy(stick);
             Object.Destroy(gameObject);
         }
 
@@ -141,9 +159,12 @@ namespace MulliganMadness.Utils
                 if (delta.sqrMagnitude > Dynamite.BlastRadius * Dynamite.BlastRadius) continue;
 
                 var dir = delta.sqrMagnitude < 0.04f ? Vector2.up : delta.normalized;
-                dir = (dir + new Vector2(0f, 0.45f)).normalized;
+                // Bias hard upward so grounded players actually leave the floor.
+                dir = (dir + new Vector2(0f, 0.85f)).normalized;
+                var force = dir * Dynamite.BlastForce;
+                force.y = Mathf.Max(force.y, Dynamite.BlastForce * 0.55f);
                 player.data.healthHandler.CallTakeForce(
-                    dir * Dynamite.BlastForce,
+                    force,
                     ForceMode2D.Impulse,
                     true,
                     true,
@@ -166,7 +187,22 @@ namespace MulliganMadness.Utils
             sr.sprite = FlashSprite();
             sr.color = new Color(1f, 0.18f, 0.12f, 0.95f);
             sr.sortingOrder = 40;
-            go.transform.localScale = Vector3.one * 0.4f;
+            go.transform.localScale = Vector3.one * 0.55f;
+            return go;
+        }
+
+        private GameObject MakeStick()
+        {
+            var mini = CardArtFactory.GetMiniSprite("dynamite");
+            if (mini == null) return null;
+            var go = new GameObject("MM_DynamiteStick");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localScale = Vector3.one * 0.85f;
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = mini;
+            sr.sortingOrder = 41;
+            sr.color = Color.white;
             return go;
         }
 

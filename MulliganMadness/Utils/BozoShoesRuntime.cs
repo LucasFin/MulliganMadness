@@ -32,6 +32,7 @@ namespace MulliganMadness.Utils
             if (victim == null) return;
             var first = Marked.Add(victim.playerID);
             AttachShoes(victim);
+            EnsureTicker(victim);
             if (!first) return;
 
             var name = victim.data?.view?.Owner?.NickName;
@@ -57,7 +58,9 @@ namespace MulliganMadness.Utils
             if (players == null) return;
             foreach (var player in players)
             {
-                if (IsMarked(player)) AttachShoes(player);
+                if (!IsMarked(player)) continue;
+                AttachShoes(player);
+                EnsureTicker(player);
             }
         }
 
@@ -68,6 +71,8 @@ namespace MulliganMadness.Utils
             foreach (var player in players)
             {
                 StripShoes(player);
+                var ticker = player != null ? player.GetComponent<BozoShoesTicker>() : null;
+                if (ticker != null) Object.Destroy(ticker);
             }
         }
 
@@ -92,11 +97,18 @@ namespace MulliganMadness.Utils
             return player.transform;
         }
 
-        private static void AttachShoes(Player player)
+        private static void EnsureTicker(Player player)
+        {
+            if (player == null) return;
+            if (player.GetComponent<BozoShoesTicker>() == null)
+                player.gameObject.AddComponent<BozoShoesTicker>();
+        }
+
+        internal static void AttachShoes(Player player)
         {
             if (player == null) return;
             var body = Body(player);
-            if (FindVisual(player) != null) return;
+            StripShoes(player);
 
             var root = new GameObject(VisualName);
             root.transform.SetParent(body, false);
@@ -104,25 +116,29 @@ namespace MulliganMadness.Utils
             root.transform.localRotation = Quaternion.identity;
             root.transform.localScale = Vector3.one;
 
-            var radius = 0.5f;
+            var radius = 0.55f;
             var col = player.data?.mainCol as CircleCollider2D
                       ?? body.GetComponent<CircleCollider2D>()
                       ?? body.GetComponentInChildren<CircleCollider2D>();
-            if (col != null) radius = Mathf.Max(0.25f, col.radius);
+            if (col != null) radius = Mathf.Max(0.35f, col.radius);
 
-            var sort = 20;
+            var sort = 40;
             var layer = "Default";
             var bodySprite = body.GetComponent<SpriteRenderer>() ?? body.GetComponentInChildren<SpriteRenderer>();
             if (bodySprite != null)
             {
-                sort = bodySprite.sortingOrder + 8;
+                sort = bodySprite.sortingOrder + 20;
                 layer = bodySprite.sortingLayerName;
             }
 
             var sprite = ShoeSprite();
-            var scale = radius * 1.45f;
-            AddShoe(root.transform, sprite, new Vector3(-radius * 0.52f, -radius * 0.78f, 0f), 16f, new Vector3(scale, scale, 1f), sort, layer);
-            AddShoe(root.transform, sprite, new Vector3(radius * 0.52f, -radius * 0.78f, 0f), -16f, new Vector3(-scale, scale, 1f), sort, layer);
+            // Big clown shoes under the blob — readable at a glance.
+            var scale = radius * 2.35f;
+            AddShoe(root.transform, sprite, new Vector3(-radius * 0.7f, -radius * 0.95f, 0f), 18f, new Vector3(scale, scale, 1f), sort, layer);
+            AddShoe(root.transform, sprite, new Vector3(radius * 0.7f, -radius * 0.95f, 0f), -18f, new Vector3(-scale, scale, 1f), sort, layer);
+
+            // Extra hat-star so it's obvious even if feet are clipped.
+            AddShoe(root.transform, sprite, new Vector3(0f, radius * 1.15f, 0f), 0f, new Vector3(scale * 0.55f, scale * 0.55f, 1f), sort + 1, layer);
         }
 
         private static void AddShoe(Transform parent, Sprite sprite, Vector3 localPos, float zRot, Vector3 localScale, int sort, string layer)
@@ -142,6 +158,14 @@ namespace MulliganMadness.Utils
         private static Sprite ShoeSprite()
         {
             if (_shoeSprite != null) return _shoeSprite;
+
+            // Prefer the card mini if present — matches the bar icon.
+            var mini = CardArtFactory.GetMiniSprite("bozoshoes");
+            if (mini != null)
+            {
+                _shoeSprite = mini;
+                return _shoeSprite;
+            }
 
             const int w = 96;
             const int h = 64;
@@ -182,6 +206,28 @@ namespace MulliganMadness.Utils
             Object.DontDestroyOnLoad(tex);
             _shoeSprite = Sprite.Create(tex, new Rect(0f, 0f, w, h), new Vector2(0.5f, 0.5f), 64f);
             return _shoeSprite;
+        }
+    }
+
+    internal sealed class BozoShoesTicker : MonoBehaviour
+    {
+        private Player _player;
+        private float _nextCheck;
+
+        private void Awake() => _player = GetComponent<Player>();
+
+        private void LateUpdate()
+        {
+            if (_player == null) return;
+            if (!BozoShoesRuntime.IsMarked(_player))
+            {
+                Destroy(this);
+                return;
+            }
+
+            if (Time.time < _nextCheck) return;
+            _nextCheck = Time.time + 0.35f;
+            BozoShoesRuntime.AttachShoes(_player);
         }
     }
 }

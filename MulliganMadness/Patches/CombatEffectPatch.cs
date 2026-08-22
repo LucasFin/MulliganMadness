@@ -1,7 +1,6 @@
 using HarmonyLib;
 using MulliganMadness.Cards;
 using MulliganMadness.Utils;
-using Photon.Pun;
 using UnboundLib;
 using UnboundLib.Networking;
 using UnityEngine;
@@ -14,16 +13,7 @@ namespace MulliganMadness.Patches
         // Mark before damage/knockback so the first Bozo hit already gets +50%.
         private static void Prefix(HealthHandler __instance, Player damagingPlayer)
         {
-            if (damagingPlayer == null) return;
-            var victim = __instance.GetComponentInParent<Player>();
-            if (victim == null || victim.playerID == damagingPlayer.playerID) return;
-            if (!CurseOwnership.Has(damagingPlayer, BozoShoes.Card)) return;
-
-            BozoShoesRuntime.Mark(victim);
-            if (damagingPlayer.data?.view != null && damagingPlayer.data.view.IsMine)
-            {
-                NetworkingManager.RPC(typeof(CombatEffectPatch), nameof(RPCA_BozoMark), victim.playerID);
-            }
+            TryBozoMark(__instance, damagingPlayer);
         }
 
         private static void Postfix(HealthHandler __instance, Player damagingPlayer)
@@ -37,10 +27,37 @@ namespace MulliganMadness.Patches
             stun.AddStun(TaserTaserTaser.ExtraStunSeconds);
         }
 
+        internal static void TryBozoMark(HealthHandler health, Player damagingPlayer)
+        {
+            if (damagingPlayer == null || health == null) return;
+            var victim = health.GetComponentInParent<Player>();
+            if (victim == null || victim.playerID == damagingPlayer.playerID) return;
+            if (!CurseOwnership.Has(damagingPlayer, BozoShoes.Card)) return;
+
+            BozoShoesRuntime.Mark(victim);
+            if (damagingPlayer.data?.view != null && damagingPlayer.data.view.IsMine)
+            {
+                NetworkingManager.RPC(typeof(CombatEffectPatch), nameof(RPCA_BozoMark), victim.playerID);
+            }
+        }
+
         [UnboundRPC]
         public static void RPCA_BozoMark(int victimId)
         {
             BozoShoesRuntime.Mark(TakeAllManager.FindPlayer(victimId));
+        }
+    }
+
+    // Backup path — some hits skip DoDamage or arrive via RPC damage first.
+    [HarmonyPatch(typeof(HealthHandler), "CallTakeDamage", new[]
+    {
+        typeof(Vector2), typeof(Vector2), typeof(GameObject), typeof(Player), typeof(bool)
+    })]
+    internal static class BozoMarkCallTakeDamagePatch
+    {
+        private static void Prefix(HealthHandler __instance, Player damagingPlayer)
+        {
+            CombatEffectPatch.TryBozoMark(__instance, damagingPlayer);
         }
     }
 }
