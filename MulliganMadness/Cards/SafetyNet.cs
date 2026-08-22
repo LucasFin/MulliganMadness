@@ -11,7 +11,7 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "Map edges no longer deal damage (top, bottom, or sides).";
+            "Map edges no longer deal damage (top, bottom, or sides). Soft-locks outside the map kill you after a few seconds.";
 
         protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Rare;
 

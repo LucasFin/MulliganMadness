@@ -15,7 +15,7 @@ namespace MulliganMadness.Stats
                 _ => "Clown shoes, +50% knockback");
             TabInfoManager.RegisterStat(category, "Safety Net",
                 player => CurseOwnership.Has(player, SafetyNet.Card),
-                _ => "No edge damage");
+                _ => "No edge damage · OOB escape kill");
             TabInfoManager.RegisterStat(category, "Hard Edges",
                 player => CurseOwnership.Has(player, HardEdges.Card),
                 _ => "+60% edge bounce");
@@ -24,7 +24,10 @@ namespace MulliganMadness.Stats
                 _ => "+0.5s stun on hit");
             TabInfoManager.RegisterStat(category, "Yeet Cannon",
                 player => CurseOwnership.Has(player, YeetCannon.Card),
-                _ => "Shots kick you back");
+                _ => "Strong kick away from gun");
+            TabInfoManager.RegisterStat(category, "Kickback",
+                player => CurseOwnership.Has(player, Kickback.Card),
+                _ => "Strong kick away from gun");
             TabInfoManager.RegisterStat(category, "Dynamite",
                 player => CurseOwnership.Has(player, Dynamite.Card),
                 _ => "Delayed blast, huge knockback");

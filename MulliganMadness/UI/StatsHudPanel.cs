@@ -87,7 +87,10 @@ namespace MulliganMadness.UI
             _root.SetActive(true);
 
             _body.fontSize = StatsUiHelper.BaseFont;
-            _body.color = Color.white;
+            // Soft dark outline so white maps don't eat the HUD.
+            _body.color = new Color(0.97f, 0.98f, 1f, 0.96f);
+            _body.outlineWidth = 0.22f;
+            _body.outlineColor = new Color(0f, 0f, 0f, 0.85f);
             var picking = StatsController.IsCardPickActive;
             var suffix = watchingPicker ? " · picking" : "";
             if (picking && !string.IsNullOrEmpty(StatsController.HoveredCardName))
@@ -95,12 +98,13 @@ namespace MulliganMadness.UI
                 suffix += $" · {StatsController.HoveredCardName}";
             }
 
+            // Mulligan Madness card/curse rows stay on the Tab menu only.
             var text = StatsViewBuilder.BuildHud(
                 snapshot,
                 simple: true,
                 baseline: picking ? null : pickBaseline,
                 preview: picking ? _previewDelta : null,
-                extensions: TabInfoBridge.GetMmStats(hudPlayer),
+                extensions: null,
                 headerSuffix: string.IsNullOrEmpty(suffix) ? null : suffix,
                 omitHealthDelta: StatsController.InBattlePhase,
                 pickHoverMode: picking);
@@ -117,8 +121,9 @@ namespace MulliganMadness.UI
             var scale = StatsUiHelper.UiScale;
             var canvasSize = StatsUiHelper.OverlaySize;
             var width = GetPanelWidth() * scale;
-            var opacity = 0f;
-            var showChrome = opacity > 0.04f;
+            // Light scrim only — readable on white geometry without looking like a panel.
+            var opacity = 0.42f;
+            var showChrome = false;
 
             _body.ForceMeshUpdate();
             var textHeight = Mathf.Max(_body.preferredHeight, 36f);
@@ -140,7 +145,7 @@ namespace MulliganMadness.UI
             var panelImage = _root.GetComponent<Image>();
             if (panelImage != null)
             {
-                panelImage.color = new Color(0.03f, 0.05f, 0.08f, opacity);
+                panelImage.color = new Color(0.02f, 0.03f, 0.05f, opacity);
                 panelImage.raycastTarget = false;
             }
 

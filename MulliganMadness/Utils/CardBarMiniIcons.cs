@@ -25,16 +25,32 @@ namespace MulliganMadness.Utils
         internal static void Apply(GameObject button, CardInfo card)
         {
             if (button == null || card == null) return;
+            CardArtFactory.TryAssignSprite(card);
             var sprite = SpriteFor(card);
             if (sprite == null) return;
 
             foreach (var tmp in button.GetComponentsInChildren<TMP_Text>(true))
             {
                 tmp.enabled = false;
+                tmp.text = "";
+            }
+
+            // FancyCardBar / vanilla both use Image children — stamp our mini on all of them.
+            var images = button.GetComponentsInChildren<Image>(true);
+            var stamped = false;
+            foreach (var image in images)
+            {
+                if (image == null) continue;
+                image.sprite = sprite;
+                image.overrideSprite = sprite;
+                image.color = Color.white;
+                image.preserveAspect = true;
+                image.enabled = true;
+                stamped = true;
             }
 
             var existing = button.transform.Find(ChildName);
-            Image image;
+            Image ours;
             if (existing == null)
             {
                 var go = new GameObject(ChildName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
@@ -43,20 +59,31 @@ namespace MulliganMadness.Utils
                 rt.anchorMin = Vector2.zero;
                 rt.anchorMax = Vector2.one;
                 rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.offsetMin = new Vector2(3f, 3f);
-                rt.offsetMax = new Vector2(-3f, -3f);
-                image = go.GetComponent<Image>();
-                image.raycastTarget = false;
-                image.preserveAspect = true;
-                image.color = Color.white;
+                rt.offsetMin = new Vector2(2f, 2f);
+                rt.offsetMax = new Vector2(-2f, -2f);
+                ours = go.GetComponent<Image>();
+                ours.raycastTarget = false;
+                ours.preserveAspect = true;
             }
             else
             {
-                image = existing.GetComponent<Image>();
+                ours = existing.GetComponent<Image>();
                 existing.SetAsLastSibling();
             }
 
-            if (image != null) image.sprite = sprite;
+            if (ours != null)
+            {
+                ours.sprite = sprite;
+                ours.overrideSprite = sprite;
+                ours.color = Color.white;
+                ours.enabled = true;
+                stamped = true;
+            }
+
+            if (!stamped && card.sprite == null)
+            {
+                card.sprite = sprite;
+            }
         }
 
         internal static Sprite SpriteFor(CardInfo card)

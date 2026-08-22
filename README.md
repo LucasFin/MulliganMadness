@@ -53,7 +53,7 @@ If Take All inflicts a curse, you get one of these. Take All still only leaves y
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/blinddraft_mini.png" width="72" alt="Blind Draft"> | **Blind Draft** - your offers are face-down |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/fumble_mini.png" width="72" alt="Fumble"> | **Fumble** - 50% chance the card you confirm is swapped for a neighbor |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/hardedges_mini.png" width="72" alt="Hard Edges"> | **Hard Edges** - map edges bounce you 60% harder |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/kickback_mini.png" width="72" alt="Kickback"> | **Kickback** - +25% damage, and your shots knock you backward |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/kickback_mini.png" width="72" alt="Kickback"> | **Kickback** - +25% damage, and your shots strongly kick you away from your gun |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/panicpick_mini.png" width="72" alt="Panic Pick"> | **Panic Pick** - short timer, then a random pick |
 
 ## Cards
@@ -72,7 +72,6 @@ If Take All inflicts a curse, you get one of these. Take All still only leaves y
 | :---: | --- |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/bozoshoes_mini.png" width="72" alt="Bozo Shoes"> | **Bozo Shoes** - players you hit wear clown shoes and take +50% knockback for the rest of the round |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/doorstop_mini.png" width="72" alt="Doorstop"> | **Doorstop** - +1 block, block cooldown 20% longer |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/draftsniper_mini.png" width="72" alt="Draft Sniper"> | **Draft Sniper** - during someone else's pick, click a card to replace it. Extra copies stack. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/dynamite_mini.png" width="72" alt="Dynamite"> | **Dynamite** - +20% damage. Bullets plant a small delayed blast on hit (including bounces). Weak boom, huge knockback. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/pisser_mini.png" width="72" alt="Pisser"> | **Pisser** - +4 ammo, 40% faster fire, no spread, 20% less damage |
 
@@ -80,10 +79,11 @@ If Take All inflicts a curse, you get one of these. Take All still only leaves y
 
 | | |
 | :---: | --- |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/safetynet_mini.png" width="72" alt="Safety Net"> | **Safety Net** - map edges no longer deal damage |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/draftsniper_mini.png" width="72" alt="Draft Sniper"> | **Draft Sniper** - during someone else's pick, click a card to replace it. Extra copies stack. |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/safetynet_mini.png" width="72" alt="Safety Net"> | **Safety Net** - map edges no longer deal damage. If you soft-lock outside the map, you die after a few seconds. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/silveregg_mini.png" width="72" alt="Silver Egg"> | **Silver Egg** - after 2 rounds, hatches into a small random card haul (weaker and faster than The Golden Egg). Extra copies each hatch another. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/tasertasertaser_mini.png" width="72" alt="TASER TASER TASER"> | **TASER TASER TASER** - hits stun for +0.5s, 15% faster fire, -1 ammo |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/yeetcannon_mini.png" width="72" alt="Yeet Cannon"> | **Yeet Cannon** - +100% bullet knockback, +15% damage, and your shots kick you backward |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/yeetcannon_mini.png" width="72" alt="Yeet Cannon"> | **Yeet Cannon** - +100% bullet knockback, +15% damage, and your shots strongly kick you away from your gun |
 
 ### Legendary
 

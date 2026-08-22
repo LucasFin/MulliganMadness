@@ -27,7 +27,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.3.15";
+        public const string Version = "0.3.17";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -106,6 +106,7 @@ namespace MulliganMadness
             NestEggManager.ResetForNewGame();
             BozoShoesRuntime.Clear();
             DefaultAppearance.ResetForNewGame();
+            SafetyNetEscape.Reset();
             KeysUnlockReset.Reapply();
             Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
             Instance.ExecuteAfterSeconds(0.5f, TakebacksiesBlacklist.EnsureGlobalBlacklist);

@@ -21,7 +21,7 @@ Toggle individual curses under **Toggle Cards -> MulliganMadness**.
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/blinddraft_mini.png" width="72" alt="Blind Draft"> | **Blind Draft** - your offers are face-down |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/fumble_mini.png" width="72" alt="Fumble"> | **Fumble** - 50% chance the card you confirm is swapped for a neighbor |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/hardedges_mini.png" width="72" alt="Hard Edges"> | **Hard Edges** - map edges bounce you 60% harder |
-| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/kickback_mini.png" width="72" alt="Kickback"> | **Kickback** - +25% damage, and your shots knock you backward |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/kickback_mini.png" width="72" alt="Kickback"> | **Kickback** - +25% damage, and your shots strongly kick you away from your gun |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/panicpick_mini.png" width="72" alt="Panic Pick"> | **Panic Pick** - short timer, then a random pick |
 
 The **Panic Pick timer** host setting controls how many seconds you get before Panic Pick chooses for you.

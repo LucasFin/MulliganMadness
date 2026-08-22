@@ -13,7 +13,7 @@ namespace MulliganMadness.Cards
         protected override string GetDescription() =>
             "During someone else's pick, click a card in their offer to replace it. Extra copies give extra snipes.";
 
-        protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Uncommon;
+        protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Rare;
 
         protected override GameObject GetCardArt() => CardArtFactory.Create("draftsniper");
 

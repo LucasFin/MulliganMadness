@@ -2,6 +2,7 @@ using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
 using MulliganMadness.Utils;
+using UnboundLib;
 using UnityEngine;
 using CardsApi = ModdingUtils.Utils.Cards;
 
@@ -14,6 +15,12 @@ namespace MulliganMadness.Patches
         private static void Postfix(CardBar __instance)
         {
             CardBarMiniIcons.ApplyToLatestButton(__instance);
+            // FancyCardBar paints after AddCard — stamp again a few frames later.
+            if (Unbound.Instance != null)
+            {
+                Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyToLatestButton(__instance));
+                Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyToLatestButton(__instance));
+            }
         }
     }
 
@@ -49,7 +56,13 @@ namespace MulliganMadness.Patches
         {
             try
             {
-                CardBarMiniIcons.ApplyToLatestButton(CardBarUtils.instance.PlayersCardBar(playerID));
+                var bar = CardBarUtils.instance.PlayersCardBar(playerID);
+                CardBarMiniIcons.ApplyToLatestButton(bar);
+                if (Unbound.Instance != null)
+                {
+                    Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyToLatestButton(bar));
+                    Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyToLatestButton(bar));
+                }
             }
             catch
             {
@@ -75,7 +88,13 @@ namespace MulliganMadness.Patches
         {
             try
             {
-                CardBarMiniIcons.ApplyToLatestButton(CardBarUtils.instance.PlayersCardBar(playerID));
+                var bar = CardBarUtils.instance.PlayersCardBar(playerID);
+                CardBarMiniIcons.ApplyToLatestButton(bar);
+                if (Unbound.Instance != null)
+                {
+                    Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyToLatestButton(bar));
+                    Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyToLatestButton(bar));
+                }
             }
             catch
             {

@@ -9,7 +9,7 @@ namespace MulliganMadness.Utils
     {
         internal const float FumbleChance = 0.5f;
         internal const float KickbackDamageMultiplier = 1.25f;
-        internal const float KickbackForce = 320f;
+        internal const float KickbackForce = 620f;
 
         internal static bool Has(Player player, CardInfo curse)
         {
