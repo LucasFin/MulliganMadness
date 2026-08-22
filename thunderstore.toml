@@ -8,7 +8,7 @@ repository = "https://thunderstore.io"
 # Must match your Thunderstore team name exactly
 namespace = "LJIndustries"
 name = "MulliganMadness"
-versionNumber = "0.3.12"
+versionNumber = "0.3.13"
 description = "Take All, card manipulation, stats HUD/tab/compare/preview (Infoholic + TabInfo replacement)."
 websiteUrl = "https://github.com/LucasFin/MulliganMadness"
 containsNsfwContent = false

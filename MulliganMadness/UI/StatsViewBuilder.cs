@@ -39,9 +39,10 @@ namespace MulliganMadness.UI
 
             AppendSection(sb, "Combat");
             AppendRow(sb, "Attack SPD", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, preview, pickHoverMode);
+            AppendRow(sb, "Reload", snap.GetDisplay("Reload"), "Reload", snap, baseline, preview, pickHoverMode);
+            AppendRow(sb, "Bullets", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview, pickHoverMode);
             if (!simple)
             {
-                AppendRow(sb, "Bullets", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Knockback", snap.GetDisplay("Knockback"), "Knockback", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Life Steal", snap.GetDisplay("LifeSteal"), "LifeSteal", snap, baseline, preview, pickHoverMode);
             }
@@ -58,7 +59,6 @@ namespace MulliganMadness.UI
             {
                 AppendSection(sb, "Projectile");
                 AppendRow(sb, "Bullet SPD", snap.GetDisplay("BulletSPD"), "BulletSPD", snap, baseline, preview, pickHoverMode);
-                AppendRow(sb, "Reload", snap.GetDisplay("Reload"), "Reload", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Ammo", snap.GetDisplay("Ammo"), "Ammo", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Range", snap.GetDisplay("Range"), "Range", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Bounces", snap.GetDisplay("Bounces"), "Bounces", snap, baseline, preview, pickHoverMode);

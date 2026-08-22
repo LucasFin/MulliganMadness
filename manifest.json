@@ -1,6 +1,6 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.3.12",
+  "version_number": "0.3.13",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
   "description": "Take All, card manipulation, and built-in stats HUD/tab/compare/preview (Infoholic + TabInfo replacement).",
   "dependencies": [
