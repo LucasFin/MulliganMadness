@@ -35,8 +35,7 @@ namespace MulliganMadness.Utils
         private static CardInfo[] InjectTakebacksies(CardInfo[] hand)
         {
             if (hand == null || hand.Length == 0) return hand;
-            if (!SessionSettings.Current.EnableTakebacksies) return hand;
-            if (Takebacksies.Card == null) return hand;
+            if (Takebacksies.Card == null || !CardPool.IsActive(Takebacksies.Card)) return hand;
 
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker == null || !StealLedger.HasPendingTakeback(picker.playerID)) return hand;

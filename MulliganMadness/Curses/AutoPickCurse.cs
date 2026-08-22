@@ -34,7 +34,7 @@ namespace MulliganMadness.Curses
         {
         }
 
-        public override bool GetEnabled() => SessionSettings.Current.EnableAutoPickCurses;
+        public override bool GetEnabled() => true;
 
         public static void RegisterAll()
         {

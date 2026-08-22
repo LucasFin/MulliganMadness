@@ -19,6 +19,8 @@ namespace MulliganMadness.Utils
         private static readonly Dictionary<int, int> UsesConsumed = new Dictionary<int, int>();
         private static readonly Dictionary<int, int> DeferredKnowledge = new Dictionary<int, int>();
         private static bool _busy;
+        private static readonly FieldInfo PickerTypeField = AccessTools.Field(typeof(CardChoice), "pickerType");
+        private static readonly FieldInfo SpawnedCardsField = AccessTools.Field(typeof(CardChoice), "spawnedCards");
         private static MethodInfo _getPickerDraws;
         private static MethodInfo _isShuffleCard;
         private static Type _distillAcquisition;
@@ -80,7 +82,9 @@ namespace MulliganMadness.Utils
             var choice = CardChoice.instance;
             if (choice == null) return null;
 
-            var pickerType = (PickerType)AccessTools.Field(typeof(CardChoice), "pickerType").GetValue(choice);
+            var pickerType = PickerTypeField != null
+                ? (PickerType)PickerTypeField.GetValue(choice)
+                : (PickerType)AccessTools.Field(typeof(CardChoice), "pickerType").GetValue(choice);
             if (pickerType == PickerType.Team)
             {
                 var team = PlayerManager.instance.GetPlayersInTeam(choice.pickrID);
@@ -242,8 +246,7 @@ namespace MulliganMadness.Utils
         {
             var choice = CardChoice.instance;
             if (choice == null) return null;
-            var field = AccessTools.Field(typeof(CardChoice), "spawnedCards");
-            return field?.GetValue(choice) as List<GameObject>;
+            return SpawnedCardsField?.GetValue(choice) as List<GameObject>;
         }
 
         public static List<GameObject> GetReadySpawnedCards()

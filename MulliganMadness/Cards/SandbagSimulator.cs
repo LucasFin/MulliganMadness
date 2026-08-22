@@ -35,7 +35,7 @@ namespace MulliganMadness.Cards
             }
         };
 
-        public override bool GetEnabled() => SessionSettings.Current.EnableSandbagSimulator;
+        public override bool GetEnabled() => true;
 
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
             Gravity gravity, Block block, CharacterStatModifiers characterStats)

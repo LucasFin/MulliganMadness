@@ -11,7 +11,7 @@ namespace MulliganMadness.Patches
     // bonus off before card stats so the new % applies to real max HP.
     internal static class PristineHealth
     {
-        internal static bool Enabled => SessionSettings.Current.FixPristineHealth;
+        internal static bool Enabled => true;
 
         internal static void Strip(Player player)
         {

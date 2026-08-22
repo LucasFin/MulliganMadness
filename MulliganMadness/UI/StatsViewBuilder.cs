@@ -11,55 +11,62 @@ namespace MulliganMadness.UI
         private static readonly Color ValueColor = new Color(0.94f, 0.97f, 1f, 1f);
         private static readonly Color SectionColor = new Color(0.45f, 0.58f, 0.72f, 0.95f);
 
-        internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null, bool omitHealthDelta = false)
+        internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null, bool omitHealthDelta = false, bool pickHoverMode = false)
         {
             var sb = new StringBuilder();
             var suffix = string.IsNullOrEmpty(headerSuffix) ? "" : headerSuffix;
-            sb.AppendLine($"<size=105%><b>{snap.PlayerName}{suffix}</b></size>");
+            sb.Append("<size=105%><b>").Append(snap.PlayerName).Append(suffix).Append("</b>");
+            AppendPing(sb, snap.PingMs);
+            sb.Append("</size>").AppendLine();
 
             var hpBaseline = omitHealthDelta ? null : baseline;
-            AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, hpBaseline, preview, isHero: true);
-            AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, preview, isHero: true);
-            if (HasCount(snap, "Nulls")) AppendRow(sb, "Nulls", snap.GetDisplay("Nulls"), "Nulls", snap, baseline, preview);
-            if (HasCount(snap, "NullCards")) AppendRow(sb, "Null cards", snap.GetDisplay("NullCards"), "NullCards", snap, baseline, preview);
+            AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, hpBaseline, preview, isHero: true, pickHoverMode);
+            AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, preview, isHero: true, pickHoverMode);
+            if (HasCount(snap, "Nulls")) AppendRow(sb, "Nulls", snap.GetDisplay("Nulls"), "Nulls", snap, baseline, preview, pickHoverMode);
+            if (HasCount(snap, "NullCards")) AppendRow(sb, "Null cards", snap.GetDisplay("NullCards"), "NullCards", snap, baseline, preview, pickHoverMode);
 
             if (!simple)
             {
                 AppendSection(sb, "Survival");
-                AppendRow(sb, "Lives", snap.GetDisplay("Lives"), "Lives", snap, baseline, preview);
-                AppendRow(sb, "Block CD", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, preview);
-                AppendRow(sb, "Blocks", snap.GetDisplay("BlockCount"), "BlockCount", snap, baseline, preview);
+                AppendRow(sb, "Lives", snap.GetDisplay("Lives"), "Lives", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Block CD", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Blocks", snap.GetDisplay("BlockCount"), "BlockCount", snap, baseline, preview, pickHoverMode);
             }
             else
             {
-                AppendRow(sb, "Block CD", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, preview);
+                AppendRow(sb, "Block CD", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, preview, pickHoverMode);
             }
 
             AppendSection(sb, "Combat");
-            AppendRow(sb, "Attack SPD", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, preview);
+            AppendRow(sb, "Attack SPD", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, preview, pickHoverMode);
             if (!simple)
             {
-                AppendRow(sb, "Bullets", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview);
-                AppendRow(sb, "Knockback", snap.GetDisplay("Knockback"), "Knockback", snap, baseline, preview);
-                AppendRow(sb, "Life Steal", snap.GetDisplay("LifeSteal"), "LifeSteal", snap, baseline, preview);
+                AppendRow(sb, "Bullets", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Knockback", snap.GetDisplay("Knockback"), "Knockback", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Life Steal", snap.GetDisplay("LifeSteal"), "LifeSteal", snap, baseline, preview, pickHoverMode);
             }
 
             AppendSection(sb, "Mobility");
-            AppendRow(sb, "Move SPD", snap.GetDisplay("MoveSPD"), "MoveSPD", snap, baseline, preview);
+            AppendRow(sb, "Move SPD", snap.GetDisplay("MoveSPD"), "MoveSPD", snap, baseline, preview, pickHoverMode);
             if (!simple)
             {
-                AppendRow(sb, "Jump", snap.GetDisplay("Jump"), "Jump", snap, baseline, preview);
-                AppendRow(sb, "Size", snap.GetDisplay("Size"), "Size", snap, baseline, preview);
+                AppendRow(sb, "Jump", snap.GetDisplay("Jump"), "Jump", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Size", snap.GetDisplay("Size"), "Size", snap, baseline, preview, pickHoverMode);
             }
 
             if (!simple)
             {
                 AppendSection(sb, "Projectile");
-                AppendRow(sb, "Bullet SPD", snap.GetDisplay("BulletSPD"), "BulletSPD", snap, baseline, preview);
-                AppendRow(sb, "Reload", snap.GetDisplay("Reload"), "Reload", snap, baseline, preview);
-                AppendRow(sb, "Ammo", snap.GetDisplay("Ammo"), "Ammo", snap, baseline, preview);
-                AppendRow(sb, "Range", snap.GetDisplay("Range"), "Range", snap, baseline, preview);
-                AppendRow(sb, "Bounces", snap.GetDisplay("Bounces"), "Bounces", snap, baseline, preview);
+                AppendRow(sb, "Bullet SPD", snap.GetDisplay("BulletSPD"), "BulletSPD", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Reload", snap.GetDisplay("Reload"), "Reload", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Ammo", snap.GetDisplay("Ammo"), "Ammo", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Range", snap.GetDisplay("Range"), "Range", snap, baseline, preview, pickHoverMode);
+                AppendRow(sb, "Bounces", snap.GetDisplay("Bounces"), "Bounces", snap, baseline, preview, pickHoverMode);
+            }
+
+            if (pickHoverMode && simple)
+            {
+                AppendPreviewExtras(sb, snap, preview);
             }
 
             if (extensions != null)
@@ -84,7 +91,9 @@ namespace MulliganMadness.UI
         internal static string BuildCompareColumn(PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"<size=108%><b>{snap.PlayerName}</b></size>");
+            sb.Append("<size=108%><b>").Append(snap.PlayerName).Append("</b>");
+            AppendPing(sb, snap.PingMs);
+            sb.Append("</size>").AppendLine();
             AppendHeroRow(sb, "HP", snap.GetDisplay("HP"), snap, baseline, null, true);
             AppendHeroRow(sb, "DMG", snap.GetDisplay("DMG"), snap, baseline, null, true);
             if (HasCount(snap, "Nulls")) AppendRow(sb, "Nulls", snap.GetDisplay("Nulls"), "Nulls", snap, baseline, null);
@@ -132,30 +141,72 @@ namespace MulliganMadness.UI
                    || label.Equals("Null cards", System.StringComparison.OrdinalIgnoreCase);
         }
 
+        private static void AppendPing(StringBuilder sb, int pingMs)
+        {
+            if (pingMs < 0) return;
+            var color = pingMs < 80 ? "7CFF7C" : pingMs < 150 ? "FFE27C" : "FF8585";
+            sb.Append("  <size=90%><color=#").Append(color).Append(">").Append(pingMs).Append("ms</color></size>");
+        }
+
         private static void AppendSection(StringBuilder sb, string title)
         {
             sb.Append("<size=88%><color=#").Append(ColorToHex(SectionColor)).Append(">— ").Append(title).Append(" —</color></size>").AppendLine();
         }
 
-        private static void AppendHeroRow(StringBuilder sb, string label, string value, PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, bool isHero)
+        private static readonly (string label, string key)[] PreviewExtraStats =
+        {
+            ("Lives", "Lives"),
+            ("Blocks", "BlockCount"),
+            ("Bullets", "Bullets"),
+            ("Knockback", "Knockback"),
+            ("Life Steal", "LifeSteal"),
+            ("Jump", "Jump"),
+            ("Size", "Size"),
+            ("Bullet SPD", "BulletSPD"),
+            ("Reload", "Reload"),
+            ("Ammo", "Ammo"),
+            ("Range", "Range"),
+            ("Bounces", "Bounces"),
+            ("Bursts", "Bursts"),
+            ("Gravity", "Gravity")
+        };
+
+        private static void AppendPreviewExtras(StringBuilder sb, PlayerStatsSnapshot snap, PlayerStatsSnapshot preview)
+        {
+            if (preview == null) return;
+            var any = false;
+            foreach (var (label, key) in PreviewExtraStats)
+            {
+                if (!preview.TryGetNumeric(key, out var diff) || Mathf.Abs(diff) < 0.005f) continue;
+                if (!any)
+                {
+                    AppendSection(sb, "This card");
+                    any = true;
+                }
+
+                AppendRow(sb, label, snap.GetDisplay(key), key, snap, null, preview, pickHoverMode: true);
+            }
+        }
+
+        private static void AppendHeroRow(StringBuilder sb, string label, string value, PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, bool isHero, bool pickHoverMode = false)
         {
             var size = isHero ? "102%" : "100%";
             sb.Append("<size=").Append(size).Append(">").Append(Label(label)).Append("  ").Append(Value(value));
-            AppendDeltaSuffix(sb, label, snap, baseline, preview);
+            AppendDeltaSuffix(sb, label, snap, baseline, preview, pickHoverMode);
             sb.Append("</size>").AppendLine();
         }
 
-        private static void AppendRow(StringBuilder sb, string label, string value, string key, PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview)
+        private static void AppendRow(StringBuilder sb, string label, string value, string key, PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, bool pickHoverMode = false)
         {
             sb.Append(Label(label)).Append("  ").Append(Value(value));
-            AppendDeltaSuffix(sb, key, snap, baseline, preview);
+            AppendDeltaSuffix(sb, key, snap, baseline, preview, pickHoverMode);
             sb.AppendLine();
         }
 
-        private static void AppendDeltaSuffix(StringBuilder sb, string key, PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview)
+        private static void AppendDeltaSuffix(StringBuilder sb, string key, PlayerStatsSnapshot snap, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, bool pickHoverMode = false)
         {
             var statKey = MapKey(key);
-            if (baseline != null && snap.TryGetNumeric(statKey, out var current) && baseline.TryGetNumeric(statKey, out var baseNum))
+            if (!pickHoverMode && baseline != null && snap.TryGetNumeric(statKey, out var current) && baseline.TryGetNumeric(statKey, out var baseNum))
             {
                 var diff = current - baseNum;
                 if (Mathf.Abs(diff) >= 0.005f)
@@ -169,8 +220,10 @@ namespace MulliganMadness.UI
             if (preview != null && preview.TryGetNumeric(statKey, out var previewDiff) && Mathf.Abs(previewDiff) >= 0.005f)
             {
                 var good = GunStatReader.IsPositiveChange(statKey, previewDiff);
-                var color = good ? "9DFFB0" : "FFB0B0";
-                sb.Append(" <color=#").Append(color).Append(">[").Append(previewDiff > 0f ? "+" : "").Append(FormatDelta(statKey, previewDiff)).Append("]</color>");
+                var color = pickHoverMode ? (good ? "7CFF7C" : "FF8585") : (good ? "9DFFB0" : "FFB0B0");
+                var open = pickHoverMode ? "(" : "[";
+                var close = pickHoverMode ? ")" : "]";
+                sb.Append(" <color=#").Append(color).Append(">").Append(open).Append(previewDiff > 0f ? "+" : "").Append(FormatDelta(statKey, previewDiff)).Append(close).Append("</color>");
             }
         }
 

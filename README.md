@@ -1,38 +1,40 @@
 # Mulligan Madness
 
-**Take All** during card picks (once / multi-use / vote), auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
+**Take All** during card picks, auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
 
 ## Host session settings (Mods → Mulligan Madness)
 
-Match rules are set by the **host** and sync to everyone in the lobby when players connect. A one-line summary appears at the **first card pick** of each game.
+Match rules are set by the **host** and sync to the lobby. A one-line summary appears at the first card pick.
 
 | Setting | Description |
 | --- | --- |
-| **Take All mode** | Off, once per game, multi-use (0–3), or **vote** (all other players accept/decline during your pick) |
-| **Take All curse cost** | Take All works but you receive a random MM auto-pick curse afterward |
-| **Mercy vote** | Auto-offers a Take All vote when you're down ≥ N round wins vs the leader |
-| **Presets** | **Chaos** (vote Take All with 2 uses, curse cost, fast Panic, unlimited Sandbag) · **Competitive** (Take All/curses off) |
-| **Card / curse toggles** | Thief, Takebacksies, Sandbag, Jar of Dirt, auto-pick curses |
-| **Panic Pick timer** | Seconds before auto-pick |
-| **Sandbag limit** | Once per game toggle |
+| **Take All** | Off, once per game, multi-use (0–3), or **vote** |
+| **Take All curse cost** | Take All also gives a random MM auto-pick curse |
+| **Mercy vote** | Auto-offers a Take All vote when you're far behind |
+| **Panic Pick timer** | Seconds before Panic Pick chooses for you |
+| **Presets** | **Chaos** (vote Take All, curse cost, mercy) · **Competitive** (Take All off) |
 
-Stats HUD / Tab / compare settings remain **personal** (not synced).
+**Cards and curses** are not toggled here — use **Toggle Cards** (and your curse manager) like any other custom card.
+
+Default look (save / apply face & color) is personal.
 
 ## Take All
-When enabled (Mods → Mulligan Madness), a **TAKE ALL** button appears on your pick turn. Mode and uses are set by the host:
+
+A **TAKE ALL** button appears on your pick turn when the host has it on:
 
 - **Once per game** — one Take All each
 - **Multi-use** — up to N uses per player (0–3)
-- **Vote** — request Take All; all other players vote Yes/No (optional curse cost; uses may be consumed when a vote passes)
+- **Vote** — other players accept or decline during your pick
 
-Take All grabs every card in the current offer, including **Reroll** and **Table Flip** — you get them and their normal consequences still run.
+Take All grabs every card in the current offer, including **Reroll** and **Table Flip**.
 
 - **Distill Knowledge** grants the rest of the hand twice and pays Distill’s Nulls twice, without starting the redraw loop.
 - **Distill Power** still grants its bonus rares; extra Nulls wait until the **next** pick.
 - If Distill already started showing **Nulls**, Take All cashes out the real cards and closes that ritual.
 
 ## Curses
-Works with WillsWackyManagers curses. You can only have one of these at a time:
+
+Works with WillsWackyManagers. You can only have one of these at a time:
 
 | Curse | Effect |
 | --- | --- |
@@ -40,52 +42,37 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | **Panic Pick** | Short timer, then auto-picks at random |
 | **Leftmost Luck** | Always takes the leftmost card |
 
-## New cards (0.2.0)
+## Cards
 
 | Card | Rarity | Effect |
 | --- | --- | --- |
 | **Thief** | Legendary | Once per game, steal one card from another player |
-| **Takebacksies** | Common | Appears in your pick pool after being stolen from; yoinks your card back from whoever holds it |
-| **Sandbag Simulator** | Legendary | Reroll any player’s current pick hand (including yourself); host can limit uses |
-| **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
+| **Takebacksies** | Common | Appears in your pick pool after being stolen from; yoinks your card back |
+| **Sandbag Simulator** | Legendary | Reroll any player’s current pick hand (once per game) |
+| **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure |
 
-## Default appearance (Mods → Mulligan Madness)
+## Default appearance
 
-Save your face and color once, then optionally **apply each game** at spawn. You can still change them in character select whenever you want.
+Save your face and color once, then optionally apply it each game. You can still change in character select.
 
-- **Save current face & color** — capture from lobby/character select
-- **Default color index** — palette slot on the color wheel
-- **Apply saved appearance now** — test without restarting
+## Stats
 
-## Stats (v0.3.9 — replaces Infoholic + TabInfo)
-
-All stats UI is client-side. Two surfaces only — no overlapping panels.
-
-### Quick controls
+All stats UI is client-side.
 
 | Key | What it does |
 | --- | --- |
 | **O** | Show/hide bottom-left live stats |
-| **Tab** | Open/close the stats panel (left side by default) |
+| **Tab** | Open/close the stats panel |
 | **Esc** | Close Tab panel |
-| **C** | In Tab: toggle compare vs another player |
+| **C** | In Tab: compare vs another player |
 | **[ / ]** | In compare mode: switch opponent |
 
-**Bottom-left HUD:** stays on through pick and battle unless you hide it. During picks it follows **whoever is picking**, shows green/red `(delta)` vs the start of that pick, and hover a card to preview `[+/-]`. Those pick deltas stay on the HUD into the fight (HP damage is ignored so it doesn't swamp the list).
+**Tab panel:** drag the **top bar** to move it, drag the **left edge** to resize. Position is saved. Online games show ping next to names.
 
-**Tab panel:** **Tab** toggles it during picks and battles. Scroll through every player. **Compare mode (C)** shows your stats with green/red `(delta)` vs one opponent, plus their full build below for reference.
-
-Adjust panel size, position, and opacity under **Mods → Mulligan Madness**.
-
-| Feature | Default | Notes |
-| --- | --- | --- |
-| **Always-on HUD** | On | Bottom-left · **O** toggles · pick phase follows active picker · pick deltas |
-| **Tab overlay** | On | Left-side scroll panel · **C** compare · Tab works during pick |
-| **Compare** | In Tab | One opponent at a time with stat deltas — no extra overlay |
-
-Configure under **Mods → Mulligan Madness**. Host rules vs personal UI are labeled in the menu.
+**Bottom-left HUD:** follows whoever is picking and shows `(delta)` for the hovered card. After picks, `(delta)` is vs the start of your last pick (HP damage is ignored in fights).
 
 ## Install
+
 Install with **r2modman** / Thunderstore Mod Manager. Dependencies are pulled in automatically.
 
 Works best with Pick N Cards, PickPhaseImprovements, Genie, Root Curses, RarityLib, and WillsWackyManagers.

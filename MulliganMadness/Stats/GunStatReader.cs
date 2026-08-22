@@ -149,6 +149,8 @@ namespace MulliganMadness.Stats
             var data = player.data;
             var ammo = gun.GetComponentInChildren<GunAmmo>();
 
+            var sizeChanged = !Mathf.Approximately(data.stats.sizeMultiplier, SizeMultiplier);
+
             data.health = Health;
             data.maxHealth = MaxHealth;
             data.stats.movementSpeed = MovementSpeed;
@@ -182,7 +184,10 @@ namespace MulliganMadness.Stats
                 ammo.reloadTimeMultiplier = ReloadTimeMultiplier;
             }
 
-            AccessTools.Method(typeof(CharacterStatModifiers), "ConfigureMassAndSize")?.Invoke(data.stats, null);
+            if (sizeChanged)
+            {
+                AccessTools.Method(typeof(CharacterStatModifiers), "ConfigureMassAndSize")?.Invoke(data.stats, null);
+            }
         }
     }
 }

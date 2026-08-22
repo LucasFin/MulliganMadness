@@ -48,6 +48,9 @@ namespace MulliganMadness.Utils
         public ConfigEntry<float> TabPanelHeightFraction { get; }
         public ConfigEntry<float> TabPanelOpacity { get; }
         public ConfigEntry<bool> TabAnchorLeft { get; }
+        public ConfigEntry<float> TabPosX { get; }
+        public ConfigEntry<float> TabPosY { get; }
+        public ConfigEntry<bool> ShowPing { get; }
         public ConfigEntry<bool> ShowPickDeltasOnHud { get; }
         public ConfigEntry<float> StatsPanelScale { get; }
         public ConfigEntry<float> StatsHudOffsetX { get; }
@@ -284,7 +287,7 @@ namespace MulliganMadness.Utils
             TabPanelWidth = config.Bind(
                 "Stats Tab",
                 "PanelWidth",
-                360f,
+                480f,
                 "Tab overlay width in pixels (before scale).");
 
             TabPanelHeightFraction = config.Bind(
@@ -302,8 +305,26 @@ namespace MulliganMadness.Utils
             TabAnchorLeft = config.Bind(
                 "Stats Tab",
                 "AnchorLeft",
+                false,
+                "Deprecated — drag the Tab panel in-game.");
+
+            TabPosX = config.Bind(
+                "Stats Tab",
+                "PosX",
+                -1f,
+                "Tab overlay X in canvas pixels. Negative = default right side.");
+
+            TabPosY = config.Bind(
+                "Stats Tab",
+                "PosY",
+                -1f,
+                "Tab overlay Y in canvas pixels. Negative = vertically centered.");
+
+            ShowPing = config.Bind(
+                "Stats Tab",
+                "ShowPing",
                 true,
-                "Anchor Tab overlay to the left edge so card picks stay visible.");
+                "Show Photon ping next to player names in the Tab overlay and HUD (online games).");
 
             ShowPickDeltasOnHud = config.Bind(
                 "Stats HUD",

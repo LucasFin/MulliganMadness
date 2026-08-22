@@ -22,22 +22,14 @@ namespace MulliganMadness.Utils
                         parts.Append($"Take All x{s.TakeAllUsesPerPlayer}");
                         break;
                     case TakeAllMode.Vote:
-                        parts.Append("Vote Take All (all players)");
+                        parts.Append("Vote Take All");
                         break;
                 }
 
-                if (s.TakeAllCurseCost && s.EnableAutoPickCurses) parts.Append(" + curse");
+                if (s.TakeAllCurseCost) parts.Append(" + curse");
             }
 
-            if (s.EnableMercyVote) parts.Append(Separator(parts)).Append($"Mercy -{s.MercyRoundDeficit}");
-
-            if (s.EnableAutoPickCurses) parts.Append(Separator(parts)).Append("Auto-pick curses on");
-            else parts.Append(Separator(parts)).Append("No curses");
-
-            if (!s.EnableThiefCard) parts.Append(Separator(parts)).Append("No Thief");
-            if (!s.EnableTakebacksies) parts.Append(Separator(parts)).Append("No Takebacksies");
-            if (!s.EnableSandbagSimulator) parts.Append(Separator(parts)).Append("No Sandbag");
-            if (!s.EnableJarOfDirt) parts.Append(Separator(parts)).Append("No Jar");
+            if (s.EnableMercyVote) parts.Append(Separator(parts)).Append("Mercy vote");
 
             return parts.Length > 0 ? parts.ToString() : "Default rules";
         }

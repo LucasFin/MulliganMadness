@@ -16,13 +16,11 @@ namespace MulliganMadness.Utils
     public static class JarOfDirtManager
     {
         private static Type _nullCardInfo;
-        private static MethodInfo _isCardActive;
         private static MethodInfo _getTreasure;
 
         internal static void TryConvert(Player player)
         {
             if (player == null) return;
-            if (!SessionSettings.Current.EnableJarOfDirt) return;
             NetworkingManager.RPC(typeof(JarOfDirtManager), nameof(RPCA_ConvertNulls), player.playerID);
         }
 
@@ -37,12 +35,6 @@ namespace MulliganMadness.Utils
             }
 
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
-
-            if (!SessionSettings.Current.EnableJarOfDirt)
-            {
-                Plugin.Instance.LogWarn("Jar of Dirt RPC ignored — disabled.");
-                return;
-            }
 
             var cards = player.data?.currentCards;
             if (cards == null)
@@ -96,7 +88,7 @@ namespace MulliganMadness.Utils
 
             var source = GetNulledSource(card);
             if (source == null) return true;
-            return IsCardEnabled(source);
+            return CardPool.IsActive(source);
         }
 
         private static bool IsNullPlaceholder(CardInfo card)
@@ -146,37 +138,6 @@ namespace MulliganMadness.Utils
             }
         }
 
-        private static bool IsCardEnabled(CardInfo card)
-        {
-            if (card == null) return true;
-
-            try
-            {
-                _isCardActive ??= AccessTools.Method(
-                    AccessTools.TypeByName("UnboundLib.Utils.CardManager"),
-                    "IsCardActive");
-                if (_isCardActive != null)
-                {
-                    object arg = card;
-                    var parms = _isCardActive.GetParameters();
-                    if (parms.Length == 1 && parms[0].ParameterType == typeof(string))
-                    {
-                        arg = card.gameObject != null
-                            ? CardEncoding.StripClone(card.gameObject.name)
-                            : card.cardName;
-                    }
-
-                    if (_isCardActive.Invoke(null, new[] { arg }) is bool active) return active;
-                }
-            }
-            catch
-            {
-                // treat unknown cards as enabled
-            }
-
-            return true;
-        }
-
         private static List<CardInfo> CollectEnabledTreasures()
         {
             var result = new List<CardInfo>();
@@ -196,7 +157,7 @@ namespace MulliganMadness.Utils
             foreach (var card in all)
             {
                 if (card == null || !HasTreasureCategory(card, treasureCat)) continue;
-                if (!IsCardEnabled(card)) continue;
+                if (!CardPool.IsActive(card)) continue;
                 result.Add(card);
             }
 
@@ -220,7 +181,7 @@ namespace MulliganMadness.Utils
         private static CardInfo PickTreasure(List<CardInfo> pool)
         {
             var fromKeys = TryGetTreasureFromKeys();
-            if (fromKeys != null && IsCardEnabled(fromKeys)) return fromKeys;
+            if (fromKeys != null && CardPool.IsActive(fromKeys)) return fromKeys;
             return pool[UnityEngine.Random.Range(0, pool.Count)];
         }
 

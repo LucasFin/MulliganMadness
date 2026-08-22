@@ -28,6 +28,7 @@ namespace MulliganMadness.Stats
 
         public int PlayerId { get; private set; } = -1;
         public string PlayerName { get; private set; } = "?";
+        public int PingMs { get; private set; } = -1;
 
         public static bool TryFrom(Player player, out PlayerStatsSnapshot snapshot)
         {
@@ -44,7 +45,8 @@ namespace MulliganMadness.Stats
             snapshot = new PlayerStatsSnapshot
             {
                 PlayerId = player.playerID,
-                PlayerName = player.data.view?.Owner?.NickName ?? $"P{player.playerID + 1}"
+                PlayerName = player.data.view?.Owner?.NickName ?? $"P{player.playerID + 1}",
+                PingMs = PingTracker.Read(player)
             };
 
             snapshot.Set("HP", data.health, $"{data.health:F0}/{data.maxHealth:F0}");

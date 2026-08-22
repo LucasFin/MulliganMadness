@@ -29,7 +29,7 @@ namespace MulliganMadness.UI
             ApplyPanelLayout();
 
             var panelImage = _root.GetComponent<Image>();
-            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, Plugin.Configs.TabPanelOpacity.Value);
+            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, 0.94f);
 
             _title = StatsUiHelper.CreateText(_root.transform, "Title", "Player Stats", StatsUiHelper.TitleFont * 1.05f, TextAlignmentOptions.TopLeft, StatsUiHelper.AccentColor);
             var titleRect = _title.rectTransform;
@@ -137,6 +137,7 @@ namespace MulliganMadness.UI
             var rootImage = _root.GetComponent<Image>();
             if (rootImage != null) rootImage.raycastTarget = false;
 
+            AddDragHandles();
             _root.SetActive(false);
         }
 
@@ -145,7 +146,7 @@ namespace MulliganMadness.UI
             if (_root == null) return;
             ApplyPanelLayout();
             var panelImage = _root.GetComponent<Image>();
-            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, Plugin.Configs.TabPanelOpacity.Value);
+            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, 0.94f);
             StatsUiHelper.SetAccentVisible(_root, true);
             var top = _root.transform.Find("AccentTop") ?? _root.transform.Find("Accent");
             var bottom = _root.transform.Find("AccentBottom");
@@ -157,59 +158,89 @@ namespace MulliganMadness.UI
         {
             if (!StatsUiHelper.OverlayReady) return;
 
-            var scale = StatsUiHelper.UiScale;
             var canvasSize = StatsUiHelper.OverlaySize;
-            var margin = 12f * scale;
-            var width = Mathf.Min(Plugin.Configs.TabPanelWidth.Value * scale, canvasSize.x * 0.48f);
-            var height = Mathf.Min(
-                canvasSize.y * Plugin.Configs.TabPanelHeightFraction.Value,
-                canvasSize.y - margin * 2f);
+            var margin = 12f;
+            var width = Mathf.Clamp(Plugin.Configs.TabPanelWidth.Value, 280f, Mathf.Min(720f, canvasSize.x * 0.6f));
+            var height = Mathf.Min(canvasSize.y * 0.82f, canvasSize.y - margin * 2f);
+            var pos = GetSavedOrDefaultPosition(canvasSize, width, height, margin);
 
             if (_root == null)
             {
-                var left = Plugin.Configs.TabAnchorLeft.Value;
                 _root = StatsUiHelper.CreateModernPanel(
                     StatsUiHelper.OverlayRoot,
                     "MM_StatsTab",
-                    left ? new Vector2(0f, 0.5f) : new Vector2(0.5f, 0.5f),
-                    left ? new Vector2(0f, 0.5f) : new Vector2(0.5f, 0.5f),
-                    left ? new Vector2(0f, 0.5f) : new Vector2(0.5f, 0.5f),
-                    left ? new Vector2(margin, 0f) : Vector2.zero,
-                    new Vector2(left ? width : Mathf.Min(width * 1.2f, canvasSize.x * 0.88f), height),
-                    Plugin.Configs.TabPanelOpacity.Value);
+                    Vector2.zero,
+                    Vector2.zero,
+                    Vector2.zero,
+                    pos,
+                    new Vector2(width, height),
+                    0.94f);
                 return;
             }
 
-            if (Plugin.Configs.TabAnchorLeft.Value)
+            StatsUiHelper.ApplyRect(_root, Vector2.zero, Vector2.zero, Vector2.zero, pos, new Vector2(width, height));
+        }
+
+        private static Vector2 GetSavedOrDefaultPosition(Vector2 canvas, float width, float height, float margin)
+        {
+            if (Plugin.Configs.TabPosX.Value < 0f || Plugin.Configs.TabPosY.Value < 0f)
             {
-                StatsUiHelper.ApplyRect(
-                    _root,
-                    new Vector2(0f, 0.5f),
-                    new Vector2(0f, 0.5f),
-                    new Vector2(0f, 0.5f),
-                    new Vector2(margin, 0f),
-                    new Vector2(width, height));
+                return new Vector2(canvas.x - width - margin, (canvas.y - height) * 0.5f);
             }
-            else
-            {
-                StatsUiHelper.ApplyRect(
-                    _root,
-                    new Vector2(0.5f, 0.5f),
-                    new Vector2(0.5f, 0.5f),
-                    new Vector2(0.5f, 0.5f),
-                    Vector2.zero,
-                    new Vector2(Mathf.Min(width * 1.2f, canvasSize.x * 0.88f), height));
-            }
+
+            return new Vector2(
+                Mathf.Clamp(Plugin.Configs.TabPosX.Value, 8f, Mathf.Max(8f, canvas.x - width - 8f)),
+                Mathf.Clamp(Plugin.Configs.TabPosY.Value, 8f, Mathf.Max(8f, canvas.y - height - 8f)));
+        }
+
+        private void AddDragHandles()
+        {
+            if (_root == null || _root.transform.Find("HeaderDrag") != null) return;
+            var target = _root.GetComponent<RectTransform>();
+
+            var header = new GameObject("HeaderDrag", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(OverlayDrag));
+            header.transform.SetParent(_root.transform, false);
+            header.transform.SetSiblingIndex(0);
+            var headerRect = header.GetComponent<RectTransform>();
+            headerRect.anchorMin = new Vector2(0f, 1f);
+            headerRect.anchorMax = new Vector2(1f, 1f);
+            headerRect.pivot = new Vector2(0.5f, 1f);
+            headerRect.anchoredPosition = Vector2.zero;
+            headerRect.sizeDelta = new Vector2(0f, 58f);
+            var headerImage = header.GetComponent<Image>();
+            headerImage.color = new Color(1f, 1f, 1f, 0.01f);
+            headerImage.raycastTarget = true;
+            var headerDrag = header.GetComponent<OverlayDrag>();
+            headerDrag.Target = target;
+
+            var resize = new GameObject("Resize", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(OverlayDrag));
+            resize.transform.SetParent(_root.transform, false);
+            var resizeRect = resize.GetComponent<RectTransform>();
+            resizeRect.anchorMin = new Vector2(0f, 0f);
+            resizeRect.anchorMax = new Vector2(0f, 1f);
+            resizeRect.pivot = new Vector2(0f, 0.5f);
+            resizeRect.offsetMin = new Vector2(0f, 0f);
+            resizeRect.offsetMax = new Vector2(12f, -58f);
+            var resizeImage = resize.GetComponent<Image>();
+            resizeImage.color = new Color(0.35f, 0.82f, 0.72f, 0.18f);
+            resizeImage.raycastTarget = true;
+            var resizeDrag = resize.GetComponent<OverlayDrag>();
+            resizeDrag.Target = target;
+            resizeDrag.ResizeWidth = true;
+
+            _root.transform.Find("Close (Esc)_Btn")?.SetAsLastSibling();
+            _root.transform.Find("Compare_Btn")?.SetAsLastSibling();
         }
 
         internal void SetOpen(bool open)
         {
-            var allow = open && Plugin.Configs.EnableStatsTab.Value && StatsController.InActiveMatch();
+            var allow = open && StatsController.InActiveMatch();
             if (allow) EnsureBuilt();
             IsOpen = allow;
             if (_root != null) _root.SetActive(allow);
             if (allow)
             {
+                RebuildLayout();
                 EnsureCompareTarget();
                 Refresh();
             }
@@ -219,7 +250,6 @@ namespace MulliganMadness.UI
 
         internal void ToggleCompareMode()
         {
-            if (!Plugin.Configs.EnableTabCompare.Value) return;
             _compareMode = !_compareMode;
             EnsureCompareTarget();
             Refresh();
@@ -254,16 +284,13 @@ namespace MulliganMadness.UI
 
         internal void HandleShortcuts()
         {
-            if (!IsOpen || !Plugin.Configs.EnableStatsTab.Value) return;
+            if (!IsOpen) return;
 
-            if (Plugin.Configs.EnableTabCompare.Value)
+            if (Input.GetKeyDown(KeyCode.C)) ToggleCompareMode();
+            if (_compareMode)
             {
-                if (Input.GetKeyDown(KeyCode.C)) ToggleCompareMode();
-                if (_compareMode)
-                {
-                    if (Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.Comma)) CycleCompareTarget(-1);
-                    if (Input.GetKeyDown(KeyCode.RightBracket) || Input.GetKeyDown(KeyCode.Period)) CycleCompareTarget(1);
-                }
+                if (Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.Comma)) CycleCompareTarget(-1);
+                if (Input.GetKeyDown(KeyCode.RightBracket) || Input.GetKeyDown(KeyCode.Period)) CycleCompareTarget(1);
             }
 
             if (Input.GetKeyDown(KeyCode.P)) PinLocalBaseline();
@@ -274,9 +301,7 @@ namespace MulliganMadness.UI
         {
             if (_root == null || !_root.activeSelf) return;
 
-            RebuildLayout();
-
-            if (_compareMode && Plugin.Configs.EnableTabCompare.Value)
+            if (_compareMode)
             {
                 RefreshCompareView();
                 return;
@@ -292,29 +317,35 @@ namespace MulliganMadness.UI
 
             EnsureBlockCount(players.Count);
 
+            var dirty = false;
             for (var i = 0; i < _playerBlocks.Count; i++)
             {
                 var active = i < players.Count;
                 var block = _playerBlocks[i].transform.parent.gameObject;
-                block.SetActive(active);
+                if (block.activeSelf != active)
+                {
+                    block.SetActive(active);
+                    dirty = true;
+                }
                 if (!active) continue;
 
                 if (!PlayerStatsSnapshot.TryFrom(players[i], out var snap))
                 {
-                    _playerBlocks[i].text = "Unavailable";
+                    dirty |= AssignBlockText(_playerBlocks[i], "Unavailable");
                 }
                 else
                 {
                     var baseline = GetPinnedBaselineFor(players[i]);
-                    _playerBlocks[i].text = baseline != null
+                    var text = baseline != null
                         ? StatsViewBuilder.BuildHud(snap, false, baseline, null, TabInfoBridge.GetExtensionStats(players[i]))
                         : StatsViewBuilder.BuildTabBlock(snap, TabInfoBridge.GetExtensionStats(players[i]));
+                    dirty |= AssignBlockText(_playerBlocks[i], text);
                 }
             }
 
-            RelayoutBlocks();
-            _title.text = $"All players · R{StatsController.CurrentRound} P{StatsController.CurrentPoint}";
-            _hint.text = "Scroll · C compare vs someone · Esc close";
+            if (dirty) RelayoutBlocks();
+            _title.text = FormatAllPlayersTitle();
+            _hint.text = "Drag the top bar to move · left edge to resize · C compare · Esc close";
         }
 
         private void RefreshCompareView()
@@ -342,7 +373,7 @@ namespace MulliganMadness.UI
 
             if (local == null || !PlayerStatsSnapshot.TryFrom(local, out var localSnap))
             {
-                _playerBlocks[0].text = "Local player unavailable";
+                AssignBlockText(_playerBlocks[0], "Local player unavailable");
                 RelayoutBlocks();
                 _title.text = "Compare";
                 _hint.text = "No local player";
@@ -351,7 +382,7 @@ namespace MulliganMadness.UI
 
             if (opponent == null || !PlayerStatsSnapshot.TryFrom(opponent, out var otherSnap))
             {
-                _playerBlocks[0].text = StatsViewBuilder.BuildTabBlock(localSnap, TabInfoBridge.GetExtensionStats(local));
+                AssignBlockText(_playerBlocks[0], StatsViewBuilder.BuildTabBlock(localSnap, TabInfoBridge.GetExtensionStats(local)));
                 RelayoutBlocks();
                 _title.text = "Compare";
                 _hint.text = "Need another player to compare";
@@ -361,11 +392,25 @@ namespace MulliganMadness.UI
             var vsBaseline = otherSnap;
             var pinBaseline = _pinnedLocal != null && _pinnedLocalPlayerId == local.playerID ? _pinnedLocal : null;
 
-            _playerBlocks[0].text = StatsViewBuilder.BuildTabCompare(localSnap, vsBaseline, pinBaseline, TabInfoBridge.GetExtensionStats(local));
-            _playerBlocks[1].text = StatsViewBuilder.BuildTabBlock(otherSnap, TabInfoBridge.GetExtensionStats(opponent));
+            AssignBlockText(_playerBlocks[0], StatsViewBuilder.BuildTabCompare(localSnap, vsBaseline, pinBaseline, TabInfoBridge.GetExtensionStats(local)));
+            AssignBlockText(_playerBlocks[1], StatsViewBuilder.BuildTabBlock(otherSnap, TabInfoBridge.GetExtensionStats(opponent)));
             RelayoutBlocks();
             _title.text = $"You vs {otherSnap.PlayerName}";
             _hint.text = "Green/red = ahead or behind them · [ ] switch player · C back to all · Esc close";
+        }
+
+        private static string FormatAllPlayersTitle()
+        {
+            var title = $"All players · R{StatsController.CurrentRound} P{StatsController.CurrentPoint}";
+            var ping = PingTracker.LocalPing();
+            return ping >= 0 ? $"{title} · you {ping}ms" : title;
+        }
+
+        private static bool AssignBlockText(TextMeshProUGUI block, string text)
+        {
+            if (block == null || block.text == text) return false;
+            block.text = text;
+            return true;
         }
 
         private PlayerStatsSnapshot GetPinnedBaselineFor(Player player)

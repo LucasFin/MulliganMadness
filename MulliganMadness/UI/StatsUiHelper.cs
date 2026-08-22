@@ -8,15 +8,13 @@ namespace MulliganMadness.UI
     {
         private static Canvas _overlay;
 
-        internal static float UiScale => Mathf.Clamp(Plugin.Configs?.StatsPanelScale.Value ?? 1f, 0.6f, 1.5f);
+        internal static float UiScale => 1f;
         internal static float BaseFont => 13.5f * UiScale;
         internal static float HeaderFont => 15f * UiScale;
         internal static float TitleFont => 19f * UiScale;
         internal static float HeroFont => 15.5f * UiScale;
 
-        internal static Color AccentColor => Plugin.Configs == null
-            ? new Color(0.35f, 0.82f, 0.72f)
-            : new Color(Plugin.Configs.StatsAccentR.Value, Plugin.Configs.StatsAccentG.Value, Plugin.Configs.StatsAccentB.Value, 1f);
+        internal static Color AccentColor => new Color(0.35f, 0.82f, 0.72f);
 
         internal static Transform OverlayRoot
         {

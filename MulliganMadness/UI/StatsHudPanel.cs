@@ -67,12 +67,8 @@ namespace MulliganMadness.UI
 
         internal void Refresh(PlayerStatsSnapshot pickBaseline, Player hudPlayer, bool watchingPicker)
         {
-            var enabled = Plugin.Configs.EnableStatsHud.Value && Plugin.Configs.StatsHudVisible.Value;
+            var enabled = Plugin.Configs.StatsHudVisible.Value;
             var inGame = StatsController.InActiveMatch();
-            var hidePick = Plugin.Configs.HideStatsHudDuringPick.Value && StatsController.InPickPhase;
-            var hideBattle = Plugin.Configs.HideStatsHudDuringBattle.Value && StatsController.InBattlePhase;
-            var peekMode = Plugin.Configs.StatsHudPeekMode.Value;
-            var peeking = !peekMode || Input.GetKey(Plugin.Configs.StatsHudPeekKey.Value);
 
             if (hudPlayer == null || !PlayerStatsSnapshot.TryFrom(hudPlayer, out var snapshot))
             {
@@ -80,7 +76,7 @@ namespace MulliganMadness.UI
                 return;
             }
 
-            if (!enabled || !inGame || hidePick || hideBattle || !peeking)
+            if (!enabled || !inGame)
             {
                 if (_root != null) _root.SetActive(false);
                 return;
@@ -90,25 +86,30 @@ namespace MulliganMadness.UI
             if (_root == null || _body == null) return;
             _root.SetActive(true);
 
-            var simple = Plugin.Configs.StatsHudSimpleMode.Value && !Plugin.Configs.StatsHudCollapsed.Value;
-            if (Plugin.Configs.StatsHudCollapsed.Value) simple = true;
+            _body.fontSize = StatsUiHelper.BaseFont;
+            _body.color = Color.white;
+            var picking = StatsController.IsCardPickActive;
+            var suffix = watchingPicker ? " · picking" : "";
+            if (picking && !string.IsNullOrEmpty(StatsController.HoveredCardName))
+            {
+                suffix += $" · {StatsController.HoveredCardName}";
+            }
 
-            _body.fontSize = StatsUiHelper.BaseFont * Plugin.Configs.StatsHudFontScale.Value;
-            _body.color = new Color(
-                Plugin.Configs.StatsHudColorR.Value,
-                Plugin.Configs.StatsHudColorG.Value,
-                Plugin.Configs.StatsHudColorB.Value,
-                1f);
-            _body.text = StatsViewBuilder.BuildHud(
+            var text = StatsViewBuilder.BuildHud(
                 snapshot,
-                simple: simple,
-                baseline: pickBaseline,
-                preview: StatsController.InPickPhase ? _previewDelta : null,
+                simple: true,
+                baseline: picking ? null : pickBaseline,
+                preview: picking ? _previewDelta : null,
                 extensions: null,
-                headerSuffix: watchingPicker ? " · picking" : null,
-                omitHealthDelta: StatsController.InBattlePhase);
+                headerSuffix: string.IsNullOrEmpty(suffix) ? null : suffix,
+                omitHealthDelta: StatsController.InBattlePhase,
+                pickHoverMode: picking);
 
-            LayoutToContent();
+            if (_body.text != text)
+            {
+                _body.text = text;
+                LayoutToContent();
+            }
         }
 
         private void LayoutToContent()
@@ -116,12 +117,11 @@ namespace MulliganMadness.UI
             var scale = StatsUiHelper.UiScale;
             var canvasSize = StatsUiHelper.OverlaySize;
             var width = GetPanelWidth() * scale;
-            var opacity = Plugin.Configs.StatsHudOpacity.Value;
+            var opacity = 0f;
             var showChrome = opacity > 0.04f;
 
             _body.ForceMeshUpdate();
             var textHeight = Mathf.Max(_body.preferredHeight, 36f);
-            if (Plugin.Configs.StatsHudCollapsed.Value) textHeight = Mathf.Min(textHeight, 54f * scale);
             var height = textHeight + VerticalPadding * 2f + 6f;
             height = Mathf.Min(height, Mathf.Max(64f, canvasSize.y - 24f));
             width = Mathf.Min(width, Mathf.Max(120f, canvasSize.x - 24f));
@@ -151,7 +151,6 @@ namespace MulliganMadness.UI
             if (bottom != null) bottom.GetComponent<Image>().color = StatsUiHelper.AccentColor;
         }
 
-        private static float GetPanelWidth() =>
-            Plugin.Configs.StatsHudUltraCompact.Value ? 210f : 260f;
+        private static float GetPanelWidth() => 260f;
     }
 }

@@ -30,9 +30,19 @@ namespace MulliganMadness.Utils
         internal static void TryApplyAfterTakeAll(int playerId)
         {
             if (!SessionSettings.Current.TakeAllCurseCost) return;
-            if (!SessionSettings.Current.EnableAutoPickCurses) return;
-            var curseIndex = Random.Range(0, 3);
+            var curseIndex = PickActiveCurseIndex();
+            if (curseIndex < 0) return;
             NetworkingManager.RPC(typeof(TakeAllCurseCost), nameof(RPCA_ApplyCurse), playerId, curseIndex);
+        }
+
+        private static int PickActiveCurseIndex()
+        {
+            var options = new System.Collections.Generic.List<int>(3);
+            if (CardPool.IsActive(ForcedChoice.Card)) options.Add(0);
+            if (CardPool.IsActive(PanicPick.Card)) options.Add(1);
+            if (CardPool.IsActive(LeftmostLuck.Card)) options.Add(2);
+            if (options.Count == 0) return -1;
+            return options[Random.Range(0, options.Count)];
         }
 
         private static void ApplyCurseToPlayer(Player player, CardInfo curse)

@@ -1,6 +1,5 @@
 using System;
 using HarmonyLib;
-using UnboundLib.Cards;
 using UnityEngine;
 
 namespace MulliganMadness.Stats
@@ -49,13 +48,8 @@ namespace MulliganMadness.Stats
                 var apply = player.GetComponentInChildren<ApplyCardStats>(true);
                 if (apply == null) return false;
 
-                var custom = cardInfo.GetComponent<CustomCard>();
-                if (custom != null)
-                {
-                    custom.SetupCard(cardInfo, gun, apply, stats);
-                    return true;
-                }
-
+                // Apply the card the same way a pick does. Do not call CustomCard.SetupCard on
+                // the live player — that writes card-definition values onto the gun.
                 var method = AccessTools.Method(typeof(ApplyCardStats), "ApplyStats", new[] { typeof(CardInfo) })
                              ?? AccessTools.Method(typeof(ApplyCardStats), "ApplyStats");
                 if (method == null) return false;

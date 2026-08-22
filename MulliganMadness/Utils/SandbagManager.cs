@@ -19,7 +19,6 @@ namespace MulliganMadness.Utils
 
         internal static bool HasRemaining(Player player) =>
             player != null
-            && SessionSettings.Current.EnableSandbagSimulator
             && (!SessionSettings.Current.SandbagOncePerGame || !UsedThisGame.Contains(player.playerID));
 
         internal static void TryPromptSandbag(Player user)
@@ -46,12 +45,6 @@ namespace MulliganMadness.Utils
             if (user == null || target == null) return;
 
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
-
-            if (!SessionSettings.Current.EnableSandbagSimulator)
-            {
-                NotifySandbagResult(userId, false, "Sandbag is disabled.");
-                return;
-            }
 
             if (SessionSettings.Current.SandbagOncePerGame && UsedThisGame.Contains(userId))
             {

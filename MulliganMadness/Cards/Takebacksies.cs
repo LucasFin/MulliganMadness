@@ -30,7 +30,7 @@ namespace MulliganMadness.Cards
             }
         };
 
-        public override bool GetEnabled() => SessionSettings.Current.EnableTakebacksies;
+        public override bool GetEnabled() => true;
 
         public override void SetupCard(CardInfo cardInfo, Gun gun, ApplyCardStats cardStats, CharacterStatModifiers characterStats)
         {

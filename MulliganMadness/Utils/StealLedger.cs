@@ -45,7 +45,7 @@ namespace MulliganMadness.Utils
 
         internal static void TryPromptSteal(Player thief)
         {
-            if (thief == null || !SessionSettings.Current.EnableThiefCard) return;
+            if (thief == null) return;
             if (HasUsedThief(thief))
             {
                 Plugin.Instance.Log($"Player {thief.playerID} already used Thief this game.");
@@ -126,12 +126,6 @@ namespace MulliganMadness.Utils
                 return;
             }
 
-            if (!SessionSettings.Current.EnableThiefCard)
-            {
-                NotifyStealResult(thiefId, false, "Thief is disabled.");
-                return;
-            }
-
             if (ThiefUsedThisGame.Contains(thiefId))
             {
                 NotifyStealResult(thiefId, false, "Thief already used this game.");
@@ -208,12 +202,6 @@ namespace MulliganMadness.Utils
         internal static void TryExecuteTakeback(Player victim)
         {
             if (victim == null) return;
-            if (!SessionSettings.Current.EnableTakebacksies)
-            {
-                PlayerNotice.Show(victim, "Takebacksies is disabled.");
-                return;
-            }
-
             if (!PendingTakebackByVictim.ContainsKey(victim.playerID))
             {
                 PlayerNotice.Show(victim, "Nothing to take back.");
@@ -229,12 +217,6 @@ namespace MulliganMadness.Utils
             var victim = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == victimId);
             if (victim == null) return;
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
-
-            if (!SessionSettings.Current.EnableTakebacksies)
-            {
-                NetworkingManager.RPC(typeof(StealLedger), nameof(RPCA_SyncTakebackCleared), victimId, "Takebacksies is disabled.");
-                return;
-            }
 
             if (!PendingTakebackByVictim.TryGetValue(victimId, out var payload) || string.IsNullOrEmpty(payload))
             {

@@ -23,7 +23,7 @@ namespace MulliganMadness.Utils
                 EnableTakebacksies = true,
                 EnableSandbagSimulator = true,
                 EnableJarOfDirt = true,
-                SandbagOncePerGame = false
+                SandbagOncePerGame = true
             };
         }
 
@@ -37,12 +37,12 @@ namespace MulliganMadness.Utils
                 VoteTimeoutSeconds = 15f,
                 VoteConsumesUse = true,
                 TakeAllCurseCost = false,
-                CurseOnExisting = TakeAllCurseOnExisting.SkipCurse,
+                CurseOnExisting = TakeAllCurseOnExisting.ReplaceExisting,
                 EnableMercyVote = false,
-                MercyRoundDeficit = 3,
+                MercyRoundDeficit = 2,
                 MercyOncePerGame = true,
                 FixPristineHealth = true,
-                EnableAutoPickCurses = false,
+                EnableAutoPickCurses = true,
                 PanicTimerSeconds = 3f,
                 EnableThiefCard = true,
                 EnableTakebacksies = true,
