@@ -66,22 +66,28 @@ jobs:
               a, b, c = parse(v)
               return f"{a}.{b}.{c + 1}"
 
-          latest = "0.0.0"
-          fetch_ok = False
-          try:
-              url = "https://thunderstore.io/api/experimental/package/LJIndustries/MulliganMadness/"
-              with urllib.request.urlopen(url, timeout=30) as response:
-                  data = json.load(response)
-              latest = data.get("latest", {}).get("version_number") or latest
-              fetch_ok = True
-          except Exception as ex:
-              print(f"Could not read Thunderstore latest version: {ex}")
+          latest = None
+          url = "https://thunderstore.io/api/experimental/package/LJIndustries/MulliganMadness/"
+          last_error = None
+          for attempt in range(1, 4):
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      data = json.load(response)
+                  latest = data.get("latest", {}).get("version_number") or "0.0.0"
+                  break
+              except Exception as ex:
+                  last_error = ex
+                  print(f"Thunderstore version fetch attempt {attempt} failed: {ex}")
+
+          if latest is None:
+              raise SystemExit(
+                  f"Refusing to publish without Thunderstore latest version ({last_error}). "
+                  "Re-run the workflow once the API is reachable."
+              )
 
           toml = pathlib.Path("thunderstore.toml")
           current = re.search(r'(?m)^versionNumber = "(.*)"$', toml.read_text()).group(1)
           version = current
-          if not fetch_ok:
-              version = inc(current)
           while parse(version) <= parse(latest):
               version = inc(version)
 
