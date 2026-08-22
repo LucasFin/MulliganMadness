@@ -115,12 +115,14 @@ namespace MulliganMadness
 
         private static IEnumerator OnPlayerPickEnd(IGameModeHandler gm)
         {
+            TakeAllVoteManager.CancelIfActive("Take All vote cancelled — pick ended.");
             TakeAllButton.RefreshVisibility();
             yield break;
         }
 
         private static IEnumerator OnPickEnd(IGameModeHandler gm)
         {
+            TakeAllVoteManager.CancelIfActive("Take All vote cancelled — pick ended.");
             TakeAllButton.Hide();
             yield break;
         }

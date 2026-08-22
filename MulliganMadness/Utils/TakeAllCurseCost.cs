@@ -35,11 +35,6 @@ namespace MulliganMadness.Utils
             NetworkingManager.RPC(typeof(TakeAllCurseCost), nameof(RPCA_ApplyCurse), playerId, curseIndex);
         }
 
-        private static bool CanApplyCurse(Player player)
-        {
-            return FindExistingAutoPickCurse(player) == null;
-        }
-
         private static void ApplyCurseToPlayer(Player player, CardInfo curse)
         {
             if (player == null || curse == null) return;

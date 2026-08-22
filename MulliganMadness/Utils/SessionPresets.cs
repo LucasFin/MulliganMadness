@@ -10,7 +10,7 @@ namespace MulliganMadness.Utils
                 TakeAllUsesPerPlayer = 2,
                 VoteThreshold = 0.5f,
                 VoteTimeoutSeconds = 12f,
-                VoteConsumesUse = false,
+                VoteConsumesUse = true,
                 TakeAllCurseCost = true,
                 CurseOnExisting = TakeAllCurseOnExisting.ReplaceExisting,
                 EnableMercyVote = true,

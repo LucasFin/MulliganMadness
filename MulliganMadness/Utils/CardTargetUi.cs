@@ -10,6 +10,7 @@ namespace MulliganMadness.Utils
     internal static class CardTargetUi
     {
         private static Overlay _overlay;
+        private static ToastHost _toast;
 
         internal static void OpenSandbag(Player user, Action<Player> onConfirm)
         {
@@ -24,8 +25,8 @@ namespace MulliganMadness.Utils
 
         internal static void ShowToast(string message)
         {
-            EnsureOverlay();
-            _overlay.ShowToast(message);
+            EnsureToast();
+            _toast?.Show(message);
         }
 
         internal static void Close()
@@ -46,12 +47,79 @@ namespace MulliganMadness.Utils
             go.SetActive(false);
         }
 
+        private static void EnsureToast()
+        {
+            if (_toast != null) return;
+            var canvas = Unbound.Instance?.canvas;
+            if (canvas == null) return;
+
+            var go = new GameObject("MM_Toast", typeof(RectTransform));
+            go.transform.SetParent(canvas.transform, false);
+            _toast = go.AddComponent<ToastHost>();
+            _toast.Build();
+            go.SetActive(true);
+        }
+
+        private sealed class ToastHost : MonoBehaviour
+        {
+            private TextMeshProUGUI _label;
+            private CanvasGroup _group;
+            private Image _bg;
+
+            internal void Build()
+            {
+                var rect = gameObject.GetComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.5f, 1f);
+                rect.anchorMax = new Vector2(0.5f, 1f);
+                rect.pivot = new Vector2(0.5f, 1f);
+                rect.anchoredPosition = new Vector2(0f, -28f);
+                rect.sizeDelta = new Vector2(720f, 56f);
+
+                _group = gameObject.AddComponent<CanvasGroup>();
+                _group.blocksRaycasts = false;
+                _group.interactable = false;
+                _group.alpha = 0f;
+
+                _bg = gameObject.AddComponent<Image>();
+                _bg.color = new Color(0.06f, 0.10f, 0.08f, 0.92f);
+                _bg.raycastTarget = false;
+
+                var textGo = new GameObject("Label", typeof(RectTransform));
+                textGo.transform.SetParent(transform, false);
+                var textRect = textGo.GetComponent<RectTransform>();
+                textRect.anchorMin = Vector2.zero;
+                textRect.anchorMax = Vector2.one;
+                textRect.offsetMin = new Vector2(16f, 8f);
+                textRect.offsetMax = new Vector2(-16f, -8f);
+                _label = textGo.AddComponent<TextMeshProUGUI>();
+                _label.alignment = TextAlignmentOptions.Center;
+                _label.fontSize = 20f;
+                _label.fontStyle = FontStyles.Bold;
+                _label.color = new Color(1f, 0.95f, 0.82f, 1f);
+                _label.raycastTarget = false;
+            }
+
+            internal void Show(string message)
+            {
+                if (_label == null || string.IsNullOrWhiteSpace(message)) return;
+                gameObject.SetActive(true);
+                _label.text = message;
+                _group.alpha = 1f;
+                CancelInvoke(nameof(Hide));
+                Invoke(nameof(Hide), 3f);
+            }
+
+            private void Hide()
+            {
+                if (_group != null) _group.alpha = 0f;
+            }
+        }
+
         private class Overlay : MonoBehaviour
         {
             private RectTransform _panel;
             private TextMeshProUGUI _title;
             private TextMeshProUGUI _subtitle;
-            private TextMeshProUGUI _toast;
             private Transform _playerGrid;
             private Button _confirmButton;
             private Button _cancelButton;
@@ -96,10 +164,6 @@ namespace MulliganMadness.Utils
                 _confirmButton = CreateButton("Confirm", _panel, new Vector2(0.56f, 0.08f), _confirmLabel = "CONFIRM");
                 _cancelButton = CreateButton("Cancel", _panel, new Vector2(0.08f, 0.08f), "CANCEL");
                 _cancelButton.onClick.AddListener(Close);
-
-                _toast = CreateText("Toast", _panel, new Vector2(24f, -90f), 16f, FontStyles.Italic);
-                _toast.color = new Color(1f, 0.92f, 0.55f);
-                _toast.gameObject.SetActive(false);
             }
 
             internal void OpenTargetOnly(Player actor, string title, string subtitle, string confirmLabel, Action<Player> onConfirm)
@@ -113,20 +177,6 @@ namespace MulliganMadness.Utils
                 _selected = actor;
                 RebuildPlayerButtons(includeSelf: true, filterStealable: false);
                 gameObject.SetActive(true);
-            }
-
-            internal void ShowToast(string message)
-            {
-                if (_toast == null) return;
-                _toast.text = message;
-                _toast.gameObject.SetActive(true);
-                CancelInvoke(nameof(HideToast));
-                Invoke(nameof(HideToast), 3f);
-            }
-
-            private void HideToast()
-            {
-                if (_toast != null) _toast.gameObject.SetActive(false);
             }
 
             internal void Close()

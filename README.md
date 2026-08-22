@@ -1,6 +1,6 @@
 # Mulligan Madness
 
-Once-per-game **Take All** during card picks, auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
+**Take All** during card picks (once / multi-use / vote), auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
 
 ## Host session settings (Mods → Mulligan Madness)
 
@@ -8,10 +8,10 @@ Match rules are set by the **host** and sync to everyone in the lobby when playe
 
 | Setting | Description |
 | --- | --- |
-| **Take All mode** | Off, once per game, multi-use (0–3), or **vote** (others accept/decline during your pick) |
+| **Take All mode** | Off, once per game, multi-use (0–3), or **vote** (all other players accept/decline during your pick) |
 | **Take All curse cost** | Take All works but you receive a random MM auto-pick curse afterward |
 | **Mercy vote** | Auto-offers a Take All vote when you're down ≥ N round wins vs the leader |
-| **Presets** | **Chaos** (vote Take All, curse cost, fast Panic, unlimited Sandbag) · **Competitive** (Take All/curses off) |
+| **Presets** | **Chaos** (vote Take All with 2 uses, curse cost, fast Panic, unlimited Sandbag) · **Competitive** (Take All/curses off) |
 | **Card / curse toggles** | Thief, Takebacksies, Sandbag, Jar of Dirt, auto-pick curses |
 | **Panic Pick timer** | Seconds before auto-pick |
 | **Sandbag limit** | Once per game toggle |
@@ -19,7 +19,11 @@ Match rules are set by the **host** and sync to everyone in the lobby when playe
 Stats HUD / Tab / compare settings remain **personal** (not synced).
 
 ## Take All
-When enabled (Mods → Mulligan Madness), a **TAKE ALL** button appears on your pick turn. Each player can use it **once per game**.
+When enabled (Mods → Mulligan Madness), a **TAKE ALL** button appears on your pick turn. Mode and uses are set by the host:
+
+- **Once per game** — one Take All each
+- **Multi-use** — up to N uses per player (0–3)
+- **Vote** — request Take All; all other players vote Yes/No (optional curse cost; uses may be consumed when a vote passes)
 
 Take All grabs every card in the current offer, including **Reroll** and **Table Flip** — you get them and their normal consequences still run.
 
@@ -42,7 +46,7 @@ Works with WillsWackyManagers curses. You can only have one of these at a time:
 | --- | --- | --- |
 | **Thief** | Legendary | Once per game, steal one card from another player |
 | **Takebacksies** | Common | Appears in your pick pool after being stolen from; yoinks your card back from whoever holds it |
-| **Sandbag Simulator** | Legendary | Once per game, reroll any player’s current pick hand (including yourself) |
+| **Sandbag Simulator** | Legendary | Reroll any player’s current pick hand (including yourself); host can limit uses |
 | **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure (disabled Nulls stay) |
 
 ## Default appearance (Mods → Mulligan Madness)

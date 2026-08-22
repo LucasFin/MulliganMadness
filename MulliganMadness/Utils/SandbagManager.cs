@@ -45,38 +45,72 @@ namespace MulliganMadness.Utils
             var target = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == targetId);
             if (user == null || target == null) return;
 
-            if (SessionSettings.Current.SandbagOncePerGame)
+            if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
+
+            if (!SessionSettings.Current.EnableSandbagSimulator)
             {
-                UsedThisGame.Add(userId);
+                NotifySandbagResult(userId, false, "Sandbag is disabled.");
+                return;
             }
 
-            if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
+            if (SessionSettings.Current.SandbagOncePerGame && UsedThisGame.Contains(userId))
+            {
+                NotifySandbagResult(userId, false, "Sandbag already used this game.");
+                return;
+            }
 
             if (ItemShopGuard.AnyPlayerInShop())
             {
                 Plugin.Instance.LogWarn("Sandbag blocked — shop open.");
+                NotifySandbagResult(userId, false, "Can't sandbag during a shop.");
                 return;
             }
 
-            Plugin.Instance.StartCoroutine(RerollTargetRoutine(target));
-            Plugin.Instance.Log($"Player {userId} sandbagged player {targetId}'s hand.");
-        }
-
-        private static IEnumerator RerollTargetRoutine(Player target)
-        {
             var managerType = AccessTools.TypeByName("WillsWackyManagers.Utils.RerollManager");
             var instanceProp = managerType == null ? null : AccessTools.Property(managerType, "instance");
             var manager = instanceProp?.GetValue(null);
             if (manager == null)
             {
                 Plugin.Instance.LogWarn("Sandbag failed — RerollManager missing.");
-                yield break;
+                NotifySandbagResult(userId, false, "Sandbag failed.");
+                return;
             }
 
+            NetworkingManager.RPC(typeof(SandbagManager), nameof(RPCA_SyncSandbagUsed), userId);
+            Plugin.Instance.StartCoroutine(RerollTargetRoutine(target, managerType, manager));
+            NotifySandbagResult(userId, true, $"Sandbagged player {targetId + 1}.");
+            Plugin.Instance.Log($"Player {userId} sandbagged player {targetId}'s hand.");
+        }
+
+        [UnboundRPC]
+        public static void RPCA_SyncSandbagUsed(int userId)
+        {
+            if (SessionSettings.Current.SandbagOncePerGame)
+            {
+                UsedThisGame.Add(userId);
+            }
+        }
+
+        [UnboundRPC]
+        public static void RPCA_SandbagResult(int userId, bool ok, string message)
+        {
+            var user = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == userId);
+            if (user == null || string.IsNullOrEmpty(message)) return;
+            PlayerNotice.Show(user, message);
+        }
+
+        private static void NotifySandbagResult(int userId, bool ok, string message)
+        {
+            NetworkingManager.RPC(typeof(SandbagManager), nameof(RPCA_SandbagResult), userId, ok, message ?? "");
+        }
+
+        private static IEnumerator RerollTargetRoutine(Player target, Type managerType, object manager)
+        {
             var rerollMethod = AccessTools.Method(managerType, "Reroll", new[] { typeof(Player), typeof(bool) });
             if (rerollMethod == null)
             {
                 Plugin.Instance.LogWarn("Sandbag failed — Reroll method missing.");
+                QueuePendingReroll(manager, managerType, target);
                 yield break;
             }
 

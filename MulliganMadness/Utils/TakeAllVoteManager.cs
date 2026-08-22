@@ -16,20 +16,34 @@ namespace MulliganMadness.Utils
         private static float _expiresAt;
         private static bool _active;
         private static bool _mercyVote;
+        private static string[] _pendingPayloads;
+        private static bool _pendingCashOutNull;
 
         internal static bool IsActive => _active;
 
         internal static void ResetForNewGame()
         {
             _mercyVote = false;
+            ClearPendingHand();
             CancelVote(false);
+        }
+
+        internal static void CancelIfActive(string reason)
+        {
+            if (!_active) return;
+            if (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)
+            {
+                FailVote(string.IsNullOrEmpty(reason) ? "Take All vote cancelled — pick ended." : reason);
+            }
         }
 
         internal static bool TryBeginMercyVote(int requesterId)
         {
             if (_active) return false;
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return false;
-            BeginVote(requesterId, mercy: true);
+            if (!TakeAllManager.IsOfferedHandReady()) return false;
+            if (!TakeAllManager.TryEncodeOfferedHand(out var payloads, out var cashOut)) return false;
+            BeginVote(requesterId, mercy: true, payloads, cashOut);
             return true;
         }
 
@@ -42,27 +56,38 @@ namespace MulliganMadness.Utils
 
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker == null || !TakeAllManager.HasRemaining(picker)) return false;
+            if (!TakeAllManager.TryEncodeOfferedHand(out var payloads, out var cashOut)) return false;
 
-            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_RequestVote), picker.playerID);
+            NetworkingManager.RPC(
+                typeof(TakeAllVoteManager),
+                nameof(RPCA_RequestVote),
+                picker.playerID,
+                payloads,
+                cashOut);
             return true;
         }
 
         [UnboundRPC]
-        public static void RPCA_RequestVote(int requesterId)
+        public static void RPCA_RequestVote(int requesterId, string[] payloads, bool cashOutWithNull)
         {
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
-            BeginVote(requesterId);
+            if (payloads == null || (payloads.Length == 0 && !cashOutWithNull)) return;
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return;
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker == null || picker.playerID != requesterId) return;
+            if (!TakeAllManager.HasRemaining(picker)) return;
+            BeginVote(requesterId, mercy: false, payloads, cashOutWithNull);
         }
 
         [UnboundRPC]
-        public static void RPCA_BeginVote(int requesterId, float expiresAt, bool mercy)
+        public static void RPCA_BeginVote(int requesterId, float timeoutSeconds, bool mercy)
         {
             _requesterId = requesterId;
             _votes.Clear();
-            _expiresAt = expiresAt;
+            _expiresAt = Time.unscaledTime + Mathf.Max(1f, timeoutSeconds);
             _active = true;
             _mercyVote = mercy;
-            TakeAllVoteUi.ShowVote(requesterId, expiresAt, mercy);
+            TakeAllVoteUi.ShowVote(requesterId, timeoutSeconds, mercy);
             TakeAllButton.RefreshVisibility();
         }
 
@@ -76,11 +101,17 @@ namespace MulliganMadness.Utils
         }
 
         [UnboundRPC]
-        public static void RPCA_VoteResult(int requesterId, bool passed, string message)
+        public static void RPCA_VoteResult(int requesterId, bool passed, string message, bool mercy)
         {
+            var payloads = _pendingPayloads;
+            var cashOut = _pendingCashOutNull;
+            var wasMercy = mercy;
+
             _active = false;
             _votes.Clear();
             _requesterId = -1;
+            _mercyVote = false;
+            ClearPendingHand();
             TakeAllVoteUi.Hide();
             TakeAllButton.RefreshVisibility();
 
@@ -90,16 +121,31 @@ namespace MulliganMadness.Utils
                 CardTargetUi.ShowToast(message);
             }
 
-            if (passed && (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient))
+            if (!passed || !(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
+
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
             {
-                if (_mercyVote)
-                {
-                    TakeAllManager.ExecuteAuthorizedTakeAll(requesterId, consumeUse: false, bypassRemaining: true);
-                }
-                else
-                {
-                    TakeAllManager.ExecuteAuthorizedTakeAll(requesterId, consumeUse: SessionSettings.Current.VoteConsumesUse);
-                }
+                Plugin.Instance.LogWarn("Take All vote passed but pick is no longer active.");
+                return;
+            }
+
+            if ((payloads == null || payloads.Length == 0) && !cashOut)
+            {
+                Plugin.Instance.LogWarn("Take All vote passed but hand payloads were empty.");
+                CardTargetUi.ShowToast("Take All failed — hand unavailable.");
+                return;
+            }
+
+            var ok = TakeAllManager.ExecuteAuthorizedTakeAllFromPayloads(
+                requesterId,
+                payloads,
+                cashOut,
+                consumeUse: wasMercy ? false : SessionSettings.Current.VoteConsumesUse,
+                bypassRemaining: wasMercy);
+
+            if (ok && wasMercy)
+            {
+                MercyTakeAllManager.MarkMercyUsed(requesterId);
             }
         }
 
@@ -120,25 +166,44 @@ namespace MulliganMadness.Utils
             FailVote("Take All vote timed out.");
         }
 
-        private static void BeginVote(int requesterId, bool mercy = false)
+        private static void BeginVote(int requesterId, bool mercy, string[] payloads, bool cashOutWithNull)
         {
+            _pendingPayloads = payloads;
+            _pendingCashOutNull = cashOutWithNull;
+            _mercyVote = mercy;
+
             var voters = GetVoters(requesterId);
             if (voters.Count == 0)
             {
-                if (mercy)
-                {
-                    TakeAllManager.ExecuteAuthorizedTakeAll(requesterId, consumeUse: false, bypassRemaining: true);
-                }
-                else
-                {
-                    TakeAllManager.ExecuteAuthorizedTakeAll(requesterId, consumeUse: SessionSettings.Current.VoteConsumesUse);
-                }
-
+                ExecuteStoredTakeAll(requesterId, mercy);
+                ClearPendingHand();
+                _mercyVote = false;
                 return;
             }
 
-            var expiresAt = Time.unscaledTime + SessionSettings.Current.VoteTimeoutSeconds;
-            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_BeginVote), requesterId, expiresAt, mercy);
+            var timeout = SessionSettings.Current.VoteTimeoutSeconds;
+            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_BeginVote), requesterId, timeout, mercy);
+        }
+
+        private static void ExecuteStoredTakeAll(int requesterId, bool mercy)
+        {
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
+            {
+                CardTargetUi.ShowToast("Take All failed — pick ended.");
+                return;
+            }
+
+            var ok = TakeAllManager.ExecuteAuthorizedTakeAllFromPayloads(
+                requesterId,
+                _pendingPayloads,
+                _pendingCashOutNull,
+                consumeUse: mercy ? false : SessionSettings.Current.VoteConsumesUse,
+                bypassRemaining: mercy);
+
+            if (ok && mercy)
+            {
+                MercyTakeAllManager.MarkMercyUsed(requesterId);
+            }
         }
 
         private static List<int> GetVoters(int requesterId)
@@ -176,27 +241,43 @@ namespace MulliganMadness.Utils
         private static void PassVote()
         {
             var message = _mercyVote ? "Mercy Take All vote passed!" : "Take All vote passed!";
-            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_VoteResult), _requesterId, true, message);
+            var requesterId = _requesterId;
+            var mercy = _mercyVote;
+            // Keep pending payloads until RPCA_VoteResult runs (local invoke is sync).
+            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_VoteResult), requesterId, true, message, mercy);
             _active = false;
             _mercyVote = false;
         }
 
         private static void FailVote(string message)
         {
-            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_VoteResult), _requesterId, false, message);
+            var requesterId = _requesterId;
+            var mercy = _mercyVote;
+            NetworkingManager.RPC(typeof(TakeAllVoteManager), nameof(RPCA_VoteResult), requesterId, false, message, mercy);
             _active = false;
             _mercyVote = false;
+            ClearPendingHand();
         }
 
         private static void CancelVote(bool notify)
         {
             if (!_active) return;
             if (notify) FailVote("Take All vote cancelled.");
-            _active = false;
-            _mercyVote = false;
-            _votes.Clear();
-            _requesterId = -1;
-            TakeAllVoteUi.Hide();
+            else
+            {
+                _active = false;
+                _mercyVote = false;
+                _votes.Clear();
+                _requesterId = -1;
+                ClearPendingHand();
+                TakeAllVoteUi.Hide();
+            }
+        }
+
+        private static void ClearPendingHand()
+        {
+            _pendingPayloads = null;
+            _pendingCashOutNull = false;
         }
     }
 }

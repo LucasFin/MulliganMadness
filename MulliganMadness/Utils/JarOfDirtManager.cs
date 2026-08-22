@@ -38,6 +38,12 @@ namespace MulliganMadness.Utils
 
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
 
+            if (!SessionSettings.Current.EnableJarOfDirt)
+            {
+                Plugin.Instance.LogWarn("Jar of Dirt RPC ignored — disabled.");
+                return;
+            }
+
             var cards = player.data?.currentCards;
             if (cards == null)
             {

@@ -11,7 +11,7 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "Once per game, reroll any player's current pick hand — including your own.";
+            "Reroll any player's current pick hand — including your own. Host can limit uses per game.";
 
         protected override CardInfo.Rarity GetRarity() => RarityHelper.Legendary;
 
@@ -29,8 +29,8 @@ namespace MulliganMadness.Cards
             new CardInfoStat
             {
                 positive = false,
-                stat = "Uses",
-                amount = "Once per game",
+                stat = "Limit",
+                amount = "Session setting",
                 simepleAmount = CardInfoStat.SimpleAmount.notAssigned
             }
         };

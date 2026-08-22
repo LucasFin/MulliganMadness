@@ -34,6 +34,11 @@ namespace MulliganMadness.Utils
             if (_overlay != null) _overlay.Close(false);
         }
 
+        internal static void OnStealResult(bool ok, string message)
+        {
+            if (_overlay != null) _overlay.HandleStealResult(ok, message);
+        }
+
         private static void EnsureOverlay()
         {
             if (_overlay != null) return;
@@ -62,6 +67,7 @@ namespace MulliganMadness.Utils
             private CardInfo _selectedCard;
             private Step _step = Step.PickTarget;
             private bool _completedSteal;
+            private bool _awaitingResult;
 
             internal void Build()
             {
@@ -102,13 +108,17 @@ namespace MulliganMadness.Utils
                 _selectedCard = null;
                 _step = Step.PickTarget;
                 _completedSteal = false;
+                _awaitingResult = false;
                 gameObject.SetActive(true);
                 RenderStep();
             }
 
             internal void Close(bool completedSteal)
             {
+                if (_awaitingResult && !completedSteal) return;
+
                 _completedSteal = completedSteal;
+                _awaitingResult = false;
                 gameObject.SetActive(false);
                 ClearContent();
 
@@ -116,6 +126,18 @@ namespace MulliganMadness.Utils
                 {
                     StealLedger.OnStealUiClosedWithoutSteal(_thief);
                 }
+            }
+
+            internal void HandleStealResult(bool ok, string message)
+            {
+                if (!_awaitingResult) return;
+                _awaitingResult = false;
+                if (!string.IsNullOrEmpty(message))
+                {
+                    PlayerNotice.Show(_thief, message);
+                }
+
+                Close(ok);
             }
 
             private void RenderStep()
@@ -292,8 +314,10 @@ namespace MulliganMadness.Utils
                     return;
                 }
 
+                _awaitingResult = true;
+                gameObject.SetActive(false);
+                ClearContent();
                 StealLedger.RequestSteal(_thief, _target, _selectedCard);
-                Close(true);
             }
 
             private void Cancel() => Close(false);

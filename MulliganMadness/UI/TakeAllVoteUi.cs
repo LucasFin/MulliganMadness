@@ -10,10 +10,10 @@ namespace MulliganMadness.UI
     {
         private static VoteOverlay _overlay;
 
-        internal static void ShowVote(int requesterId, float expiresAt, bool mercy = false)
+        internal static void ShowVote(int requesterId, float timeoutSeconds, bool mercy = false)
         {
             EnsureOverlay();
-            _overlay?.Show(requesterId, expiresAt, mercy);
+            _overlay?.Show(requesterId, timeoutSeconds, mercy);
         }
 
         internal static void Hide()
@@ -39,6 +39,10 @@ namespace MulliganMadness.UI
             private TextMeshProUGUI _title;
             private TextMeshProUGUI _subtitle;
             private GameObject _buttonsRow;
+            private float _expiresAt;
+            private bool _isVoter;
+            private bool _isRequester;
+            private bool _mercy;
 
             internal void Build()
             {
@@ -68,24 +72,25 @@ namespace MulliganMadness.UI
                 CreateButton("No (N)", 0.52f, () => TakeAllVoteManager.SubmitLocalVote(false));
             }
 
-            internal void Show(int requesterId, float expiresAt, bool mercy)
+            internal void Show(int requesterId, float timeoutSeconds, bool mercy)
             {
                 var requester = FindPlayer(requesterId);
                 var name = requester?.data?.view?.Owner?.NickName;
                 if (string.IsNullOrEmpty(name)) name = "Player " + (requesterId + 1);
 
                 var local = FindLocalPlayer();
-                var isRequester = local != null && local.playerID == requesterId;
-                var isVoter = local != null && local.playerID != requesterId;
+                _isRequester = local != null && local.playerID == requesterId;
+                _isVoter = local != null && local.playerID != requesterId;
+                _mercy = mercy;
+                _expiresAt = Time.unscaledTime + Mathf.Max(1f, timeoutSeconds);
 
                 _title.text = mercy
-                    ? (isRequester ? "Mercy Take All vote" : $"{name} wants mercy Take All")
-                    : (isRequester ? "Take All vote requested" : $"{name} wants Take All");
-                _subtitle.text = isRequester
-                    ? "Waiting for other players..."
-                    : $"Accept? ({Mathf.Max(0, Mathf.CeilToInt(expiresAt - Time.unscaledTime))}s)";
+                    ? (_isRequester ? "Mercy Take All vote" : $"{name} wants mercy Take All")
+                    : (_isRequester ? "Take All vote requested" : $"{name} wants Take All");
 
-                if (_buttonsRow != null) _buttonsRow.SetActive(isVoter);
+                RefreshSubtitle();
+
+                if (_buttonsRow != null) _buttonsRow.SetActive(_isVoter);
                 gameObject.SetActive(true);
             }
 
@@ -94,8 +99,20 @@ namespace MulliganMadness.UI
             private void Update()
             {
                 if (!gameObject.activeSelf) return;
+                RefreshSubtitle();
+
+                if (!_isVoter) return;
                 if (Input.GetKeyDown(KeyCode.Y)) TakeAllVoteManager.SubmitLocalVote(true);
                 if (Input.GetKeyDown(KeyCode.N)) TakeAllVoteManager.SubmitLocalVote(false);
+            }
+
+            private void RefreshSubtitle()
+            {
+                if (_subtitle == null) return;
+                var seconds = Mathf.Max(0, Mathf.CeilToInt(_expiresAt - Time.unscaledTime));
+                _subtitle.text = _isRequester
+                    ? $"Waiting for other players... ({seconds}s)"
+                    : $"Accept? ({seconds}s)";
             }
 
             private TextMeshProUGUI CreateText(string name, Vector2 offsetMin, Vector2 offsetMax, float size, FontStyles style)

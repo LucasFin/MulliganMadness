@@ -85,7 +85,18 @@ namespace MulliganMadness.Utils
             {
                 var team = PlayerManager.instance.GetPlayersInTeam(choice.pickrID);
                 if (team == null || team.Length == 0) return null;
-                return team.FirstOrDefault(p => p.data?.view != null && p.data.view.IsMine) ?? team[0];
+                // Deterministic across clients so only one teammate owns Take All / auto-pick.
+                Player designated = null;
+                foreach (var player in team)
+                {
+                    if (player == null) continue;
+                    if (designated == null || player.playerID < designated.playerID)
+                    {
+                        designated = player;
+                    }
+                }
+
+                return designated;
             }
 
             return PlayerManager.instance.players.FirstOrDefault(p => p.playerID == choice.pickrID);
@@ -155,19 +166,49 @@ namespace MulliganMadness.Utils
         internal static bool ExecuteAuthorizedTakeAll(int playerId, bool consumeUse, bool bypassRemaining = false)
         {
             if (_busy || !IsEnabled) return false;
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
             var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerId);
             if (picker == null) return false;
             if (!bypassRemaining && !HasRemaining(picker)) return false;
             return BeginTakeAll(playerId, consumeUse);
         }
 
-        private static bool BeginTakeAll(int playerId, bool consumeUse)
+        internal static bool ExecuteAuthorizedTakeAllFromPayloads(
+            int playerId,
+            string[] payloads,
+            bool cashOutWithNull,
+            bool consumeUse,
+            bool bypassRemaining = false)
         {
+            if (_busy || !IsEnabled) return false;
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
+            var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerId);
+            if (picker == null) return false;
+            if (!bypassRemaining && !HasRemaining(picker)) return false;
+            if ((payloads == null || payloads.Length == 0) && !cashOutWithNull) return false;
+
+            AutoPickController.ResetForCurrentPick();
+            _busy = true;
+            NetworkingManager.RPC(
+                typeof(TakeAllManager),
+                nameof(RPCA_TakeAll),
+                playerId,
+                payloads ?? Array.Empty<string>(),
+                cashOutWithNull,
+                consumeUse);
+            Plugin.Instance.Log(
+                $"Player {playerId} authorized Take All from payloads ({payloads?.Length ?? 0} cards, cashOutNull={cashOutWithNull}).");
+            return true;
+        }
+
+        internal static bool TryEncodeOfferedHand(out string[] payloads, out bool cashOutWithNull)
+        {
+            payloads = null;
+            cashOutWithNull = false;
             var spawned = GetSpawnedCards();
             if (spawned == null || spawned.Count == 0) return false;
 
             var keep = new List<string>();
-            var hasNullToCashOut = false;
             foreach (var go in spawned)
             {
                 if (go == null) continue;
@@ -176,7 +217,7 @@ namespace MulliganMadness.Utils
 
                 if (IsPlaceholderCard(source, go))
                 {
-                    hasNullToCashOut = true;
+                    cashOutWithNull = true;
                     var encoded = EncodeNull(source, go);
                     if (!string.IsNullOrEmpty(encoded)) keep.Add(encoded);
                     continue;
@@ -185,20 +226,17 @@ namespace MulliganMadness.Utils
                 keep.Add(EncodeCard(source));
             }
 
-            if (keep.Count == 0 && !hasNullToCashOut) return false;
-
-            AutoPickController.ResetForCurrentPick();
-            _busy = true;
-            NetworkingManager.RPC(
-                typeof(TakeAllManager),
-                nameof(RPCA_TakeAll),
-                playerId,
-                keep.ToArray(),
-                hasNullToCashOut,
-                consumeUse);
-            Plugin.Instance.Log($"Player {playerId} requested Take All ({keep.Count} cards, cashOutNull={hasNullToCashOut}).");
+            if (keep.Count == 0 && !cashOutWithNull) return false;
+            payloads = keep.ToArray();
             return true;
         }
+
+        private static bool BeginTakeAll(int playerId, bool consumeUse)
+        {
+            if (!TryEncodeOfferedHand(out var payloads, out var cashOutWithNull)) return false;
+            return ExecuteAuthorizedTakeAllFromPayloads(playerId, payloads, cashOutWithNull, consumeUse, bypassRemaining: true);
+        }
+
 
         public static List<GameObject> GetSpawnedCards()
         {
@@ -229,13 +267,31 @@ namespace MulliganMadness.Utils
         [UnboundRPC]
         public static void RPCA_TakeAll(int playerID, string[] payloads, bool cashOutWithNull, bool consumeUse)
         {
-            ConsumeUse(playerID, consumeUse);
-            UI.TakeAllButton.RefreshVisibility();
+            if (!IsEnabled)
+            {
+                _busy = false;
+                return;
+            }
+
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
+            {
+                _busy = false;
+                Plugin.Instance.LogWarn("Take All RPC ignored — not picking.");
+                return;
+            }
 
             var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerID);
             if (picker == null)
             {
                 _busy = false;
+                return;
+            }
+
+            var current = GetCurrentPicker();
+            if (current == null || current.playerID != playerID)
+            {
+                _busy = false;
+                Plugin.Instance.LogWarn($"Take All RPC ignored — player {playerID} is not the current picker.");
                 return;
             }
 
@@ -272,6 +328,20 @@ namespace MulliganMadness.Utils
 
             var hasKnowledge = knowledgeCards.Count > 0;
             var hasPower = powerCards.Count > 0;
+            var grantCount = rest.Count
+                             + (hasKnowledge ? rest.Count : 0)
+                             + knowledgeCards.Count
+                             + powerCards.Count
+                             + nullCards.Count;
+            if (grantCount == 0 && !cashOutWithNull)
+            {
+                _busy = false;
+                Plugin.Instance.LogWarn("Take All RPC ignored — empty grant.");
+                return;
+            }
+
+            ConsumeUse(playerID, consumeUse);
+            UI.TakeAllButton.RefreshVisibility();
 
             // Don't Distill the cards we're about to grant from this hand.
             WriteKnowledge(picker, 0);
@@ -408,7 +478,7 @@ namespace MulliganMadness.Utils
 
                 // Close the UI without ApplyCardStats.Pick — cards were already granted.
                 CollectingAll = true;
-                ClosePickWithoutApplying(visual);
+                EndPickWithoutApplying(visual);
             }
             finally
             {
@@ -416,7 +486,10 @@ namespace MulliganMadness.Utils
             }
         }
 
-        private static void ClosePickWithoutApplying(GameObject visual)
+        /// <summary>
+        /// Ends the current pick via Photon RPCA_DoEndPick when possible (keeps remote clients in sync).
+        /// </summary>
+        public static void EndPickWithoutApplying(GameObject visual)
         {
             var choice = CardChoice.instance;
             if (choice == null || visual == null) return;

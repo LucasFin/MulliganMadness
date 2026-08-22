@@ -185,13 +185,29 @@ namespace MulliganMadness.Utils
             switch (mode)
             {
                 case AutoPickMode.Leftmost:
-                    return spawned[0];
+                    return SelectLeftmost(spawned);
                 case AutoPickMode.ForcedImmediate:
                 case AutoPickMode.PanicTimer:
                     return spawned[UnityEngine.Random.Range(0, spawned.Count)];
                 default:
                     return null;
             }
+        }
+
+        private static GameObject SelectLeftmost(List<GameObject> spawned)
+        {
+            GameObject best = null;
+            var bestX = float.MaxValue;
+            foreach (var go in spawned)
+            {
+                if (go == null) continue;
+                var x = go.transform.position.x;
+                if (x >= bestX) continue;
+                bestX = x;
+                best = go;
+            }
+
+            return best ?? spawned[0];
         }
 
         private static bool HandIsSelectable()
@@ -210,20 +226,25 @@ namespace MulliganMadness.Utils
             var spawned = TakeAllManager.GetSpawnedCards();
             if (spawned == null || !spawned.Contains(pick)) return;
 
-            var pub = pick.GetComponent<PublicInt>();
-            var index = spawned.IndexOf(pick);
-            var theInt = pub != null ? pub.theInt : index;
-
-            // Pick(card, true) wipes the hand when the GO isn't ready yet, which
-            // re-deals and loops the pick sound. End the pick directly instead.
             try
             {
-                choice.StartCoroutine(choice.IDoEndPick(pick, theInt, choice.pickrID));
+                TakeAllManager.EndPickWithoutApplying(pick);
             }
             catch (Exception ex)
             {
-                Plugin.Instance.LogWarn($"Auto-pick IDoEndPick failed: {ex.Message}");
-                choice.Pick(pick, false);
+                Plugin.Instance.LogWarn($"Auto-pick EndPickWithoutApplying failed: {ex.Message}");
+                var pub = pick.GetComponent<PublicInt>();
+                var index = spawned.IndexOf(pick);
+                var theInt = pub != null ? pub.theInt : index;
+                try
+                {
+                    choice.StartCoroutine(choice.IDoEndPick(pick, theInt, choice.pickrID));
+                }
+                catch (Exception ex2)
+                {
+                    Plugin.Instance.LogWarn($"Auto-pick IDoEndPick failed: {ex2.Message}");
+                    choice.Pick(pick, false);
+                }
             }
         }
 

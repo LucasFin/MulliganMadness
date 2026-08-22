@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using MulliganMadness.UI;
 using Photon.Pun;
 
 namespace MulliganMadness.Utils
@@ -9,6 +8,14 @@ namespace MulliganMadness.Utils
         private static readonly HashSet<int> UsedMercyThisGame = new HashSet<int>();
 
         internal static void ResetForNewGame() => UsedMercyThisGame.Clear();
+
+        internal static void MarkMercyUsed(int playerId)
+        {
+            if (SessionSettings.Current.MercyOncePerGame)
+            {
+                UsedMercyThisGame.Add(playerId);
+            }
+        }
 
         internal static void TryOfferMercy(Player picker)
         {
@@ -29,11 +36,14 @@ namespace MulliganMadness.Utils
                 return;
             }
 
-            UsedMercyThisGame.Add(picker.playerID);
-            if (picker.data?.view != null && picker.data.view.IsMine)
-            {
-                CardTargetUi.ShowToast($"Mercy vote offered — down {deficit} round(s).");
-            }
+            // Vote UI already labels mercy for the requester; toast everyone via dedicated toast root.
+            CardTargetUi.ShowToast($"Mercy vote — {PlayerLabel(picker)} is down {deficit} round(s).");
+        }
+
+        private static string PlayerLabel(Player player)
+        {
+            var name = player?.data?.view?.Owner?.NickName;
+            return string.IsNullOrEmpty(name) ? $"Player {player.playerID + 1}" : name;
         }
     }
 }
