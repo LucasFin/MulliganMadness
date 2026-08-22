@@ -53,6 +53,31 @@ namespace MulliganMadness.Curses
                 LeftmostLuck.Card = info;
                 CurseManager.instance.RegisterCurse(info);
             });
+            CustomCard.BuildCard<BlindDraft>(info =>
+            {
+                BlindDraft.Card = info;
+                CurseManager.instance.RegisterCurse(info);
+            });
+            CustomCard.BuildCard<ShortHand>(info =>
+            {
+                ShortHand.Card = info;
+                CurseManager.instance.RegisterCurse(info);
+            });
+            CustomCard.BuildCard<Fumble>(info =>
+            {
+                Fumble.Card = info;
+                CurseManager.instance.RegisterCurse(info);
+            });
+            CustomCard.BuildCard<Kickback>(info =>
+            {
+                Kickback.Card = info;
+                CurseManager.instance.RegisterCurse(info);
+            });
+            CustomCard.BuildCard<HardEdges>(info =>
+            {
+                HardEdges.Card = info;
+                CurseManager.instance.RegisterCurse(info);
+            });
         }
 
         protected override GameObject GetCardArt()
@@ -65,6 +90,6 @@ namespace MulliganMadness.Curses
 
         protected override CardThemeColor.CardThemeColorType GetTheme() => CardThemeColor.CardThemeColorType.EvilPurple;
 
-        public override string GetModName() => Plugin.CurseInitials;
+        public override string GetModName() => Plugin.CardsMenuName;
     }
 }

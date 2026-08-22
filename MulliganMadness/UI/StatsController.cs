@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using MulliganMadness.Curses;
 using MulliganMadness.Stats;
 using MulliganMadness.Utils;
 using UnboundLib.GameModes;
@@ -339,6 +340,13 @@ namespace MulliganMadness.UI
             if (picker == null)
             {
                 if (_previewDelta != null) ClearPreview();
+                return;
+            }
+
+            // Face-down offers still hover-scale; don't leak the name or stat preview.
+            if (CurseOwnership.LocalPickerHas(BlindDraft.Card))
+            {
+                if (_previewDelta != null || _hoveredCard != null) ClearPreview();
                 return;
             }
 

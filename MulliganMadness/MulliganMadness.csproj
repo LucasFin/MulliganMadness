@@ -59,6 +59,10 @@
       <HintPath>$(Managed)/UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>$(Managed)/UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>$(Managed)/UnityEngine.UI.dll</HintPath>
       <Private>false</Private>

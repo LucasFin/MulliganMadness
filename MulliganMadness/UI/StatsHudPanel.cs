@@ -100,7 +100,7 @@ namespace MulliganMadness.UI
                 simple: true,
                 baseline: picking ? null : pickBaseline,
                 preview: picking ? _previewDelta : null,
-                extensions: null,
+                extensions: TabInfoBridge.GetMmStats(hudPlayer),
                 headerSuffix: string.IsNullOrEmpty(suffix) ? null : suffix,
                 omitHealthDelta: StatsController.InBattlePhase,
                 pickHoverMode: picking);

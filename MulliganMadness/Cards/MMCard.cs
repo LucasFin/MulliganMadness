@@ -16,9 +16,14 @@ namespace MulliganMadness.Cards
             cardInfo.allowMultiple = AllowMultiple;
         }
 
+        public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
+            Gravity gravity, Block block, CharacterStatModifiers characterStats)
+        {
+        }
+
         protected virtual bool AllowMultiple => false;
 
-        public override string GetModName() => Plugin.ModInitials;
+        public override string GetModName() => Plugin.CardsMenuName;
 
         protected override CardThemeColor.CardThemeColorType GetTheme() =>
             CardThemeColor.CardThemeColorType.EvilPurple;

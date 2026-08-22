@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using MulliganMadness.Curses;
+using MulliganMadness.Patches;
 using MulliganMadness.Stats;
+using MulliganMadness.UI;
 using UnityEngine;
 
 namespace MulliganMadness.Utils
@@ -35,6 +37,7 @@ namespace MulliganMadness.Utils
             }
             _instance._runningPlayerId = -1;
             _instance._pickGeneration++;
+            PickAnnounceUi.HidePanic();
         }
 
         public static void NotifyPlayerPickStarted()
@@ -117,19 +120,34 @@ namespace MulliganMadness.Utils
                     if (generation != _pickGeneration) yield break;
                     if (!WaitForOwnPick(playerID)) yield break;
 
+                    yield return WaitForFumbleIfNeeded(playerID, generation);
+                    if (generation != _pickGeneration || !WaitForOwnPick(playerID)) yield break;
+
                     if (mode == AutoPickMode.PanicTimer)
                     {
                         var wait = Mathf.Max(0.1f, SessionSettings.Current.PanicTimerSeconds);
+                        PickAnnounceUi.BroadcastPanic(playerID, wait);
                         var elapsed = 0f;
                         while (elapsed < wait && generation == _pickGeneration && WaitForOwnPick(playerID))
                         {
-                            if (TakeAllManager.IsBusy) yield break;
+                            if (TakeAllManager.IsBusy)
+                            {
+                                PickAnnounceUi.HidePanic(broadcast: true);
+                                yield break;
+                            }
+
                             var live = TakeAllManager.GetSpawnedCards();
-                            if (live == null || live.Count == 0) yield break;
+                            if (live == null || live.Count == 0)
+                            {
+                                PickAnnounceUi.HidePanic(broadcast: true);
+                                yield break;
+                            }
+
                             elapsed += Time.unscaledDeltaTime;
                             yield return null;
                         }
 
+                        PickAnnounceUi.HidePanic(broadcast: true);
                         if (generation != _pickGeneration || !WaitForOwnPick(playerID)) yield break;
                     }
 
@@ -179,16 +197,35 @@ namespace MulliganMadness.Utils
             return picker != null && picker.playerID == playerID;
         }
 
+        private IEnumerator WaitForFumbleIfNeeded(int playerID, int generation)
+        {
+            var picker = TakeAllManager.FindPlayer(playerID) ?? TakeAllManager.GetCurrentPicker();
+            if (picker == null || !CurseOwnership.Has(picker, Fumble.Card)) yield break;
+
+            var spawned = TakeAllManager.GetSpawnedCards();
+            if (spawned == null || spawned.Count <= 1) yield break;
+
+            var timeout = 1.25f;
+            while (timeout > 0f && generation == _pickGeneration && WaitForOwnPick(playerID))
+            {
+                if (FumbleController.HasRoll(playerID)) yield break;
+                timeout -= Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
         private static GameObject SelectCard(List<GameObject> spawned, AutoPickMode mode)
         {
             if (spawned == null || spawned.Count == 0) return null;
+            var open = spawned.FindAll(go => go != null && !DraftSniperManager.IsBlocked(go));
+            if (open.Count == 0) return null;
             switch (mode)
             {
                 case AutoPickMode.Leftmost:
-                    return SelectLeftmost(spawned);
+                    return SelectLeftmost(open);
                 case AutoPickMode.ForcedImmediate:
                 case AutoPickMode.PanicTimer:
-                    return spawned[UnityEngine.Random.Range(0, spawned.Count)];
+                    return open[UnityEngine.Random.Range(0, open.Count)];
                 default:
                     return null;
             }
@@ -222,29 +259,20 @@ namespace MulliganMadness.Utils
         {
             var choice = CardChoice.instance;
             if (choice == null || pick == null || !choice.IsPicking) return;
+            if (DraftSniperManager.IsBlocked(pick)) return;
 
             var spawned = TakeAllManager.GetSpawnedCards();
             if (spawned == null || !spawned.Contains(pick)) return;
 
             try
             {
-                TakeAllManager.EndPickWithoutApplying(pick);
+                // Real Pick applies the card then RPCs end-pick. Do not use Take All's
+                // EndPickWithoutApplying helper, which skips ApplyCardStats on purpose.
+                choice.Pick(pick, false);
             }
             catch (Exception ex)
             {
-                Plugin.Instance.LogWarn($"Auto-pick EndPickWithoutApplying failed: {ex.Message}");
-                var pub = pick.GetComponent<PublicInt>();
-                var index = spawned.IndexOf(pick);
-                var theInt = pub != null ? pub.theInt : index;
-                try
-                {
-                    choice.StartCoroutine(choice.IDoEndPick(pick, theInt, choice.pickrID));
-                }
-                catch (Exception ex2)
-                {
-                    Plugin.Instance.LogWarn($"Auto-pick IDoEndPick failed: {ex2.Message}");
-                    choice.Pick(pick, false);
-                }
+                Plugin.Instance.LogWarn($"Auto-pick Pick failed: {ex.Message}");
             }
         }
 

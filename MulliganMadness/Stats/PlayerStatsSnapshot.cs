@@ -71,7 +71,7 @@ namespace MulliganMadness.Stats
             snapshot.Set("Jump", data.stats.jump, $"{data.stats.jump:F2}");
             snapshot.Set("Size", data.stats.sizeMultiplier, $"{data.stats.sizeMultiplier:F2}");
             snapshot.Set("Knockback", gun.knockback, $"{gun.knockback:F2}");
-            snapshot.Set("LifeSteal", data.stats.lifeSteal, $"{data.stats.lifeSteal:F2}");
+            snapshot.Set("LifeSteal", data.stats.lifeSteal, GunStatReader.FormatLifeSteal(data.stats.lifeSteal));
             snapshot.Set("DmgGrow", gun.damageAfterDistanceMultiplier, $"{gun.damageAfterDistanceMultiplier:F2}");
             snapshot.Set("BulletSlow", gun.slow, $"{gun.slow:F2}");
             snapshot.Set("AttackSPD", gun.attackSpeed * gun.attackSpeedMultiplier, $"{(gun.attackSpeed * gun.attackSpeedMultiplier):F2}s");
@@ -82,7 +82,7 @@ namespace MulliganMadness.Stats
             {
                 var reload = GunStatReader.ComputeReloadSeconds(ammo);
                 snapshot.Set("Reload", reload, $"{reload:F2}s");
-                snapshot.Set("Ammo", ammo.maxAmmo, $"{ammo.maxAmmo:F0}");
+                snapshot.Set("Ammo", ammo.maxAmmo, GunStatReader.FormatAmmo(ammo));
             }
 
             snapshot.Set("Bullets", gun.numberOfProjectiles, $"{gun.numberOfProjectiles:F0}");
@@ -216,6 +216,10 @@ namespace MulliganMadness.Stats
             yield return new StatValue("Block CD", GetDisplay("BlockCD"), GetNumeric("BlockCD"));
             yield return new StatValue("Move", GetDisplay("MoveSPD"), GetNumeric("MoveSPD"));
             yield return new StatValue("Atk SPD", GetDisplay("AttackSPD"), GetNumeric("AttackSPD"));
+            if (HasNonDefault("Knockback", 1f))
+            {
+                yield return new StatValue("Knockback", GetDisplay("Knockback"), GetNumeric("Knockback"));
+            }
         }
 
         public IEnumerable<StatValue> FullStats()
@@ -239,7 +243,7 @@ namespace MulliganMadness.Stats
             yield return new StatValue("Projectile SPD", GetDisplay("ProjectileSPD"), GetNumeric("ProjectileSPD"));
             yield return new StatValue("Reload", GetDisplay("Reload"), GetNumeric("Reload"));
             yield return new StatValue("Ammo", GetDisplay("Ammo"), GetNumeric("Ammo"));
-            yield return new StatValue("Bullets", GetDisplay("Bullets"), GetNumeric("Bullets"));
+            yield return new StatValue("Projectiles", GetDisplay("Bullets"), GetNumeric("Bullets"));
             yield return new StatValue("Range", GetDisplay("Range"), GetNumeric("Range"));
             yield return new StatValue("Bounces", GetDisplay("Bounces"), GetNumeric("Bounces"));
             yield return new StatValue("Bursts", GetDisplay("Bursts"), GetNumeric("Bursts"));
@@ -315,6 +319,8 @@ namespace MulliganMadness.Stats
                 case "Size": return "Size";
                 case "Knockback": return "Knockback";
                 case "Life Steal": return "LifeSteal";
+                case "Projectiles":
+                case "Bullets": return "Bullets";
                 case "Dmg Grow": return "DmgGrow";
                 case "Bullet Slow": return "BulletSlow";
                 case "Atk SPD":
@@ -323,7 +329,6 @@ namespace MulliganMadness.Stats
                 case "Projectile SPD": return "ProjectileSPD";
                 case "Reload": return "Reload";
                 case "Ammo": return "Ammo";
-                case "Bullets": return "Bullets";
                 case "Range": return "Range";
                 case "Bounces": return "Bounces";
                 case "Bursts": return "Bursts";
@@ -335,6 +340,9 @@ namespace MulliganMadness.Stats
         private float GetNumeric(string key) => _numbers.TryGetValue(key, out var value) ? value : float.NaN;
 
         private bool HasCount(string key) => TryGetNumeric(key, out var value) && value > 0.05f;
+
+        private bool HasNonDefault(string key, float defaultValue) =>
+            TryGetNumeric(key, out var value) && Mathf.Abs(value - defaultValue) >= 0.05f;
 
         private static string FormatCount(float value)
         {

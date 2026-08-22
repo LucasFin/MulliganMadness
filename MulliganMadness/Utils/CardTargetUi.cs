@@ -14,13 +14,27 @@ namespace MulliganMadness.Utils
 
         internal static void OpenSandbag(Player user, Action<Player> onConfirm)
         {
-            EnsureOverlay();
-            _overlay.OpenTargetOnly(
+            OpenPlayerTarget(
                 user,
                 "Sandbag Simulator",
                 "Choose who rerolls their current pick hand.",
                 "REROLL HAND",
-                onConfirm);
+                onConfirm,
+                includeSelf: true);
+        }
+
+        internal static void OpenPlayerTarget(Player user, string title, string subtitle, string confirmLabel, Action<Player> onConfirm, bool includeSelf)
+        {
+            EnsureOverlay();
+            _overlay.OpenTargetOnly(user, title, subtitle, confirmLabel, onConfirm, includeSelf);
+        }
+
+        internal static bool IsOpen => _overlay != null && _overlay.gameObject.activeSelf;
+
+        internal static void OpenCardChoices(string title, string subtitle, string confirmLabel, List<(string label, GameObject card)> cards, Action<GameObject> onConfirm, Action onCancel = null)
+        {
+            EnsureOverlay();
+            _overlay.OpenCardChoices(title, subtitle, confirmLabel, cards, onConfirm, onCancel);
         }
 
         internal static void ShowToast(string message)
@@ -166,7 +180,7 @@ namespace MulliganMadness.Utils
                 _cancelButton.onClick.AddListener(Close);
             }
 
-            internal void OpenTargetOnly(Player actor, string title, string subtitle, string confirmLabel, Action<Player> onConfirm)
+            internal void OpenTargetOnly(Player actor, string title, string subtitle, string confirmLabel, Action<Player> onConfirm, bool includeSelf = true)
             {
                 _actor = actor;
                 _onConfirm = onConfirm;
@@ -174,8 +188,53 @@ namespace MulliganMadness.Utils
                 _title.text = title;
                 _subtitle.text = subtitle;
                 _confirmButton.GetComponentInChildren<TextMeshProUGUI>().text = confirmLabel;
-                _selected = actor;
-                RebuildPlayerButtons(includeSelf: true, filterStealable: false);
+                _selected = includeSelf ? actor : null;
+                RebuildPlayerButtons(includeSelf, filterStealable: false);
+                gameObject.SetActive(true);
+            }
+
+            internal void OpenCardChoices(string title, string subtitle, string confirmLabel, List<(string label, GameObject card)> cards, Action<GameObject> onConfirm, Action onCancel)
+            {
+                _actor = null;
+                _onConfirm = null;
+                _confirmLabel = confirmLabel;
+                _title.text = title;
+                _subtitle.text = subtitle;
+                _confirmButton.GetComponentInChildren<TextMeshProUGUI>().text = confirmLabel;
+                _selected = null;
+                ClearGrid();
+                GameObject picked = null;
+                foreach (var entry in cards)
+                {
+                    if (entry.card == null) continue;
+                    var button = CreateLabeledButton(entry.label);
+                    var captured = entry.card;
+                    button.onClick.AddListener(() =>
+                    {
+                        picked = captured;
+                        foreach (Transform child in _playerGrid)
+                        {
+                            var img = child.GetComponent<Image>();
+                            if (img != null) img.color = new Color(0.14f, 0.20f, 0.16f, 1f);
+                        }
+
+                        button.GetComponent<Image>().color = new Color(0.18f, 0.48f, 0.30f, 1f);
+                    });
+                }
+
+                _confirmButton.onClick.RemoveAllListeners();
+                _confirmButton.onClick.AddListener(() =>
+                {
+                    if (picked == null) return;
+                    onConfirm?.Invoke(picked);
+                    Close();
+                });
+                _cancelButton.onClick.RemoveAllListeners();
+                _cancelButton.onClick.AddListener(() =>
+                {
+                    onCancel?.Invoke();
+                    Close();
+                });
                 gameObject.SetActive(true);
             }
 
@@ -225,6 +284,28 @@ namespace MulliganMadness.Utils
                 }
 
                 button.GetComponent<Image>().color = new Color(0.18f, 0.48f, 0.30f, 1f);
+            }
+
+            private Button CreateLabeledButton(string label)
+            {
+                var go = new GameObject("Choice", typeof(RectTransform), typeof(Image), typeof(Button));
+                go.transform.SetParent(_playerGrid, false);
+                var image = go.GetComponent<Image>();
+                image.color = new Color(0.14f, 0.20f, 0.16f, 1f);
+                var button = go.GetComponent<Button>();
+                var textGo = new GameObject("Label", typeof(RectTransform));
+                textGo.transform.SetParent(go.transform, false);
+                var rect = textGo.GetComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(8f, 4f);
+                rect.offsetMax = new Vector2(-8f, -4f);
+                var tmp = textGo.AddComponent<TextMeshProUGUI>();
+                tmp.text = label;
+                tmp.fontSize = 16f;
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.color = Color.white;
+                return button;
             }
 
             private Button CreateGridButton(string label, Player player)

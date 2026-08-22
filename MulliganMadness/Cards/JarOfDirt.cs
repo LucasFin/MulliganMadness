@@ -11,7 +11,7 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "Replace every Null you currently own with a treasure. Disabled Nulls stay Nulls.";
+            "Replace every Null you currently own with a treasure. Only shows up if you have Nulls to convert. Disabled Nulls stay Nulls.";
 
         protected override CardInfo.Rarity GetRarity() => RarityHelper.Unique;
 

@@ -7,9 +7,9 @@ namespace MulliganMadness.UI
 {
     internal static class StatsViewBuilder
     {
-        private static readonly Color LabelColor = new Color(0.62f, 0.72f, 0.82f, 1f);
-        private static readonly Color ValueColor = new Color(0.94f, 0.97f, 1f, 1f);
-        private static readonly Color SectionColor = new Color(0.45f, 0.58f, 0.72f, 0.95f);
+        private static readonly Color LabelColor = new Color(0.72f, 0.74f, 0.77f, 1f);
+        private static readonly Color ValueColor = new Color(0.96f, 0.97f, 0.98f, 1f);
+        private static readonly Color SectionColor = new Color(0.58f, 0.60f, 0.64f, 0.95f);
 
         internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null, bool omitHealthDelta = false, bool pickHoverMode = false)
         {
@@ -35,14 +35,32 @@ namespace MulliganMadness.UI
             else
             {
                 AppendRow(sb, "Block CD", snap.GetDisplay("BlockCD"), "BlockCD", snap, baseline, preview, pickHoverMode);
+                if (HasNonDefault(snap, "BlockCount", 1f))
+                {
+                    AppendRow(sb, "Blocks", snap.GetDisplay("BlockCount"), "BlockCount", snap, baseline, preview, pickHoverMode);
+                }
             }
 
             AppendSection(sb, "Combat");
             AppendRow(sb, "Attack SPD", snap.GetDisplay("AttackSPD"), "AttackSPD", snap, baseline, preview, pickHoverMode);
             AppendRow(sb, "Reload", snap.GetDisplay("Reload"), "Reload", snap, baseline, preview, pickHoverMode);
-            AppendRow(sb, "Bullets", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview, pickHoverMode);
-            if (!simple)
+            if (simple)
             {
+                AppendRow(sb, "Ammo", snap.GetDisplay("Ammo"), "Ammo", snap, baseline, preview, pickHoverMode);
+                if (HasNonDefaultProjectiles(snap))
+                {
+                    AppendRow(sb, "Projectiles", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview, pickHoverMode);
+                }
+
+                AppendRow(sb, "Bounces", snap.GetDisplay("Bounces"), "Bounces", snap, baseline, preview, pickHoverMode);
+                if (HasNonDefault(snap, "Knockback", 1f))
+                {
+                    AppendRow(sb, "Knockback", snap.GetDisplay("Knockback"), "Knockback", snap, baseline, preview, pickHoverMode);
+                }
+            }
+            else
+            {
+                AppendRow(sb, "Projectiles", snap.GetDisplay("Bullets"), "Bullets", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Knockback", snap.GetDisplay("Knockback"), "Knockback", snap, baseline, preview, pickHoverMode);
                 AppendRow(sb, "Life Steal", snap.GetDisplay("LifeSteal"), "LifeSteal", snap, baseline, preview, pickHoverMode);
             }
@@ -118,7 +136,7 @@ namespace MulliganMadness.UI
             if (pinnedLocal != null)
             {
                 sb.AppendLine();
-                sb.AppendLine("<size=88%><color=#9AA8B5>— Since your pin —</color></size>");
+                sb.AppendLine("<size=88%><color=#9AA8B5>Since your pin</color></size>");
                 sb.Append(BuildHud(local, simple: true, baseline: pinnedLocal, preview: null, extensions: null));
             }
 
@@ -132,6 +150,12 @@ namespace MulliganMadness.UI
 
         private static bool HasCount(PlayerStatsSnapshot snap, string key) =>
             snap != null && snap.TryGetNumeric(key, out var value) && value > 0.05f;
+
+        private static bool HasNonDefaultProjectiles(PlayerStatsSnapshot snap) =>
+            snap != null && snap.TryGetNumeric("Bullets", out var value) && Mathf.Abs(value - 1f) >= 0.05f;
+
+        private static bool HasNonDefault(PlayerStatsSnapshot snap, string key, float defaultValue) =>
+            snap != null && snap.TryGetNumeric(key, out var value) && Mathf.Abs(value - defaultValue) >= 0.05f;
 
         private static bool IsNullStat(string label)
         {
@@ -150,23 +174,20 @@ namespace MulliganMadness.UI
 
         private static void AppendSection(StringBuilder sb, string title)
         {
-            sb.Append("<size=88%><color=#").Append(ColorToHex(SectionColor)).Append(">— ").Append(title).Append(" —</color></size>").AppendLine();
+            sb.Append("<size=88%><color=#").Append(ColorToHex(SectionColor)).Append(">").Append(title).Append("</color></size>").AppendLine();
         }
 
         private static readonly (string label, string key)[] PreviewExtraStats =
         {
             ("Lives", "Lives"),
             ("Blocks", "BlockCount"),
-            ("Bullets", "Bullets"),
+            ("Projectiles", "Bullets"),
             ("Knockback", "Knockback"),
             ("Life Steal", "LifeSteal"),
             ("Jump", "Jump"),
             ("Size", "Size"),
             ("Bullet SPD", "BulletSPD"),
-            ("Reload", "Reload"),
-            ("Ammo", "Ammo"),
             ("Range", "Range"),
-            ("Bounces", "Bounces"),
             ("Bursts", "Bursts"),
             ("Gravity", "Gravity")
         };
@@ -229,6 +250,11 @@ namespace MulliganMadness.UI
 
         private static string FormatDelta(string key, float diff)
         {
+            if (key == "LifeSteal")
+            {
+                return (diff * 100f).ToString("F0") + "%";
+            }
+
             if (key == "DMG" || key == "HP" || key == "MaxHP" || key == "Bullets" || key == "Bounces" || key == "Bursts" || key == "Ammo" || key == "BlockCount" || key == "Lives" || key == "Nulls" || key == "NullCards")
             {
                 return diff.ToString("F0");
@@ -260,6 +286,7 @@ namespace MulliganMadness.UI
                 case "Size": return "Size";
                 case "Knockback": return "Knockback";
                 case "Life Steal": return "LifeSteal";
+                case "Projectiles":
                 case "Bullets": return "Bullets";
                 case "Bullet SPD": return "BulletSPD";
                 case "Reload": return "Reload";

@@ -14,6 +14,8 @@ namespace MulliganMadness.Utils
         internal static bool TryOpen(Player thief)
         {
             if (thief == null) return false;
+            EnsureOverlay();
+            if (_overlay != null && _overlay.gameObject.activeSelf) return true;
             if (!StealLedger.HasAnyStealableTarget(thief))
             {
                 StealLedger.OnStealUiClosedWithoutSteal(thief);
@@ -155,13 +157,13 @@ namespace MulliganMadness.Utils
                 {
                     case Step.PickTarget:
                         _title.text = "Thief";
-                        _subtitle.text = "Step 1 — choose who to rob.";
+                        _subtitle.text = "Step 1 - choose who to rob.";
                         BuildTargetGrid();
                         WireButtons("CANCEL", "NEXT", Cancel, ConfirmTarget);
                         break;
                     case Step.PickCard:
                         _title.text = "Thief";
-                        _subtitle.text = $"Step 2 — pick a card from {PlayerLabel(_target)}.";
+                        _subtitle.text = $"Step 2 - pick a card from {PlayerLabel(_target)}.";
                         BuildCardGrid();
                         WireButtons("BACK", "NEXT", () => { _step = Step.PickTarget; RenderStep(); }, ConfirmCard);
                         break;

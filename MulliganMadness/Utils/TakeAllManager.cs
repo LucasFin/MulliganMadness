@@ -28,6 +28,12 @@ namespace MulliganMadness.Utils
         private static Type _nullCardInfo;
         private static int _lastSpawnCount;
         private static float _spawnStableSince;
+        private static int _authorizedPlayerId = -1;
+        private static bool _authorizedConsumeUse;
+        private static bool _authorizedMercy;
+        private static string[] _authorizedPayloads;
+        private static bool _authorizedCashOut;
+        private static int _actingPickerId = -1;
 
         internal static bool CollectingAll;
 
@@ -41,6 +47,66 @@ namespace MulliganMadness.Utils
             _lastSpawnCount = 0;
             _spawnStableSince = 0f;
             CollectingAll = false;
+            ClearAuthorization();
+            ClearActingPicker();
+        }
+
+        internal static bool HasAuthorization(int playerId) =>
+            playerId >= 0 && _authorizedPlayerId == playerId;
+
+        internal static void GrantAuthorization(
+            int playerId,
+            bool consumeUse,
+            bool mercy,
+            string[] payloads = null,
+            bool cashOutWithNull = false)
+        {
+            _authorizedPlayerId = playerId;
+            _authorizedConsumeUse = consumeUse;
+            _authorizedMercy = mercy;
+            _authorizedPayloads = payloads != null ? (string[])payloads.Clone() : null;
+            _authorizedCashOut = cashOutWithNull;
+        }
+
+        internal static void ClearAuthorization()
+        {
+            _authorizedPlayerId = -1;
+            _authorizedConsumeUse = false;
+            _authorizedMercy = false;
+            _authorizedPayloads = null;
+            _authorizedCashOut = false;
+        }
+
+        internal static void NoteActingPicker(int pickerId)
+        {
+            _actingPickerId = pickerId;
+        }
+
+        internal static void ClearActingPicker()
+        {
+            _actingPickerId = -1;
+        }
+
+        internal static bool TryExecuteAuthorization()
+        {
+            if (_authorizedPlayerId < 0) return false;
+            if (!IsLocalPlayersTurn()) return false;
+
+            var playerId = _authorizedPlayerId;
+            var consumeUse = _authorizedConsumeUse;
+            var mercy = _authorizedMercy;
+            var payloads = _authorizedPayloads;
+            var cashOut = _authorizedCashOut;
+            var ok = payloads != null && (payloads.Length > 0 || cashOut)
+                ? ExecuteAuthorizedTakeAllFromPayloads(
+                    playerId,
+                    payloads,
+                    cashOut,
+                    consumeUse,
+                    bypassRemaining: mercy)
+                : ExecuteAuthorizedTakeAll(playerId, consumeUse, bypassRemaining: mercy);
+            if (ok) ClearAuthorization();
+            return ok;
         }
 
         public static bool IsEnabled => SessionSettings.Current.EnableTakeAll;
@@ -54,6 +120,14 @@ namespace MulliganMadness.Utils
             UsesConsumed.TryGetValue(player.playerID, out var used);
             return used < limit;
         }
+
+        public static bool HasBonus(Player player) => HasNestBonus(player) || HasSilverBonus(player);
+
+        public static bool HasNestBonus(Player player) => NestEggManager.HasCharge(player, EggKind.Nest);
+
+        public static bool HasSilverBonus(Player player) => NestEggManager.HasCharge(player, EggKind.Silver);
+
+        public static bool CanUseTakeAll(Player player) => HasBonus(player) || HasRemaining(player);
 
         public static int UsesRemaining(Player player)
         {
@@ -82,28 +156,61 @@ namespace MulliganMadness.Utils
             var choice = CardChoice.instance;
             if (choice == null) return null;
 
+            // RWF / Unbound TDM calls StartPick(playerID) per player even when pickerType
+            // stays Team. Prefer that acting player so teammate B's eggs, curses, and Take
+            // All bind to B instead of the lowest id on the team.
+            if (choice.IsPicking && _actingPickerId >= 0)
+            {
+                var acting = FindPlayer(_actingPickerId);
+                if (acting != null) return acting;
+            }
+
             var pickerType = PickerTypeField != null
                 ? (PickerType)PickerTypeField.GetValue(choice)
                 : (PickerType)AccessTools.Field(typeof(CardChoice), "pickerType").GetValue(choice);
             if (pickerType == PickerType.Team)
             {
-                var team = PlayerManager.instance.GetPlayersInTeam(choice.pickrID);
-                if (team == null || team.Length == 0) return null;
-                // Deterministic across clients so only one teammate owns Take All / auto-pick.
-                Player designated = null;
-                foreach (var player in team)
-                {
-                    if (player == null) continue;
-                    if (designated == null || player.playerID < designated.playerID)
-                    {
-                        designated = player;
-                    }
-                }
-
-                return designated;
+                var team = PlayerManager.instance != null
+                    ? PlayerManager.instance.GetPlayersInTeam(choice.pickrID)
+                    : null;
+                if (team != null && team.Length > 0) return DesignateFromTeam(team);
             }
 
-            return PlayerManager.instance.players.FirstOrDefault(p => p.playerID == choice.pickrID);
+            return FindPlayer(choice.pickrID);
+        }
+
+        internal static Player FindPlayer(int playerId)
+        {
+            var players = PlayerManager.instance?.players;
+            if (players == null) return null;
+            foreach (var player in players)
+            {
+                if (player != null && player.playerID == playerId) return player;
+            }
+
+            return null;
+        }
+
+        internal static int EndPickPlayerId()
+        {
+            var picker = GetCurrentPicker();
+            if (picker != null) return picker.playerID;
+            return CardChoice.instance != null ? CardChoice.instance.pickrID : 0;
+        }
+
+        private static Player DesignateFromTeam(Player[] team)
+        {
+            if (team == null || team.Length == 0) return null;
+            Player local = null;
+            Player lowest = null;
+            foreach (var player in team)
+            {
+                if (player == null) continue;
+                if (lowest == null || player.playerID < lowest.playerID) lowest = player;
+                if (local == null && PlayerStatsSnapshot.IsLocallyControlled(player)) local = player;
+            }
+
+            return local ?? lowest;
         }
 
         public static void ApplyDeferredKnowledge()
@@ -151,13 +258,26 @@ namespace MulliganMadness.Utils
 
         public static bool TryTakeAll()
         {
-            if (_busy || !IsEnabled) return false;
+            if (_busy) return false;
             if (!IsLocalPlayersTurn()) return false;
             if (!IsOfferedHandReady()) return false;
             if (TakeAllVoteManager.IsActive) return false;
 
             var picker = GetCurrentPicker();
-            if (picker == null || !HasRemaining(picker)) return false;
+            if (picker == null) return false;
+
+            if (HasNestBonus(picker))
+            {
+                return BeginTakeAll(picker.playerID, consumeUse: false, skipCurse: true, consumeBonus: true);
+            }
+
+            if (HasSilverBonus(picker))
+            {
+                return BeginTakeAll(picker.playerID, consumeUse: false, skipCurse: true, consumeBonus: false, consumeSilver: true);
+            }
+
+            if (!IsEnabled) return false;
+            if (!HasRemaining(picker)) return false;
 
             if (SessionSettings.Current.TakeAllMode == TakeAllMode.Vote)
             {
@@ -182,13 +302,17 @@ namespace MulliganMadness.Utils
             string[] payloads,
             bool cashOutWithNull,
             bool consumeUse,
-            bool bypassRemaining = false)
+            bool bypassRemaining = false,
+            bool skipCurse = false,
+            bool consumeBonus = false,
+            bool consumeSilver = false)
         {
-            if (_busy || !IsEnabled) return false;
+            if (_busy) return false;
+            if (!consumeBonus && !consumeSilver && !IsEnabled) return false;
             if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
             var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == playerId);
             if (picker == null) return false;
-            if (!bypassRemaining && !HasRemaining(picker)) return false;
+            if (!bypassRemaining && !consumeBonus && !consumeSilver && !HasRemaining(picker)) return false;
             if ((payloads == null || payloads.Length == 0) && !cashOutWithNull) return false;
 
             AutoPickController.ResetForCurrentPick();
@@ -199,13 +323,16 @@ namespace MulliganMadness.Utils
                 playerId,
                 payloads ?? Array.Empty<string>(),
                 cashOutWithNull,
-                consumeUse);
+                consumeUse,
+                skipCurse,
+                consumeBonus,
+                consumeSilver);
             Plugin.Instance.Log(
                 $"Player {playerId} authorized Take All from payloads ({payloads?.Length ?? 0} cards, cashOutNull={cashOutWithNull}).");
             return true;
         }
 
-        internal static bool TryEncodeOfferedHand(out string[] payloads, out bool cashOutWithNull)
+        internal static bool TryEncodeOfferedHand(out string[] payloads, out bool cashOutWithNull, int maxCards = 0)
         {
             payloads = null;
             cashOutWithNull = false;
@@ -230,15 +357,49 @@ namespace MulliganMadness.Utils
                 keep.Add(EncodeCard(source));
             }
 
+            if (maxCards > 0 && keep.Count > maxCards)
+            {
+                keep = keep.GetRange(0, maxCards);
+            }
+
             if (keep.Count == 0 && !cashOutWithNull) return false;
             payloads = keep.ToArray();
             return true;
         }
 
-        private static bool BeginTakeAll(int playerId, bool consumeUse)
+        private static bool BeginTakeAll(
+            int playerId,
+            bool consumeUse,
+            bool skipCurse = false,
+            bool consumeBonus = false,
+            bool consumeSilver = false)
         {
-            if (!TryEncodeOfferedHand(out var payloads, out var cashOutWithNull)) return false;
-            return ExecuteAuthorizedTakeAllFromPayloads(playerId, payloads, cashOutWithNull, consumeUse, bypassRemaining: true);
+            var maxCards = 0;
+            if (consumeSilver)
+            {
+                var spawned = GetSpawnedCards();
+                var n = 0;
+                if (spawned != null)
+                {
+                    foreach (var go in spawned)
+                    {
+                        if (go != null) n++;
+                    }
+                }
+
+                maxCards = Mathf.Max(1, Mathf.CeilToInt(n * 0.5f));
+            }
+
+            if (!TryEncodeOfferedHand(out var payloads, out var cashOutWithNull, maxCards)) return false;
+            return ExecuteAuthorizedTakeAllFromPayloads(
+                playerId,
+                payloads,
+                cashOutWithNull,
+                consumeUse,
+                bypassRemaining: true,
+                skipCurse,
+                consumeBonus,
+                consumeSilver);
         }
 
 
@@ -268,9 +429,16 @@ namespace MulliganMadness.Utils
         }
 
         [UnboundRPC]
-        public static void RPCA_TakeAll(int playerID, string[] payloads, bool cashOutWithNull, bool consumeUse)
+        public static void RPCA_TakeAll(
+            int playerID,
+            string[] payloads,
+            bool cashOutWithNull,
+            bool consumeUse,
+            bool skipCurse,
+            bool consumeBonus,
+            bool consumeSilver)
         {
-            if (!IsEnabled)
+            if (!IsEnabled && !consumeBonus && !consumeSilver)
             {
                 _busy = false;
                 return;
@@ -279,7 +447,7 @@ namespace MulliganMadness.Utils
             if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
             {
                 _busy = false;
-                Plugin.Instance.LogWarn("Take All RPC ignored — not picking.");
+                Plugin.Instance.LogWarn("Take All RPC ignored - not picking.");
                 return;
             }
 
@@ -294,7 +462,7 @@ namespace MulliganMadness.Utils
             if (current == null || current.playerID != playerID)
             {
                 _busy = false;
-                Plugin.Instance.LogWarn($"Take All RPC ignored — player {playerID} is not the current picker.");
+                Plugin.Instance.LogWarn($"Take All RPC ignored - player {playerID} is not the current picker.");
                 return;
             }
 
@@ -339,12 +507,15 @@ namespace MulliganMadness.Utils
             if (grantCount == 0 && !cashOutWithNull)
             {
                 _busy = false;
-                Plugin.Instance.LogWarn("Take All RPC ignored — empty grant.");
+                Plugin.Instance.LogWarn("Take All RPC ignored - empty grant.");
                 return;
             }
 
             ConsumeUse(playerID, consumeUse);
+            if (consumeBonus) NestEggManager.TryConsumeCharge(playerID, EggKind.Nest);
+            if (consumeSilver) NestEggManager.TryConsumeCharge(playerID, EggKind.Silver);
             UI.TakeAllButton.RefreshVisibility();
+            UI.PickAnnounceUi.ShowTookAll(playerID);
 
             // Don't Distill the cards we're about to grant from this hand.
             WriteKnowledge(picker, 0);
@@ -377,7 +548,7 @@ namespace MulliganMadness.Utils
                 Plugin.Instance.Log($"Simulacrum: doubled Take All grant to {grant.Count} cards for player {playerID}.");
             }
 
-            // Reroll / Table Flip OnAdd only flags WWM for PickEnd — they still fire after this grant.
+            // Reroll / Table Flip OnAdd only flags WWM for PickEnd - they still fire after this grant.
             if ((PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient) && grant.Count > 0)
             {
                 var codes = Enumerable.Repeat("", grant.Count).ToArray();
@@ -385,7 +556,7 @@ namespace MulliganMadness.Utils
                 CardsApi.instance.AddCardsToPlayer(picker, grant.ToArray(), false, codes, zeros, zeros, true);
             }
 
-            if (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)
+            if (!skipCurse && (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient))
             {
                 TakeAllCurseCost.TryApplyAfterTakeAll(playerID);
             }
@@ -479,7 +650,7 @@ namespace MulliganMadness.Utils
                     visual = spawned.FirstOrDefault(go => go != null);
                 }
 
-                // Close the UI without ApplyCardStats.Pick — cards were already granted.
+                // Close the UI without ApplyCardStats.Pick - cards were already granted.
                 CollectingAll = true;
                 EndPickWithoutApplying(visual);
             }
@@ -501,13 +672,14 @@ namespace MulliganMadness.Utils
             var visualView = visual.GetComponent<PhotonView>();
             var pub = visual.GetComponent<PublicInt>();
             var cardIDs = AccessTools.Method(typeof(CardChoice), "CardIDs")?.Invoke(choice, null) as int[];
+            var pickId = EndPickPlayerId();
             if (view == null || visualView == null || pub == null || cardIDs == null)
             {
-                choice.StartCoroutine(choice.IDoEndPick(visual, pub != null ? pub.theInt : 0, choice.pickrID));
+                choice.StartCoroutine(choice.IDoEndPick(visual, pub != null ? pub.theInt : 0, pickId));
                 return;
             }
 
-            view.RPC("RPCA_DoEndPick", RpcTarget.All, cardIDs, visualView.ViewID, pub.theInt, choice.pickrID);
+            view.RPC("RPCA_DoEndPick", RpcTarget.All, cardIDs, visualView.ViewID, pub.theInt, pickId);
         }
 
         private static GameObject FindSpawned(List<GameObject> spawned, Func<CardInfo, GameObject, bool> match)
@@ -538,11 +710,12 @@ namespace MulliganMadness.Utils
             return false;
         }
 
-        private static CardInfo SourceOf(GameObject go)
+        internal static CardInfo SourceOf(GameObject go)
         {
             if (go == null) return null;
             var visual = go.GetComponent<CardInfo>();
             if (visual == null) return null;
+            if (CardChoice.instance == null) return visual.sourceCard ?? visual;
             return CardChoice.instance.GetSourceCard(visual) ?? visual.sourceCard ?? visual;
         }
 

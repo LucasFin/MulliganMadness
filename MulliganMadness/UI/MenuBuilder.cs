@@ -67,19 +67,12 @@ namespace MulliganMadness.UI
                     SaveSession();
                 }, canEdit);
 
-            if (canEdit)
-            {
-                MenuHandler.CreateButton("Chaos preset", menu, () => ApplyPreset(menu, SessionPresets.Chaos()), 32, false);
-                MenuHandler.CreateButton("Competitive preset", menu, () => ApplyPreset(menu, SessionPresets.Competitive()), 32, false);
-            }
-
+            MenuHandler.CreateText("Default look", menu, out _, 36);
             MenuHandler.CreateText(
-                "Enable or disable MM cards and curses in Toggle Cards — not here.",
+                "Pick your face and color in character select (lobby), then save it here. Enable the checkbox so it reapplies at the start of every game.",
                 menu,
                 out _,
                 24);
-
-            MenuHandler.CreateText("Default look", menu, out _, 36);
 
             MenuHandler.CreateToggle(
                 Plugin.Configs.DefaultAppearanceEnabled.Value,
@@ -105,19 +98,6 @@ namespace MulliganMadness.UI
                 DefaultAppearance.TryApply(force: true);
                 ShowMenuNotice(menu, "Applied saved face & color to local player.");
             }, 32, false);
-
-            MenuHandler.CreateText(
-                "In game: Tab opens stats (drag the top bar to move, left edge to resize). O hides the HUD.",
-                menu,
-                out _,
-                24);
-        }
-
-        private static void ApplyPreset(GameObject menu, SessionSettingsData preset)
-        {
-            if (!SessionSettings.CanEditSession || preset == null) return;
-            SessionSettings.SetHostSession(preset, broadcast: true);
-            ShowMenuNotice(menu, $"Applied preset: {SessionRulesSummary.BuildOneLine(preset)}");
         }
 
         private static void SaveSession()

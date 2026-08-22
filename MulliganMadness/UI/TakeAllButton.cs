@@ -119,9 +119,10 @@ namespace MulliganMadness.UI
 
         private void OnClick()
         {
-            if (SessionSettings.Current.TakeAllMode == TakeAllMode.Vote)
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker != null && TakeAllManager.HasAuthorization(picker.playerID))
             {
-                if (TakeAllVoteManager.TryRequestVote()) RefreshVisibility();
+                if (TakeAllManager.TryExecuteAuthorization()) RefreshVisibility();
                 return;
             }
 
@@ -157,11 +158,13 @@ namespace MulliganMadness.UI
             if (_root == null) return;
 
             var picker = TakeAllManager.GetCurrentPicker();
-            var remaining = TakeAllManager.HasRemaining(picker);
+            var remaining = TakeAllManager.CanUseTakeAll(picker);
+            var authorized = picker != null && TakeAllManager.HasAuthorization(picker.playerID);
             var voteMode = SessionSettings.Current.TakeAllMode == TakeAllMode.Vote;
-            var show = TakeAllManager.IsEnabled
-                       && TakeAllManager.IsLocalPlayersTurn()
-                       && remaining
+            var nest = TakeAllManager.HasNestBonus(picker);
+            var silver = !nest && TakeAllManager.HasSilverBonus(picker);
+            var show = TakeAllManager.IsLocalPlayersTurn()
+                       && (remaining || authorized)
                        && TakeAllManager.IsOfferedHandReady()
                        && !ItemShopGuard.AnyPlayerInShop()
                        && !TakeAllVoteManager.IsActive;
@@ -170,30 +173,44 @@ namespace MulliganMadness.UI
             if (!show) return;
 
             var usesLeft = TakeAllManager.UsesRemaining(picker);
-            var curse = SessionSettings.Current.TakeAllCurseCost;
+            var curse = SessionSettings.Current.TakeAllCurseCost && !nest && !silver && !authorized;
             if (_title != null)
             {
-                if (voteMode) _title.text = curse ? "VOTE TAKE ALL + CURSE" : "REQUEST TAKE ALL VOTE";
+                if (authorized) _title.text = SessionSettings.Current.TakeAllCurseCost ? "TAKE ALL + CURSE" : "TAKE ALL";
+                else if (nest) _title.text = "TAKE ALL";
+                else if (silver) _title.text = "TAKE HALF";
+                else if (voteMode) _title.text = curse ? "VOTE TAKE ALL + CURSE" : "REQUEST TAKE ALL VOTE";
                 else _title.text = curse ? "TAKE ALL + CURSE" : "TAKE ALL";
             }
 
             if (_subtitle != null)
             {
-                var modeLabel = voteMode ? "others vote during your pick" : usesLeft > 1 ? $"{usesLeft} uses left" : "once per game";
+                string modeLabel;
+                if (authorized) modeLabel = "optional - pick as usual if you want";
+                else if (nest) modeLabel = "curse-free · Nest Egg";
+                else if (silver) modeLabel = "curse-free · Silver Egg · half the hand";
+                else if (voteMode) modeLabel = "others vote; you can still pick if they accept";
+                else modeLabel = usesLeft > 1 ? $"{usesLeft} uses left" : "once per game";
                 _subtitle.text = curse
                     ? $"{modeLabel} · you get a random MM curse"
                     : modeLabel;
             }
 
-            var fill = curse ? new Color(0.42f, 0.14f, 0.28f, 0.98f) : new Color(0.10f, 0.42f, 0.28f, 0.98f);
-            var border = curse ? new Color(0.95f, 0.45f, 0.72f, 1f) : new Color(0.95f, 0.82f, 0.35f, 1f);
+            var fill = nest
+                ? new Color(0.42f, 0.32f, 0.08f, 0.98f)
+                : silver ? new Color(0.28f, 0.32f, 0.38f, 0.98f)
+                : curse ? new Color(0.42f, 0.14f, 0.28f, 0.98f) : new Color(0.10f, 0.42f, 0.28f, 0.98f);
+            var border = nest
+                ? new Color(0.95f, 0.82f, 0.35f, 1f)
+                : silver ? new Color(0.78f, 0.82f, 0.88f, 1f)
+                : curse ? new Color(0.95f, 0.45f, 0.72f, 1f) : new Color(0.95f, 0.82f, 0.35f, 1f);
             if (_button != null) _button.interactable = true;
             if (_fill != null) _fill.color = fill;
             if (_border != null) _border.color = border;
             if (_group != null) _group.alpha = 1f;
 
             var hover = _fill != null ? _fill.GetComponent<TakeAllHover>() : null;
-            if (hover != null) hover.SetCurse(curse);
+            if (hover != null) hover.SetStyle(curse, nest, silver);
         }
 
         private class TakeAllHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
@@ -201,6 +218,8 @@ namespace MulliganMadness.UI
             public Image fill;
             public Image border;
             private bool _curse;
+            private bool _nest;
+            private bool _silver;
             private readonly Color _fillNormal = new Color(0.10f, 0.42f, 0.28f, 0.98f);
             private readonly Color _fillHover = new Color(0.14f, 0.52f, 0.34f, 1f);
             private readonly Color _borderNormal = new Color(0.95f, 0.82f, 0.35f, 1f);
@@ -209,19 +228,32 @@ namespace MulliganMadness.UI
             private readonly Color _curseFillHover = new Color(0.52f, 0.18f, 0.34f, 1f);
             private readonly Color _curseBorder = new Color(0.95f, 0.45f, 0.72f, 1f);
             private readonly Color _curseBorderHover = new Color(1f, 0.62f, 0.82f, 1f);
+            private readonly Color _bonusFill = new Color(0.42f, 0.32f, 0.08f, 0.98f);
+            private readonly Color _bonusFillHover = new Color(0.52f, 0.42f, 0.12f, 1f);
+            private readonly Color _bonusBorder = new Color(0.95f, 0.82f, 0.35f, 1f);
+            private readonly Color _bonusBorderHover = new Color(1f, 0.92f, 0.55f, 1f);
+            private readonly Color _silverFill = new Color(0.28f, 0.32f, 0.38f, 0.98f);
+            private readonly Color _silverFillHover = new Color(0.36f, 0.40f, 0.46f, 1f);
+            private readonly Color _silverBorder = new Color(0.78f, 0.82f, 0.88f, 1f);
+            private readonly Color _silverBorderHover = new Color(0.90f, 0.93f, 0.97f, 1f);
 
-            internal void SetCurse(bool curse) => _curse = curse;
+            internal void SetStyle(bool curse, bool nest, bool silver)
+            {
+                _curse = curse;
+                _nest = nest;
+                _silver = silver;
+            }
 
             public void OnPointerEnter(PointerEventData eventData)
             {
-                if (fill != null) fill.color = _curse ? _curseFillHover : _fillHover;
-                if (border != null) border.color = _curse ? _curseBorderHover : _borderHover;
+                if (fill != null) fill.color = _nest ? _bonusFillHover : _silver ? _silverFillHover : _curse ? _curseFillHover : _fillHover;
+                if (border != null) border.color = _nest ? _bonusBorderHover : _silver ? _silverBorderHover : _curse ? _curseBorderHover : _borderHover;
             }
 
             public void OnPointerExit(PointerEventData eventData)
             {
-                if (fill != null) fill.color = _curse ? _curseFill : _fillNormal;
-                if (border != null) border.color = _curse ? _curseBorder : _borderNormal;
+                if (fill != null) fill.color = _nest ? _bonusFill : _silver ? _silverFill : _curse ? _curseFill : _fillNormal;
+                if (border != null) border.color = _nest ? _bonusBorder : _silver ? _silverBorder : _curse ? _curseBorder : _borderNormal;
             }
         }
     }

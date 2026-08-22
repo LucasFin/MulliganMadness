@@ -56,7 +56,7 @@ namespace MulliganMadness.Utils
             {
                 PendingThiefPrompt.Add(thief.playerID);
                 PlayerNotice.Show(thief, "Nobody has cards to steal yet.");
-                Plugin.Instance.Log($"Thief deferred for player {thief.playerID} — no stealable targets.");
+                Plugin.Instance.Log($"Thief deferred for player {thief.playerID} - no stealable targets.");
                 return;
             }
 
@@ -121,7 +121,7 @@ namespace MulliganMadness.Utils
             var victim = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == victimId);
             if (thief == null || victim == null)
             {
-                Plugin.Instance.LogWarn("Steal RPC failed — player missing.");
+                Plugin.Instance.LogWarn("Steal RPC failed - player missing.");
                 NotifyStealResult(thiefId, false, "Steal failed.");
                 return;
             }
@@ -135,14 +135,14 @@ namespace MulliganMadness.Utils
             var card = CardEncoding.Resolve(payload);
             if (card == null)
             {
-                Plugin.Instance.LogWarn("Steal RPC failed — card missing.");
+                Plugin.Instance.LogWarn("Steal RPC failed - card missing.");
                 NotifyStealResult(thiefId, false, "That card is gone.");
                 return;
             }
 
             if (!StealRules.IsStealable(thief, victim, card, out _))
             {
-                Plugin.Instance.LogWarn("Steal RPC rejected — card not stealable.");
+                Plugin.Instance.LogWarn("Steal RPC rejected - card not stealable.");
                 NotifyStealResult(thiefId, false, "Can't steal that card.");
                 return;
             }
@@ -151,7 +151,7 @@ namespace MulliganMadness.Utils
             if (liveIndex < 0) liveIndex = victimCardIndex;
             if (liveIndex < 0 || victim.data?.currentCards == null || liveIndex >= victim.data.currentCards.Count)
             {
-                Plugin.Instance.LogWarn("Steal RPC failed — card index invalid.");
+                Plugin.Instance.LogWarn("Steal RPC failed - card index invalid.");
                 NotifyStealResult(thiefId, false, "That card is gone.");
                 return;
             }
@@ -227,7 +227,7 @@ namespace MulliganMadness.Utils
             var holder = CardEncoding.FindHolder(payload);
             if (holder == null)
             {
-                Plugin.Instance.LogWarn($"Takeback cleared — stolen card no longer exists for victim {victimId}.");
+                Plugin.Instance.LogWarn($"Takeback cleared - stolen card no longer exists for victim {victimId}.");
                 NetworkingManager.RPC(typeof(StealLedger), nameof(RPCA_SyncTakebackCleared), victimId, "Stolen card no longer exists.");
                 return;
             }

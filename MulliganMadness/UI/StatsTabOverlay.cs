@@ -28,48 +28,46 @@ namespace MulliganMadness.UI
 
             ApplyPanelLayout();
 
-            var panelImage = _root.GetComponent<Image>();
-            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, 0.94f);
-
-            _title = StatsUiHelper.CreateText(_root.transform, "Title", "Player Stats", StatsUiHelper.TitleFont * 1.05f, TextAlignmentOptions.TopLeft, StatsUiHelper.AccentColor);
+            _title = StatsUiHelper.CreateText(_root.transform, "Title", "Player Stats", StatsUiHelper.TitleFont, TextAlignmentOptions.TopLeft, StatsUiHelper.TitleColor);
             var titleRect = _title.rectTransform;
             titleRect.anchorMin = new Vector2(0f, 1f);
             titleRect.anchorMax = new Vector2(1f, 1f);
             titleRect.pivot = new Vector2(0f, 1f);
-            titleRect.anchoredPosition = new Vector2(14f, -10f);
-            titleRect.sizeDelta = new Vector2(-14f, 28f);
+            titleRect.anchoredPosition = new Vector2(18f, -12f);
+            titleRect.sizeDelta = new Vector2(-18f, 26f);
 
-            _hint = StatsUiHelper.CreateText(_root.transform, "Hint", "", StatsUiHelper.BaseFont * 0.82f, TextAlignmentOptions.TopLeft, new Color(0.68f, 0.74f, 0.80f, 0.92f));
+            _hint = StatsUiHelper.CreateText(_root.transform, "Hint", "", StatsUiHelper.BaseFont * 0.78f, TextAlignmentOptions.TopLeft, StatsUiHelper.HintColor);
             var hintRect = _hint.rectTransform;
             hintRect.anchorMin = new Vector2(0f, 1f);
             hintRect.anchorMax = new Vector2(1f, 1f);
             hintRect.pivot = new Vector2(0f, 1f);
-            hintRect.anchoredPosition = new Vector2(14f, -36f);
-            hintRect.sizeDelta = new Vector2(-14f, 18f);
+            hintRect.anchoredPosition = new Vector2(18f, -36f);
+            hintRect.sizeDelta = new Vector2(-18f, 16f);
 
-            var closeBtn = StatsUiHelper.CreateButton(_root.transform, "Close (Esc)", () => SetOpen(false), new Vector2(96f, 26f));
+            var closeBtn = StatsUiHelper.CreateGhostButton(_root.transform, "Close", () => SetOpen(false), new Vector2(72f, 24f));
             var closeRect = closeBtn.GetComponent<RectTransform>();
             closeRect.anchorMin = new Vector2(1f, 1f);
             closeRect.anchorMax = new Vector2(1f, 1f);
             closeRect.pivot = new Vector2(1f, 1f);
-            closeRect.anchoredPosition = new Vector2(-12f, -8f);
+            closeRect.anchoredPosition = new Vector2(-14f, -12f);
 
-            var compareBtn = StatsUiHelper.CreateButton(_root.transform, "Compare", ToggleCompareMode, new Vector2(88f, 26f));
+            var compareBtn = StatsUiHelper.CreateGhostButton(_root.transform, "Compare", ToggleCompareMode, new Vector2(78f, 24f));
             var compareRect = compareBtn.GetComponent<RectTransform>();
             compareRect.anchorMin = new Vector2(1f, 1f);
             compareRect.anchorMax = new Vector2(1f, 1f);
             compareRect.pivot = new Vector2(1f, 1f);
-            compareRect.anchoredPosition = new Vector2(-112f, -8f);
+            compareRect.anchoredPosition = new Vector2(-92f, -12f);
 
             var scrollGo = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
             scrollGo.transform.SetParent(_root.transform, false);
             var scrollRect = scrollGo.GetComponent<RectTransform>();
             scrollRect.anchorMin = new Vector2(0f, 0f);
             scrollRect.anchorMax = new Vector2(1f, 1f);
-            scrollRect.offsetMin = new Vector2(10f, 10f);
-            scrollRect.offsetMax = new Vector2(-10f, -58f);
-            scrollGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.18f);
-            scrollGo.GetComponent<Image>().raycastTarget = false;
+            scrollRect.offsetMin = new Vector2(8f, 10f);
+            scrollRect.offsetMax = new Vector2(-8f, -56f);
+            var scrollBg = scrollGo.GetComponent<Image>();
+            scrollBg.color = new Color(1f, 1f, 1f, 0f);
+            scrollBg.raycastTarget = false;
 
             var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
             viewport.transform.SetParent(scrollGo.transform, false);
@@ -77,9 +75,10 @@ namespace MulliganMadness.UI
             viewportRect.anchorMin = Vector2.zero;
             viewportRect.anchorMax = Vector2.one;
             viewportRect.offsetMin = Vector2.zero;
-            viewportRect.offsetMax = new Vector2(-12f, 0f);
-            viewport.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.02f);
-            viewport.GetComponent<Image>().raycastTarget = true;
+            viewportRect.offsetMax = Vector2.zero;
+            var viewportImage = viewport.GetComponent<Image>();
+            viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+            viewportImage.raycastTarget = true;
             viewport.GetComponent<Mask>().showMaskGraphic = false;
 
             var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
@@ -92,8 +91,8 @@ namespace MulliganMadness.UI
             _content.sizeDelta = new Vector2(0f, 0f);
 
             var vlg = contentGo.GetComponent<VerticalLayoutGroup>();
-            vlg.spacing = 10f;
-            vlg.padding = new RectOffset(6, 6, 6, 6);
+            vlg.spacing = 8f;
+            vlg.padding = new RectOffset(10, 10, 4, 8);
             vlg.childControlHeight = true;
             vlg.childControlWidth = true;
             vlg.childForceExpandHeight = false;
@@ -109,30 +108,9 @@ namespace MulliganMadness.UI
             scroll.vertical = true;
             scroll.scrollSensitivity = 28f;
             scroll.movementType = ScrollRect.MovementType.Clamped;
-
-            var scrollbarGo = new GameObject("Scrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));
-            scrollbarGo.transform.SetParent(scrollGo.transform, false);
-            var scrollbarRect = scrollbarGo.GetComponent<RectTransform>();
-            scrollbarRect.anchorMin = new Vector2(1f, 0f);
-            scrollbarRect.anchorMax = new Vector2(1f, 1f);
-            scrollbarRect.pivot = new Vector2(1f, 1f);
-            scrollbarRect.sizeDelta = new Vector2(10f, 0f);
-            scrollbarRect.anchoredPosition = Vector2.zero;
-            scrollbarGo.GetComponent<Image>().color = new Color(0.08f, 0.10f, 0.14f, 0.85f);
-
-            var handleGo = new GameObject("Handle", typeof(RectTransform), typeof(Image));
-            handleGo.transform.SetParent(scrollbarGo.transform, false);
-            var handleRect = handleGo.GetComponent<RectTransform>();
-            handleRect.sizeDelta = new Vector2(8f, 24f);
-            handleGo.GetComponent<Image>().color = new Color(0.35f, 0.82f, 0.72f, 0.85f);
-
-            var scrollbar = scrollbarGo.GetComponent<Scrollbar>();
-            scrollbar.handleRect = handleRect;
-            scrollbar.targetGraphic = handleGo.GetComponent<Image>();
-            scrollbar.direction = Scrollbar.Direction.BottomToTop;
-
-            scroll.verticalScrollbar = scrollbar;
-            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            scroll.verticalScrollbar = null;
+            scroll.horizontalScrollbar = null;
+            scroll.inertia = true;
 
             var rootImage = _root.GetComponent<Image>();
             if (rootImage != null) rootImage.raycastTarget = false;
@@ -146,12 +124,13 @@ namespace MulliganMadness.UI
             if (_root == null) return;
             ApplyPanelLayout();
             var panelImage = _root.GetComponent<Image>();
-            if (panelImage != null) panelImage.color = new Color(0.03f, 0.05f, 0.08f, 0.94f);
-            StatsUiHelper.SetAccentVisible(_root, true);
-            var top = _root.transform.Find("AccentTop") ?? _root.transform.Find("Accent");
-            var bottom = _root.transform.Find("AccentBottom");
-            if (top != null) top.GetComponent<Image>().color = StatsUiHelper.AccentColor;
-            if (bottom != null) bottom.GetComponent<Image>().color = StatsUiHelper.AccentColor;
+            if (panelImage != null)
+            {
+                StatsUiHelper.ApplyRounded(panelImage, StatsUiHelper.PanelColor);
+                panelImage.raycastTarget = false;
+            }
+
+            StatsUiHelper.SetAccentVisible(_root, false);
         }
 
         private void ApplyPanelLayout()
@@ -159,33 +138,30 @@ namespace MulliganMadness.UI
             if (!StatsUiHelper.OverlayReady) return;
 
             var canvasSize = StatsUiHelper.OverlaySize;
-            var margin = 12f;
-            var width = Mathf.Clamp(Plugin.Configs.TabPanelWidth.Value, 280f, Mathf.Min(720f, canvasSize.x * 0.6f));
-            var height = Mathf.Min(canvasSize.y * 0.82f, canvasSize.y - margin * 2f);
-            var pos = GetSavedOrDefaultPosition(canvasSize, width, height, margin);
+            var margin = 16f;
+            var width = Mathf.Clamp(Plugin.Configs.TabPanelWidth.Value, 280f, Mathf.Min(640f, canvasSize.x * 0.55f));
+            var height = Mathf.Min(canvasSize.y * 0.74f, canvasSize.y - margin * 2f);
+            var pos = GetSavedOrDefaultPosition(canvasSize, width, height);
 
             if (_root == null)
             {
-                _root = StatsUiHelper.CreateModernPanel(
+                _root = StatsUiHelper.CreateGlassPanel(
                     StatsUiHelper.OverlayRoot,
                     "MM_StatsTab",
-                    Vector2.zero,
-                    Vector2.zero,
-                    Vector2.zero,
                     pos,
                     new Vector2(width, height),
-                    0.94f);
+                    StatsUiHelper.PanelColor.a);
                 return;
             }
 
             StatsUiHelper.ApplyRect(_root, Vector2.zero, Vector2.zero, Vector2.zero, pos, new Vector2(width, height));
         }
 
-        private static Vector2 GetSavedOrDefaultPosition(Vector2 canvas, float width, float height, float margin)
+        private static Vector2 GetSavedOrDefaultPosition(Vector2 canvas, float width, float height)
         {
             if (Plugin.Configs.TabPosX.Value < 0f || Plugin.Configs.TabPosY.Value < 0f)
             {
-                return new Vector2(canvas.x - width - margin, (canvas.y - height) * 0.5f);
+                return new Vector2((canvas.x - width) * 0.5f, (canvas.y - height) * 0.5f);
             }
 
             return new Vector2(
@@ -222,13 +198,13 @@ namespace MulliganMadness.UI
             resizeRect.offsetMin = new Vector2(0f, 0f);
             resizeRect.offsetMax = new Vector2(12f, -58f);
             var resizeImage = resize.GetComponent<Image>();
-            resizeImage.color = new Color(0.35f, 0.82f, 0.72f, 0.18f);
+            resizeImage.color = new Color(1f, 1f, 1f, 0.01f);
             resizeImage.raycastTarget = true;
             var resizeDrag = resize.GetComponent<OverlayDrag>();
             resizeDrag.Target = target;
             resizeDrag.ResizeWidth = true;
 
-            _root.transform.Find("Close (Esc)_Btn")?.SetAsLastSibling();
+            _root.transform.Find("Close_Btn")?.SetAsLastSibling();
             _root.transform.Find("Compare_Btn")?.SetAsLastSibling();
         }
 
@@ -345,7 +321,7 @@ namespace MulliganMadness.UI
 
             if (dirty) RelayoutBlocks();
             _title.text = FormatAllPlayersTitle();
-            _hint.text = "Drag the top bar to move · left edge to resize · C compare · Esc close";
+            _hint.text = "Drag the header to move";
         }
 
         private void RefreshCompareView()
@@ -396,7 +372,7 @@ namespace MulliganMadness.UI
             AssignBlockText(_playerBlocks[1], StatsViewBuilder.BuildTabBlock(otherSnap, TabInfoBridge.GetExtensionStats(opponent)));
             RelayoutBlocks();
             _title.text = $"You vs {otherSnap.PlayerName}";
-            _hint.text = "Green/red = ahead or behind them · [ ] switch player · C back to all · Esc close";
+            _hint.text = "[ ] switch player · C back to all";
         }
 
         private static string FormatAllPlayersTitle()
@@ -467,7 +443,7 @@ namespace MulliganMadness.UI
                 blockRect.sizeDelta = new Vector2(0f, 120f);
 
                 var image = blockGo.GetComponent<Image>();
-                image.color = new Color(0.08f, 0.10f, 0.13f, 0.98f);
+                StatsUiHelper.ApplyRounded(image, StatsUiHelper.BlockColor);
                 image.raycastTarget = false;
 
                 var le = blockGo.GetComponent<LayoutElement>();
@@ -479,6 +455,7 @@ namespace MulliganMadness.UI
                 var text = StatsUiHelper.CreateText(blockGo.transform, "Text", "", StatsUiHelper.BaseFont);
                 text.enableWordWrapping = true;
                 text.overflowMode = TextOverflowModes.Overflow;
+                text.lineSpacing = -2f;
                 text.rectTransform.anchorMin = new Vector2(0f, 0f);
                 text.rectTransform.anchorMax = new Vector2(1f, 1f);
                 text.rectTransform.offsetMin = new Vector2(10f, 8f);

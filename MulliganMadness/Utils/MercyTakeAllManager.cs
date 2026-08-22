@@ -35,15 +35,6 @@ namespace MulliganMadness.Utils
             {
                 return;
             }
-
-            // Vote UI already labels mercy for the requester; toast everyone via dedicated toast root.
-            CardTargetUi.ShowToast($"Mercy vote — {PlayerLabel(picker)} is down {deficit} round(s).");
-        }
-
-        private static string PlayerLabel(Player player)
-        {
-            var name = player?.data?.view?.Owner?.NickName;
-            return string.IsNullOrEmpty(name) ? $"Player {player.playerID + 1}" : name;
         }
     }
 }

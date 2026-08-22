@@ -37,10 +37,15 @@ namespace MulliganMadness.Utils
 
         private static int PickActiveCurseIndex()
         {
-            var options = new System.Collections.Generic.List<int>(3);
+            var options = new System.Collections.Generic.List<int>(8);
             if (CardPool.IsActive(ForcedChoice.Card)) options.Add(0);
             if (CardPool.IsActive(PanicPick.Card)) options.Add(1);
             if (CardPool.IsActive(LeftmostLuck.Card)) options.Add(2);
+            if (CardPool.IsActive(BlindDraft.Card)) options.Add(3);
+            if (CardPool.IsActive(ShortHand.Card)) options.Add(4);
+            if (CardPool.IsActive(Fumble.Card)) options.Add(5);
+            if (CardPool.IsActive(Kickback.Card)) options.Add(6);
+            if (CardPool.IsActive(HardEdges.Card)) options.Add(7);
             if (options.Count == 0) return -1;
             return options[Random.Range(0, options.Count)];
         }
@@ -110,6 +115,11 @@ namespace MulliganMadness.Utils
                 case 0: return ForcedChoice.Card;
                 case 1: return PanicPick.Card;
                 case 2: return LeftmostLuck.Card;
+                case 3: return BlindDraft.Card;
+                case 4: return ShortHand.Card;
+                case 5: return Fumble.Card;
+                case 6: return Kickback.Card;
+                case 7: return HardEdges.Card;
                 default: return ForcedChoice.Card;
             }
         }

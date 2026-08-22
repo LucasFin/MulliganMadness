@@ -111,7 +111,7 @@ namespace MulliganMadness.UI
                 if (_subtitle == null) return;
                 var seconds = Mathf.Max(0, Mathf.CeilToInt(_expiresAt - Time.unscaledTime));
                 _subtitle.text = _isRequester
-                    ? $"Waiting for other players... ({seconds}s)"
+                    ? $"If they accept, Take All is optional ({seconds}s)"
                     : $"Accept? ({seconds}s)";
             }
 

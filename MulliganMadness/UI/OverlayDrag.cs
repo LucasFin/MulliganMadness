@@ -29,7 +29,7 @@ namespace MulliganMadness.UI
 
             if (ResizeWidth)
             {
-                var maxWidth = Mathf.Min(720f, canvas.x * 0.6f);
+                var maxWidth = Mathf.Min(640f, canvas.x * 0.55f);
                 var width = Mathf.Clamp(_startSize.x - delta.x, 280f, maxWidth);
                 var shift = _startSize.x - width;
                 Target.sizeDelta = new Vector2(width, _startSize.y);

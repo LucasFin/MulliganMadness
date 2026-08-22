@@ -1,5 +1,4 @@
 using System;
-using HarmonyLib;
 using UnityEngine;
 
 namespace MulliganMadness.Stats
@@ -18,13 +17,7 @@ namespace MulliganMadness.Stats
             {
                 var backup = PlayerStatRawBackup.Capture(player);
                 var pick = pickVisual ?? cardInfo;
-                var applied = ApplyPreview(player, cardInfo);
-                if (!applied && !NullStatReader.IsPlaceholder(pick))
-                {
-                    backup.Apply(player);
-                    return false;
-                }
-
+                ApplyPreview(player, cardInfo);
                 if (!PlayerStatsSnapshot.TryFrom(player, out var after))
                 {
                     backup.Apply(player);
@@ -38,34 +31,38 @@ namespace MulliganMadness.Stats
             }
         }
 
-        private static bool ApplyPreview(Player player, CardInfo cardInfo)
+        private static void ApplyPreview(Player player, CardInfo cardInfo)
         {
             try
             {
-                var gun = player.data.weaponHandler.gun;
-                var block = player.data.block;
-                var stats = player.data.stats;
-                var apply = player.GetComponentInChildren<ApplyCardStats>(true);
-                if (apply == null) return false;
-
-                // Apply the card the same way a pick does. Do not call CustomCard.SetupCard on
-                // the live player — that writes card-definition values onto the gun.
-                var method = AccessTools.Method(typeof(ApplyCardStats), "ApplyStats", new[] { typeof(CardInfo) })
-                             ?? AccessTools.Method(typeof(ApplyCardStats), "ApplyStats");
-                if (method == null) return false;
-
-                var args = method.GetParameters().Length switch
+                var toGun = player.data?.weaponHandler?.gun;
+                var fromGun = cardInfo.GetComponent<Gun>() ?? cardInfo.GetComponentInChildren<Gun>(true);
+                if (fromGun != null && toGun != null)
                 {
-                    1 => new object[] { cardInfo },
-                    _ => new object[] { cardInfo, gun, player.data, stats, block }
-                };
-                method.Invoke(apply, args);
-                return true;
+                    ApplyCardStats.CopyGunStats(fromGun, toGun);
+                    var fromAmmo = fromGun.GetComponent<GunAmmo>() ?? fromGun.GetComponentInChildren<GunAmmo>(true);
+                    var toAmmo = toGun.GetComponent<GunAmmo>() ?? toGun.GetComponentInChildren<GunAmmo>(true);
+                    if (fromAmmo != null && toAmmo != null)
+                    {
+                        toAmmo.maxAmmo += fromAmmo.maxAmmo;
+                        toAmmo.reloadTime += fromAmmo.reloadTime;
+                        toAmmo.reloadTimeAdd += fromAmmo.reloadTimeAdd;
+                        toAmmo.reloadTimeMultiplier *= fromAmmo.reloadTimeMultiplier == 0f ? 1f : fromAmmo.reloadTimeMultiplier;
+                    }
+                }
+
+                var fromBlock = cardInfo.GetComponent<Block>() ?? cardInfo.GetComponentInChildren<Block>(true);
+                var toBlock = player.data?.block;
+                if (fromBlock != null && toBlock != null)
+                {
+                    toBlock.additionalBlocks += fromBlock.additionalBlocks;
+                    toBlock.cdAdd += fromBlock.cdAdd;
+                    if (fromBlock.cdMultiplier != 0f) toBlock.cdMultiplier *= fromBlock.cdMultiplier;
+                }
             }
             catch (Exception ex)
             {
                 Plugin.Instance?.LogWarn($"Card preview failed for {cardInfo?.cardName}: {ex.Message}");
-                return false;
             }
         }
     }

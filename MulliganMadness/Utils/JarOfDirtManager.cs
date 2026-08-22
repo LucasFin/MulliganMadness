@@ -30,7 +30,7 @@ namespace MulliganMadness.Utils
             var player = PlayerManager.instance?.players?.FirstOrDefault(p => p.playerID == playerId);
             if (player == null)
             {
-                Plugin.Instance.LogWarn("Jar of Dirt RPC failed — player missing.");
+                Plugin.Instance.LogWarn("Jar of Dirt RPC failed - player missing.");
                 return;
             }
 
@@ -39,7 +39,7 @@ namespace MulliganMadness.Utils
             var cards = player.data?.currentCards;
             if (cards == null)
             {
-                Plugin.Instance.LogWarn("Jar of Dirt failed — no card list.");
+                Plugin.Instance.LogWarn("Jar of Dirt failed - no card list.");
                 return;
             }
 
@@ -79,6 +79,18 @@ namespace MulliganMadness.Utils
             }
 
             Plugin.Instance.Log($"Jar of Dirt replaced {replacements.Count} Null(s) with treasure for player {playerId}.");
+        }
+
+        internal static bool HasEligibleNulls(Player player)
+        {
+            var cards = player?.data?.currentCards;
+            if (cards == null) return false;
+            foreach (var card in cards)
+            {
+                if (IsEligibleNull(card)) return true;
+            }
+
+            return false;
         }
 
         private static bool IsEligibleNull(CardInfo card)

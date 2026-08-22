@@ -22,7 +22,7 @@ namespace MulliganMadness.Utils
 
             if (!TryReadFace(playerId, out var face))
             {
-                notice = "Could not read your face — customize in character select first.";
+                notice = "Could not read your face - customize in character select first.";
                 return false;
             }
 

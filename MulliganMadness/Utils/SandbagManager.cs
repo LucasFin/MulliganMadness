@@ -24,6 +24,7 @@ namespace MulliganMadness.Utils
         internal static void TryPromptSandbag(Player user)
         {
             if (user == null || !HasRemaining(user)) return;
+            if (CardTargetUi.IsOpen) return;
             if (ItemShopGuard.AnyPlayerInShop())
             {
                 PlayerNotice.Show(user, "Can't sandbag during a shop.");
@@ -54,7 +55,7 @@ namespace MulliganMadness.Utils
 
             if (ItemShopGuard.AnyPlayerInShop())
             {
-                Plugin.Instance.LogWarn("Sandbag blocked — shop open.");
+                Plugin.Instance.LogWarn("Sandbag blocked - shop open.");
                 NotifySandbagResult(userId, false, "Can't sandbag during a shop.");
                 return;
             }
@@ -64,7 +65,7 @@ namespace MulliganMadness.Utils
             var manager = instanceProp?.GetValue(null);
             if (manager == null)
             {
-                Plugin.Instance.LogWarn("Sandbag failed — RerollManager missing.");
+                Plugin.Instance.LogWarn("Sandbag failed - RerollManager missing.");
                 NotifySandbagResult(userId, false, "Sandbag failed.");
                 return;
             }
@@ -102,7 +103,7 @@ namespace MulliganMadness.Utils
             var rerollMethod = AccessTools.Method(managerType, "Reroll", new[] { typeof(Player), typeof(bool) });
             if (rerollMethod == null)
             {
-                Plugin.Instance.LogWarn("Sandbag failed — Reroll method missing.");
+                Plugin.Instance.LogWarn("Sandbag failed - Reroll method missing.");
                 QueuePendingReroll(manager, managerType, target);
                 yield break;
             }

@@ -186,7 +186,7 @@ namespace MulliganMadness.Utils
                 "Limit Sandbag Simulator to once per game per player.");
 
             // Legacy migration: old "Take All.Enabled" key
-            var legacyTakeAll = config.Bind("Take All", "Enabled", true, "Deprecated — use Session Defaults.TakeAllMode.");
+            var legacyTakeAll = config.Bind("Take All", "Enabled", true, "Deprecated - use Session Defaults.TakeAllMode.");
             if (!legacyTakeAll.Value && DefaultTakeAllMode.Value != TakeAllMode.Disabled)
             {
                 DefaultTakeAllMode.Value = TakeAllMode.Disabled;
@@ -306,19 +306,19 @@ namespace MulliganMadness.Utils
                 "Stats Tab",
                 "AnchorLeft",
                 false,
-                "Deprecated — drag the Tab panel in-game.");
+                "Deprecated - drag the Tab panel in-game.");
 
             TabPosX = config.Bind(
                 "Stats Tab",
                 "PosX",
                 -1f,
-                "Tab overlay X in canvas pixels. Negative = default right side.");
+                "Tab overlay X in canvas pixels. Negative = default centered.");
 
             TabPosY = config.Bind(
                 "Stats Tab",
                 "PosY",
                 -1f,
-                "Tab overlay Y in canvas pixels. Negative = vertically centered.");
+                "Tab overlay Y in canvas pixels. Negative = default centered.");
 
             ShowPing = config.Bind(
                 "Stats Tab",

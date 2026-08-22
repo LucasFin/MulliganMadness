@@ -1,80 +1,72 @@
 # Mulligan Madness
 
-**Take All** during card picks, auto-pick curses, four manipulation cards, and a built-in **stats suite** that replaces Infoholic + TabInfo.
+Take the whole card offer in one go, with host rules for how often and whether the lobby has to agree. Includes a stats HUD/tab that replaces **Infoholic** and **TabInfo**, plus optional curses when Take All is expensive.
 
-## Host session settings (Mods → Mulligan Madness)
-
-Match rules are set by the **host** and sync to the lobby. A one-line summary appears at the first card pick.
-
-| Setting | Description |
-| --- | --- |
-| **Take All** | Off, once per game, multi-use (0–3), or **vote** |
-| **Take All curse cost** | Take All also gives a random MM auto-pick curse |
-| **Mercy vote** | Auto-offers a Take All vote when you're far behind |
-| **Panic Pick timer** | Seconds before Panic Pick chooses for you |
-| **Presets** | **Chaos** (vote Take All, curse cost, mercy) · **Competitive** (Take All off) |
-
-**Cards and curses** are not toggled here — use **Toggle Cards** (and your curse manager) like any other custom card.
-
-Default look (save / apply face & color) is personal.
+Host match rules live in **Mods → Mulligan Madness** and apply to everyone in the lobby.
 
 ## Take All
 
-A **TAKE ALL** button appears on your pick turn when the host has it on:
+On your pick, a **Take All** button grabs every card in the current offer.
 
-- **Once per game** — one Take All each
-- **Multi-use** — up to N uses per player (0–3)
-- **Vote** — other players accept or decline during your pick
+The host chooses how it works:
 
-Take All grabs every card in the current offer, including **Reroll** and **Table Flip**.
-
-- **Distill Knowledge** grants the rest of the hand twice and pays Distill’s Nulls twice, without starting the redraw loop.
-- **Distill Power** still grants its bonus rares; extra Nulls wait until the **next** pick.
-- If Distill already started showing **Nulls**, Take All cashes out the real cards and closes that ritual.
-
-## Curses
-
-Works with WillsWackyManagers. You can only have one of these at a time:
-
-| Curse | Effect |
-| --- | --- |
-| **Forced Choice** | Instantly takes a random offered card |
-| **Panic Pick** | Short timer, then auto-picks at random |
-| **Leftmost Luck** | Always takes the leftmost card |
-
-## Cards
-
-| Card | Rarity | Effect |
-| --- | --- | --- |
-| **Thief** | Legendary | Once per game, steal one card from another player |
-| **Takebacksies** | Common | Appears in your pick pool after being stolen from; yoinks your card back |
-| **Sandbag Simulator** | Legendary | Reroll any player’s current pick hand (once per game) |
-| **Jar of Dirt** | Unique | Replaces every Null you currently own with a treasure |
-
-## Default appearance
-
-Save your face and color once, then optionally apply it each game. You can still change in character select.
+- **Off / once / multi** - nobody uses it, one use each, or a few uses per player
+- **Vote** - you ask the lobby; if they accept, you can still pick a single card instead of taking everything
+- **Mercy vote** - if you're far behind on rounds, the lobby is asked automatically so you can catch up (still optional if they say yes)
+- **Take All inflicts a curse** - grabbing the whole hand also gives you a random Mulligan Madness curse
 
 ## Stats
 
-All stats UI is client-side.
+Built-in HUD and Tab overlay, meant to replace Infoholic and TabInfo.
 
-| Key | What it does |
-| --- | --- |
-| **O** | Show/hide bottom-left live stats |
-| **Tab** | Open/close the stats panel |
-| **Esc** | Close Tab panel |
-| **C** | In Tab: compare vs another player |
-| **[ / ]** | In compare mode: switch opponent |
+- Bottom-left live stats (ammo, bounces, attack speed, and so on), with card-hover previews during picks
+- **O** hides the HUD
+- **Tab** opens a full panel for every player (drag to move, compare with **C**)
 
-**Tab panel:** drag the **top bar** to move it, drag the **left edge** to resize. Position is saved. Online games show ping next to names.
+## Curses
 
-**Bottom-left HUD:** follows whoever is picking and shows `(delta)` for the hovered card. After picks, `(delta)` is vs the start of your last pick (HP damage is ignored in fights).
+If the host enables **Take All inflicts a curse**, taking the whole hand also applies one of these (Take All still only leaves you with one; Return to Sender can stack a second onto someone):
 
-## Install
+- **Forced Choice** - instantly takes a random offered card
+- **Panic Pick** - short timer, then a random pick
+- **Leftmost Luck** - always takes the leftmost card
+- **Blind Draft** - your offers are face-down. Only you see the backs; everyone else can still read the cards
+- **Short Hand** - one fewer card in each of your offers (uses Pick N Cards' draw count, so keep that mod)
+- **Fumble** - **50%** chance that confirming a card takes a neighbor from the offer instead
+- **Kickback** - **+25% damage**, and your own shots knock you backward
+- **Hard Edges** - map edges bounce you **60%** harder
 
-Install with **r2modman** / Thunderstore Mod Manager. Dependencies are pulled in automatically.
+Turn cards and curses on or off in **Toggle Cards** under **MulliganMadness**.
 
-Works best with Pick N Cards, PickPhaseImprovements, Genie, Root Curses, RarityLib, and WillsWackyManagers.
+## Cards
 
-**Replacing Infoholic + TabInfo:** Mulligan Madness ships its own `TabInfo.dll` compatibility shim so Root/NullManager mods that register extra stats keep working. In r2modman, choose **Disable TabInfo only** (not "Disable all") — do not disable Root mods.
+- **Thief** - steal one card from another player (once per game)
+- **Takebacksies** - after you're stolen from, yoink that card back
+- **Sandbag Simulator** - reroll someone's current pick hand (once per game)
+- **Jar of Dirt** - Unique card (not a Null). Only offered if you already have Nulls; converts those Nulls into treasures. Disabled Nulls stay Nulls.
+- **Confetti** - **+2 ammo**, **25%** faster fire, **10%** less damage
+- **Shove** - **+40%** bullet knockback and **+25%** damage
+- **Pisser** - **+4 ammo**, **40%** faster fire, **no spread**, **20%** less damage
+- **Doorstop** - **+1 block**, block cooldown **20%** longer
+- **Bozo Shoes** - players you hit wear clown shoes and take **+50%** knockback from everyone for the rest of the round
+- **Draft Sniper** - during someone else's pick, click a card in their offer to replace it for everyone. Extra copies stack as extra snipes.
+- **Yeet Cannon** - **+100%** bullet knockback, **+15%** damage, and your shots kick you backward
+- **Dynamite** - **+20%** damage. Bullets plant a small delayed blast on hit (same idea as Timed Detonation, including bounces and Drop Grenade landings). Weak boom, huge knockback.
+- **TASER TASER TASER** - hits stun for **+0.5s**, **15%** faster fire, **-1 ammo**
+- **Safety Net** - map edges (top, bottom, sides) no longer deal damage
+- **Nest Egg** - Legendary. After **3 rounds**, gain **1 curse-free Take All**. If you already have a Take All left, this adds another. Extra copies each hatch another.
+- **Silver Egg** - Rare. After **2 rounds**, gain **1 curse-free Take All of half the offer** (rounded up). Stacks the same way as Nest Egg. Extra copies each hatch another.
+- **Return to Sender** - Unique. Only offered if you have a Mulligan Madness curse. Give that curse to another player. If they already have one, they keep theirs and still get yours.
+
+## Works well with
+
+Compatibility is built in for:
+
+- Pick N Cards
+- PickPhaseImprovements
+- Genie
+- Root Curses / Root Nulled Cards
+- NullManager
+- KeysCards
+- RarityLib
+- WillsWackyManagers

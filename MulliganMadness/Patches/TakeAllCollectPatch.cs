@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
+using MulliganMadness.Stats;
 using MulliganMadness.Utils;
 using UnityEngine;
 
@@ -102,8 +102,8 @@ namespace MulliganMadness.Patches
 
             spawned.Clear();
 
-            var picker = PlayerManager.instance.players.FirstOrDefault(p => p.playerID == pickId);
-            if (picker != null && picker.data?.view != null && picker.data.view.IsMine)
+            var picker = TakeAllManager.FindPlayer(pickId) ?? TakeAllManager.GetCurrentPicker();
+            if (picker != null && PlayerStatsSnapshot.IsLocallyControlled(picker))
             {
                 var replace = AccessTools.Method(typeof(CardChoice), "ReplaceCards", new[] { typeof(GameObject), typeof(bool) });
                 if (replace != null)

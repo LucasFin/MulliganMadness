@@ -82,7 +82,7 @@ namespace MulliganMadness.Utils
             }
             catch
             {
-                // Unknown game mode — mercy vote won't track wins this match.
+                // Unknown game mode - mercy vote won't track wins this match.
             }
         }
     }
