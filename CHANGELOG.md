@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.24
+
+- Fix online empty card offers: stop destroying CardChoice children on StartPick (raced Pick Phase Improvements' hand rebuild). Take All button needs a spawned hand, so it stayed hidden too.
+
 ## 0.3.23
 
 - Fix Harmony startup: a `readonly struct` in card-art FX made PatchAll abort on Unity Mono, so MM pick/combat patches never applied (empty/broken online picks).

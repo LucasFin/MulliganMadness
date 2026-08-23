@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Curses;
@@ -7,6 +6,9 @@ using UnityEngine;
 
 namespace MulliganMadness.Patches
 {
+    // Only shrink via GetPickerDraws. Do NOT destroy CardChoice.children on StartPick —
+    // that races Pick Phase Improvements' online FixHandSize/ReplaceCards and aborts
+    // the Photon spawn loop (empty offer, no Take All button).
     [HarmonyPatch]
     internal static class ShortHandDrawPatch
     {
@@ -49,32 +51,6 @@ namespace MulliganMadness.Patches
             }
 
             return null;
-        }
-    }
-
-    // Pick N Cards rebuilds CardChoice.children from the draw count every StartPick.
-    // Shrink that list after it runs so the Photon spawn loop offers one fewer card.
-    [HarmonyPatch(typeof(CardChoice), nameof(CardChoice.StartPick))]
-    internal static class ShortHandStartPickPatch
-    {
-        private static bool Prepare() =>
-            AccessTools.TypeByName("DrawNCards.DrawNCards") != null
-            || AccessTools.TypeByName("PickNCards.DrawNCards") != null;
-
-        private static void Postfix(CardChoice __instance, int pickerIDToSet)
-        {
-            var picker = TakeAllManager.GetCurrentPicker()
-                         ?? ShortHandDrawPatch.FindPlayer(__instance.pickrID)
-                         ?? ShortHandDrawPatch.FindPlayer(pickerIDToSet);
-            if (picker == null || !CurseOwnership.Has(picker, ShortHand.Card)) return;
-
-            var field = AccessTools.Field(typeof(CardChoice), "children");
-            if (field == null) return;
-            if (!(field.GetValue(__instance) is Transform[] children) || children.Length <= 1) return;
-
-            var last = children[children.Length - 1];
-            if (last != null) Object.Destroy(last.gameObject);
-            field.SetValue(__instance, children.Take(children.Length - 1).ToArray());
         }
     }
 }

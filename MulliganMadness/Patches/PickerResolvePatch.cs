@@ -10,9 +10,21 @@ namespace MulliganMadness.Patches
     [HarmonyPriority(Priority.First)]
     internal static class StartPickTrackerPatch
     {
-        private static void Postfix(int pickerIDToSet)
+        private static void Postfix(CardChoice __instance, int pickerIDToSet)
         {
             TakeAllManager.NoteActingPicker(pickerIDToSet);
+            try
+            {
+                var children = AccessTools.Field(typeof(CardChoice), "children")?.GetValue(__instance) as Transform[];
+                var spawned = TakeAllManager.GetSpawnedCards();
+                Plugin.Instance?.Log(
+                    $"StartPick acting={pickerIDToSet} pickrID={__instance.pickrID} " +
+                    $"children={children?.Length ?? -1} spawned={spawned?.Count ?? -1} " +
+                    $"master={Photon.Pun.PhotonNetwork.OfflineMode || Photon.Pun.PhotonNetwork.IsMasterClient}");
+            }
+            catch
+            {
+            }
         }
     }
 }
