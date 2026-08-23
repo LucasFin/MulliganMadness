@@ -6,9 +6,20 @@ the curse it costs you.
 Host rules live in **Mods → Mulligan Madness** and sync to the lobby. A one-line summary of the
 active rules appears at the first card pick.
 
-> **Split in 0.4.0.** The stats HUD is now [ProMLGStats](https://github.com/3WiseStooges/ProMLGStats)
-> and the general card pack is now [LeanAndMeanCards](https://github.com/3WiseStooges/LeanAndMeanCards).
-> Install those separately if you want them. This mod is Take All and its curses.
+Everyone in the lobby needs this mod.
+
+## Split in 0.4.0
+
+Mulligan Madness used to also ship a stats HUD and a general card pack. Those now live in
+their own mods. Install them alongside this one if you want the old setup back:
+
+- [**LeanAndMeanCards**](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) —
+  the extra cards (Confetti, Shove, Takebacksies, Dynamite, Thief, and the rest)
+- [**ProMLGStats**](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/) —
+  live stats HUD, Tab overlay, and card-hover previews
+
+This mod is Take All, its curses, and the three cards built on those: Nest Egg, Silver Egg,
+and Return to Sender.
 
 ## Host session settings
 
@@ -58,36 +69,10 @@ On your pick, **Take All** grabs every card in the current offer.
 
 ## Cards
 
-The three cards that stayed here are built on Take All and curses.
+These three stay here because they are built around Take All and curses.
 
 | | |
 | :---: | --- |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/nestegg_mini.png" width="72" alt="Nest Egg"> | **Nest Egg** (Legendary) — after 3 rounds, gain 1 curse-free Take All. Extra copies each hatch another. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/silveregg_mini.png" width="72" alt="Silver Egg"> | **Silver Egg** (Rare) — after 2 rounds, hatches into a small random card haul. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/returntosender_mini.png" width="72" alt="Return to Sender"> | **Return to Sender** (Unique) — only offered if you have a curse. Give that curse to another player. |
-
-## Multiplayer
-
-Everyone in the lobby needs this mod. It does not override how the game spawns cards — the
-picker's own client builds their hand, exactly as vanilla does. See `CHANGELOG.md` for why
-that sentence is worth writing down.
-
-## Works well with
-
-Pick N Cards, PickPhaseImprovements, Genie, Root Curses / Root Nulled Cards, NullManager,
-KeysCards, RarityLib, WillsWackyManagers, and the two mods split out of this one.
-
-## Build
-
-```bash
-dotnet build MulliganMadness/MulliganMadness.csproj -c Release
-```
-
-Override the paths if your install differs:
-
-```bash
-dotnet build MulliganMadness/MulliganMadness.csproj -c Release -p:RoundsFolder="D:\Steam\steamapps\common\ROUNDS" -p:R2ProfileName="MyProfile"
-```
-
-The DLL and `Art/` land in `package/`. Install and test through r2modman rather than copying
-by hand.

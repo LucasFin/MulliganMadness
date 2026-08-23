@@ -1,75 +1,34 @@
 # Changelog
 
+## 0.4.1
+
+- Thunderstore listing matches the split: this page is Take All and curses only, with links to
+  [LeanAndMeanCards](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) and
+  [ProMLGStats](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/).
+
 ## 0.4.0
 
-Split into three mods and fixed the pick-phase desync that 0.3.27-0.3.31 were chasing.
+This mod is now Take All and its curses. Two pieces moved out:
 
-### Split
+- [**LeanAndMeanCards**](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) —
+  the 14 general cards (Confetti, Shove, Takebacksies, Bozo Shoes, Doorstop, Dynamite, Pisser, Draft Sniper, Safety Net, TASER, Yeet Cannon, Jar of Dirt, Sandbag Simulator, Thief)
+- [**ProMLGStats**](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/) —
+  the stats HUD, Tab overlay, and card-hover previews
 
-MulliganMadness is now Take All + curses only. Two features moved to their own mods:
+Nest Egg, Silver Egg, and Return to Sender stay here — they are built on Take All and curses.
 
-- **[ProMLGStats](https://github.com/3WiseStooges/ProMLGStats)** - the stats HUD, Tab overlay and
-  card-hover previews.
-- **[LeanAndMeanCards](https://github.com/3WiseStooges/LeanAndMeanCards)** - the 14 general cards
-  (Confetti, Shove, Takebacksies, Bozo Shoes, Doorstop, Dynamite, Pisser, Draft Sniper,
-  Safety Net, TASER, Yeet Cannon, Jar of Dirt, Sandbag Simulator, Thief).
+Install those two mods alongside this one if you want the old 0.3.x setup back.
 
-Nest Egg, Silver Egg and Return to Sender stay here - they are built on Take All and curses.
+### Fixes
 
-### Fixed: the pick phase no longer overrides who spawns cards
+- Online picks work for non-host players again (no stuck picker, leftover cards, or taking a
+  card nobody actually chose).
+- Works alongside the real TabInfo mod. The old bundled stub that blocked it is gone.
+- Hard Edges knockback stays consistent.
+- Host settings sync more reliably when joining a lobby.
 
-0.3.27 read `IsMine=false` on the host as a stall and re-gated card spawning on
-`IsMasterClient`. That reading was wrong. Vanilla `CardChoice.Pick` is:
-
-```csharp
-else if (PlayerManager.instance.GetPlayerWithID(pickrID).data.view.IsMine)
-    StartCoroutine(ReplaceCards(pickedCard, clear));
-```
-
-The *picker* spawns their own hand, and `SpawnUniqueCard` uses `PhotonNetwork.Instantiate` so
-every client receives it. `IsMine == false` on the host is correct whenever a non-host is
-picking. The override caused all of the following, and all of it is now gone:
-
-- **Glitchy card picker.** A non-host picker's `spawnedCards` list stayed empty, and
-  `CardChoice.DoPlayerSelect` returns early on `spawnedCards.Count == 0`. They could not move
-  the selection or confirm a card until `RPCA_SyncOfferedHand` back-filled the list, which
-  polled at 0.35s / 0.9s / 1.6s / 2.5s.
-- **Cards the picker never took.** The host Photon-owned cards for someone else's pick,
-  leaving orphans whose ViewIDs got reused - the "friend sees Sneaky the host never took" bug
-  that 0.3.31 tried to paper over.
-- **`Ev Destroy Failed` spam.** `DestroyOrphanOfferCards` called `PhotonNetwork.Destroy` on
-  objects other clients still referenced.
-- **Diverging pick counts.** `CardChoice.picks` was written on remotes by reflection from an
-  RPC payload.
-
-The empty-offer bug those releases were chasing was really the `readonly struct` Harmony abort
-(fixed in 0.3.23) and destroying `CardChoice.children` on StartPick (fixed in 0.3.24). Both
-were already fixed by then.
-
-`PickDiagnosticsPatch` (754 lines) is replaced by `PickSafetyPatch` (~120 lines) which is
-Finalizers and one optional log line - it never changes what spawns or who spawns it.
-
-### Fixed: no more TabInfo GUID collision
-
-MulliganMadness shipped a stub `TabInfo.dll` that declared willuwontu's own plugin GUID,
-`com.willuwontu.rounds.tabinfo`. Two plugins cannot share a GUID, so users had to disable the
-real TabInfo to run this mod. The stub is deleted. TabInfo integration is reflection-only and
-entirely optional.
-
-### Other fixes
-
-- Hard Edges no longer risks a knockback desync. The out-of-bounds flag is set only on the
-  owning client (the only one that raises the force RPC) and is cleared by a Finalizer, so a
-  throw mid-LateUpdate can no longer leave it stuck.
-- The settings handshake no longer fires `RaiseEvent` outside a room, which logged
-  `RaiseEvent(69) failed` and dropped the payload.
-- Card bar icon stamping is coalesced. Five hooks reported the same card addition, so adding
-  one card could trigger up to fifteen full-bar sweeps.
-- `AssemblyVersion` is pinned. UnboundLib resolves RPC targets via `Type.AssemblyQualifiedName`,
-  which embeds the assembly version, so letting it drift silently breaks RPCs between clients
-  on adjacent releases.
-- The build no longer hardcodes one machine's Linux paths. It auto-detects a standard Windows
-  Steam + r2modman layout and accepts `-p:RoundsFolder` / `-p:R2ProfileName` overrides.
+Notes below for 0.3.x still mention cards and the stats HUD. Those shipped in this package
+until 0.4.0.
 
 ## 0.3.31
 
