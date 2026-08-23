@@ -2,7 +2,7 @@
 
 Host match rules live in **Mods -> Mulligan Madness** and sync to the lobby.
 
-Cards and curses are **not** toggled here. Use **Toggle Cards** under **MulliganMadness**. Default look (save / apply face and color) is personal.
+Cards and curses are **not** toggled here. Use **Toggle Cards** under **MulliganMadness**.
 
 ## Host session settings
 

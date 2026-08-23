@@ -66,48 +66,11 @@ namespace MulliganMadness.UI
                     SessionSettings.Current.PanicTimerSeconds = value;
                     SaveSession();
                 }, canEdit);
-
-            MenuHandler.CreateText("Default look", menu, out _, 36);
-            MenuHandler.CreateText(
-                "Pick your face and color in character select (lobby), then save it here. Enable the checkbox so it reapplies at the start of every game.",
-                menu,
-                out _,
-                24);
-
-            MenuHandler.CreateToggle(
-                Plugin.Configs.DefaultAppearanceEnabled.Value,
-                "Apply saved face & color each game",
-                menu,
-                (UnityAction<bool>)(value => Plugin.Configs.DefaultAppearanceEnabled.Value = value),
-                35);
-
-            MenuHandler.CreateButton("Save current face & color", menu, () =>
-            {
-                if (DefaultAppearance.TryCaptureFromLocal(out var notice))
-                {
-                    ShowMenuNotice(menu, notice);
-                }
-                else
-                {
-                    ShowMenuNotice(menu, notice ?? "Could not save appearance.");
-                }
-            }, 32, false);
-
-            MenuHandler.CreateButton("Apply saved look now", menu, () =>
-            {
-                DefaultAppearance.TryApply(force: true);
-                ShowMenuNotice(menu, "Applied saved face & color to local player.");
-            }, 32, false);
         }
 
         private static void SaveSession()
         {
             SessionSettings.SetHostSession(SessionSettings.Current, broadcast: true);
-        }
-
-        private static void ShowMenuNotice(GameObject menu, string message)
-        {
-            MenuHandler.CreateText(message, menu, out _, 24, false);
         }
 
         private static void CreateSessionToggle(GameObject menu, string label, bool value, UnityAction<bool> onChange, bool enabled)

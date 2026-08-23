@@ -59,20 +59,6 @@ namespace MulliganMadness.Utils
         public ConfigEntry<float> StatsAccentG { get; }
         public ConfigEntry<float> StatsAccentB { get; }
 
-        public ConfigEntry<bool> DefaultAppearanceEnabled { get; }
-        public ConfigEntry<int> DefaultColorIndex { get; }
-        public ConfigEntry<int> DefaultEyeId { get; }
-        public ConfigEntry<int> DefaultMouthId { get; }
-        public ConfigEntry<int> DefaultDetailId { get; }
-        public ConfigEntry<int> DefaultDetail2Id { get; }
-        public ConfigEntry<float> DefaultEyeOffsetX { get; }
-        public ConfigEntry<float> DefaultEyeOffsetY { get; }
-        public ConfigEntry<float> DefaultMouthOffsetX { get; }
-        public ConfigEntry<float> DefaultMouthOffsetY { get; }
-        public ConfigEntry<float> DefaultDetailOffsetX { get; }
-        public ConfigEntry<float> DefaultDetailOffsetY { get; }
-        public ConfigEntry<float> DefaultDetail2OffsetX { get; }
-        public ConfigEntry<float> DefaultDetail2OffsetY { get; }
         public ConfigEntry<bool> AutoCloseTabDuringPick { get; }
 
         public Configs(ConfigFile config)
@@ -344,31 +330,6 @@ namespace MulliganMadness.Utils
                 "AutoCloseDuringPick",
                 false,
                 "Close the Tab overlay when a card pick starts so cards stay clickable. Tab still toggles it open again.");
-
-            DefaultAppearanceEnabled = config.Bind(
-                "Default Appearance",
-                "Enabled",
-                false,
-                "Apply your saved face and color at the start of each game (you can still change in character select).");
-
-            DefaultColorIndex = config.Bind(
-                "Default Appearance",
-                "ColorIndex",
-                0,
-                "Player color palette index from the character-select color wheel.");
-
-            DefaultEyeId = config.Bind("Default Appearance", "EyeId", 0, "Default eyes part ID.");
-            DefaultMouthId = config.Bind("Default Appearance", "MouthId", 0, "Default mouth part ID.");
-            DefaultDetailId = config.Bind("Default Appearance", "DetailId", 0, "Default detail part ID.");
-            DefaultDetail2Id = config.Bind("Default Appearance", "Detail2Id", 0, "Default second detail part ID.");
-            DefaultEyeOffsetX = config.Bind("Default Appearance", "EyeOffsetX", 0f, "Default eyes X offset.");
-            DefaultEyeOffsetY = config.Bind("Default Appearance", "EyeOffsetY", 0f, "Default eyes Y offset.");
-            DefaultMouthOffsetX = config.Bind("Default Appearance", "MouthOffsetX", 0f, "Default mouth X offset.");
-            DefaultMouthOffsetY = config.Bind("Default Appearance", "MouthOffsetY", 0f, "Default mouth Y offset.");
-            DefaultDetailOffsetX = config.Bind("Default Appearance", "DetailOffsetX", 0f, "Default detail X offset.");
-            DefaultDetailOffsetY = config.Bind("Default Appearance", "DetailOffsetY", 0f, "Default detail Y offset.");
-            DefaultDetail2OffsetX = config.Bind("Default Appearance", "Detail2OffsetX", 0f, "Default detail 2 X offset.");
-            DefaultDetail2OffsetY = config.Bind("Default Appearance", "Detail2OffsetY", 0f, "Default detail 2 Y offset.");
         }
     }
 }

@@ -244,23 +244,40 @@ namespace MulliganMadness.Utils
                 return false;
             }
 
-            if (spawned.Count != _lastSpawnCount)
+            // Drop destroyed Photon stubs so we don't treat a wiped hand as "ready".
+            var alive = 0;
+            for (var i = 0; i < spawned.Count; i++)
             {
-                _lastSpawnCount = spawned.Count;
+                if (spawned[i] != null) alive++;
+            }
+
+            if (alive == 0)
+            {
+                _lastSpawnCount = 0;
+                return false;
+            }
+
+            if (alive != _lastSpawnCount)
+            {
+                _lastSpawnCount = alive;
                 _spawnStableSince = Time.unscaledTime;
                 return false;
             }
 
-            if (Time.unscaledTime - _spawnStableSince < 0.2f)
+            if (Time.unscaledTime - _spawnStableSince < 0.25f)
             {
                 return false;
             }
 
             var expected = GetExpectedDrawCountInternal();
-            // Distill / shuffle redraws are often smaller than Pick N Cards' draw count.
-            if (expected > 0 && spawned.Count < expected && Time.unscaledTime - _spawnStableSince < 0.45f)
+            // Online PPI FixHandSize/ReplaceCards often needs >0.45s. Never claim ready
+            // while the hand is still short of the expected draw count.
+            if (expected > 0 && alive < expected)
             {
-                return false;
+                if (Time.unscaledTime - _spawnStableSince < 2.5f)
+                {
+                    return false;
+                }
             }
 
             return true;

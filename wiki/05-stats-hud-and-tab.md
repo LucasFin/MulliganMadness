@@ -13,5 +13,3 @@ Built-in HUD and Tab overlay, meant to replace **Infoholic** and **TabInfo**.
 - **Tab** opens a full panel for every player
 - Drag to move the panel
 - **C** compares
-
-Default look (save / apply face and color) is personal and does not sync with host match rules.

@@ -15,7 +15,7 @@ Host match rules live in **Mods → Mulligan Madness** and sync to the lobby. A 
 | **Mercy vote** | Auto-offers a Take All vote when you are far behind |
 | **Panic Pick timer** | Seconds before Panic Pick chooses for you |
 
-Cards and curses are not toggled here. Use **Toggle Cards** under **MulliganMadness**. Default look (save / apply face and color) is personal.
+Cards and curses are not toggled here. Use **Toggle Cards** under **MulliganMadness**.
 
 ## Take All
 

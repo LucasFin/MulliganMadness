@@ -9,7 +9,6 @@ Host match rules live in **Mods -> Mulligan Madness** and sync to the lobby. A o
 1. Install with r2modman / Thunderstore (dependencies come with the package).
 2. Host opens **Mods -> Mulligan Madness** and sets Take All / curse / mercy rules.
 3. Turn individual cards and curses on or off under **Toggle Cards -> MulliganMadness**.
-4. Default look (save / apply face and color) is personal - it does not sync to the lobby.
 
 ## Wiki pages
 

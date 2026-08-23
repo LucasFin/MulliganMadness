@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.26
+
+- Add pick-phase diagnostics (ReplaceCards / spawn watch logs) and stricter online hand-ready checks so Draft Sniper / AutoPick cannot touch a half-built PPI hand.
+- If a pick starts but no cards appear within ~1.6s, clear stuck `isPlaying` and retry `Pick()` once (vanilla only spawns when the picker's view IsMine; a thrown spawn coroutine softlocks empty).
+- Remove unused default face/color save-apply feature (did not work reliably with other face mods).
+
 ## 0.3.25
 
 - Harden pick phase: clear sticky Take All collect flag and Draft Sniper bans each pick; never-throw guards on card spawn / hand-build hooks so one bad art or allow-card path cannot empty online offers.

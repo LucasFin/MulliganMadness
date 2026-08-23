@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Reflection;
 using BepInEx;
 using HarmonyLib;
 using MulliganMadness.Cards;
@@ -28,7 +29,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.3.25";
+        public const string Version = "0.3.26";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -50,8 +51,20 @@ namespace MulliganMadness
                 var harmony = new Harmony(ModId);
                 // Patch per type so one bad/unloadable type cannot abort every MM patch
                 // (Unity Mono historically chokes on IsReadOnlyAttribute from readonly structs).
-                foreach (var type in typeof(Plugin).Assembly.GetTypes())
+                Type[] types;
+                try
                 {
+                    types = typeof(Plugin).Assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    types = ex.Types;
+                    Logger.LogWarning($"Harmony GetTypes partial load: {ex.LoaderExceptions?.Length ?? 0} loader error(s)");
+                }
+
+                foreach (var type in types)
+                {
+                    if (type == null) continue;
                     try
                     {
                         harmony.CreateClassProcessor(type).Patch();
@@ -119,13 +132,10 @@ namespace MulliganMadness
             DraftSniperManager.ResetForNewGame();
             NestEggManager.ResetForNewGame();
             BozoShoesRuntime.Clear();
-            DefaultAppearance.ResetForNewGame();
             SafetyNetEscape.Reset();
             KeysUnlockReset.Reapply();
             Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
             Instance.ExecuteAfterSeconds(0.5f, TakebacksiesBlacklist.EnsureGlobalBlacklist);
-            Instance.ExecuteAfterSeconds(0.6f, () => DefaultAppearance.TryApply());
-            Instance.ExecuteAfterSeconds(1.2f, () => DefaultAppearance.TryApply());
             yield break;
         }
 
