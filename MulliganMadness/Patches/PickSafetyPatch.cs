@@ -32,6 +32,9 @@ namespace MulliganMadness.Patches
     /// abort (fixed in 0.3.23) and destroying CardChoice.children on StartPick (fixed in
     /// 0.3.24). Both were already gone. Do not reintroduce a spawn-authority override here.
     /// </summary>
+    // Class-level [HarmonyPatch] is required: PatchClassProcessor skips any class
+    // without one, so the finalizers below were silently never installed.
+    [HarmonyPatch]
     internal static class PickSafetyPatch
     {
         private static readonly FieldInfo IsPlayingField = AccessTools.Field(typeof(CardChoice), "isPlaying");
@@ -123,10 +126,51 @@ namespace MulliganMadness.Patches
                     $"StartPick picks={picksToSet} picker={pickerIDToSet} pickrID={__instance.pickrID} " +
                     $"children={children?.Length ?? -1} spawned={spawned?.Count ?? -1} " +
                     $"master={Photon.Pun.PhotonNetwork.OfflineMode || Photon.Pun.PhotonNetwork.IsMasterClient}");
+
+                // Follow the offer as it builds. This is the datum that separates "the hand
+                // never spawned" from "it spawned and something removed it" — the two have
+                // completely different causes and look identical on screen.
+                if (Plugin.Instance != null) Plugin.Instance.StartCoroutine(WatchSpawn(pickerIDToSet));
             }
             catch (Exception ex)
             {
                 Plugin.Instance?.LogWarn($"Pick log skipped: {ex.Message}");
+            }
+        }
+
+        private static System.Collections.IEnumerator WatchSpawn(int pickerId)
+        {
+            var isPlayingField = AccessTools.Field(typeof(CardChoice), "isPlaying");
+            var picksField = AccessTools.Field(typeof(CardChoice), "picks");
+
+            foreach (var delay in new[] { 0.3f, 0.8f, 1.6f, 3.0f })
+            {
+                yield return new WaitForSecondsRealtime(delay);
+
+                var choice = CardChoice.instance;
+                if (choice == null) yield break;
+
+                var spawned = TakeAllManager.GetSpawnedCards();
+                var alive = 0;
+                if (spawned != null)
+                {
+                    foreach (var go in spawned)
+                    {
+                        if (go != null) alive++;
+                    }
+                }
+
+                var picker = TakeAllManager.FindPlayer(pickerId);
+                var mine = picker?.data?.view != null && picker.data.view.IsMine;
+
+                Plugin.Instance?.Log(
+                    $"PickWatch t={delay:0.0}s IsPicking={choice.IsPicking} " +
+                    $"spawned={spawned?.Count ?? -1} alive={alive} " +
+                    $"picks={(picksField != null ? picksField.GetValue(choice) : "?")} " +
+                    $"isPlaying={(isPlayingField != null ? isPlayingField.GetValue(choice) : "?")} " +
+                    $"pickerFound={picker != null} pickerIsMine={mine}");
+
+                if (!choice.IsPicking) yield break;
             }
         }
     }

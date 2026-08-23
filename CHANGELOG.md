@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.2
+
+- Fix `PickSafetyPatch` never being installed. Harmony's `PatchClassProcessor`
+  skips any class without a class-level `[HarmonyPatch]`, so the finalizers that
+  log a thrown `ReplaceCards` / `Pick` / `SpawnUniqueCard` — and clear a stuck
+  `isPlaying` — were silently absent.
+- Add optional pick-phase spawn tracing behind `Diagnostics/LogPickPhase`
+  (off by default). It reports spawned/alive card counts, `picks`, `isPlaying`
+  and whether the picker resolved, which separates "the hand never spawned" from
+  "it spawned and something removed it".
+
 ## 0.4.1
 
 - Thunderstore listing matches the split: this page is Take All and curses only, with links to
