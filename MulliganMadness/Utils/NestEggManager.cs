@@ -234,13 +234,24 @@ namespace MulliganMadness.Utils
                 return;
             }
 
-            // Silver Egg: KeysCards Golden Egg style (random cards), but weaker / faster.
+            // Silver Egg: roll once on the host, sync the same loot. All clients
+            // used to roll independently (different cards per screen).
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
-            NetworkingManager.RPC(typeof(NestEggManager), nameof(RPCA_HatchSilver), playerId);
+            var hatchPlayer = FindPlayer(playerId);
+            if (hatchPlayer == null) return;
+            var grants = BuildSilverLoot(hatchPlayer);
+            var payloads = new List<string>();
+            foreach (var card in grants)
+            {
+                if (card == null) continue;
+                payloads.Add(CardEncoding.Encode(card));
+            }
+
+            NetworkingManager.RPC(typeof(NestEggManager), nameof(RPCA_HatchSilver), playerId, payloads.ToArray());
         }
 
         [UnboundRPC]
-        public static void RPCA_HatchSilver(int playerId)
+        public static void RPCA_HatchSilver(int playerId, string[] payloads)
         {
             var player = FindPlayer(playerId);
             if (player == null)
@@ -249,13 +260,24 @@ namespace MulliganMadness.Utils
                 return;
             }
 
-            var grants = BuildSilverLoot(player);
-            RemoveOneSilverEgg(player);
-
-            foreach (var card in grants)
+            var grants = new List<CardInfo>();
+            if (payloads != null)
             {
-                if (card == null) continue;
-                CardsApi.instance.AddCardToPlayer(player, card, false, "", 2f, 2f, true);
+                foreach (var payload in payloads)
+                {
+                    var card = CardEncoding.Resolve(payload);
+                    if (card != null) grants.Add(card);
+                }
+            }
+
+            if (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)
+            {
+                RemoveOneSilverEgg(player);
+                foreach (var card in grants)
+                {
+                    if (card == null) continue;
+                    CardsApi.instance.AddCardToPlayer(player, card, false, "", 2f, 2f, true);
+                }
             }
 
             if (player.data?.view != null && player.data.view.IsMine)

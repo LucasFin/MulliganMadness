@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
@@ -9,28 +8,19 @@ using UnboundLib;
 using UnboundLib.Networking;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using CardsApi = ModdingUtils.Utils.Cards;
+using UnityEngine.UI;
 
 namespace MulliganMadness.Utils
 {
     internal static class DraftSniperManager
     {
-        private static readonly MethodInfo SpawnMethod =
-            AccessTools.Method(typeof(CardChoice), "Spawn", new[] { typeof(GameObject), typeof(Vector3), typeof(Quaternion) });
         private static readonly FieldInfo IsHoveredField = AccessTools.Field(typeof(CardVisuals), "isHovered");
         private static readonly HashSet<int> BlockedViews = new HashSet<int>();
         private static readonly Dictionary<int, int> UsesConsumed = new Dictionary<int, int>();
-        private static readonly Queue<PendingBan> HostQueue = new Queue<PendingBan>();
 
-        private static bool _hostBusy;
         private static float _clickLockUntil;
         private static int _hintHandKey = int.MinValue;
-
-        private struct PendingBan
-        {
-            public int SniperId;
-            public int ViewId;
-        }
+        private static float _lockedClickToastUntil;
 
         internal static void ResetForNewGame()
         {
@@ -40,15 +30,14 @@ namespace MulliganMadness.Utils
 
         /// <summary>
         /// Photon ViewIDs reuse across picks. Stale BlockedViews make DraftSniperPickPatch
-        /// skip Pick forever (online softlock). Flush bans/queue every pick end.
+        /// skip Pick forever (online softlock). Flush locks every pick end.
         /// </summary>
         internal static void ResetForPick()
         {
             BlockedViews.Clear();
-            HostQueue.Clear();
-            _hostBusy = false;
             _clickLockUntil = 0f;
             _hintHandKey = int.MinValue;
+            _lockedClickToastUntil = 0f;
         }
 
         internal static int CountOwned(Player player)
@@ -80,14 +69,24 @@ namespace MulliganMadness.Utils
             return view != null && BlockedViews.Contains(view.ViewID);
         }
 
+        internal static void NotifyLockedClick()
+        {
+            var picker = TakeAllManager.GetCurrentPicker();
+            if (picker == null || !PlayerStatsSnapshot.IsLocallyControlled(picker)) return;
+            if (Time.unscaledTime < _lockedClickToastUntil) return;
+            _lockedClickToastUntil = Time.unscaledTime + 1.2f;
+            CardTargetUi.ShowToast("Draft Sniper locked this card — pick another.");
+        }
+
         internal static void NotifyGained(Player player)
         {
             if (player?.data?.view == null || !player.data.view.IsMine) return;
             var left = Remaining(player);
             if (left <= 0) return;
+
             var extra = left == 1
-                ? "Click a card during someone else's pick to replace it."
-                : $"Stacked. {left} snipes ready. Click a card during someone else's pick.";
+                ? "Click a card during someone else's pick to lock it."
+                : $"Stacked. {left} locks ready. Click a card during someone else's pick.";
             PlayerNotice.Show(player, extra);
         }
 
@@ -119,21 +118,70 @@ namespace MulliganMadness.Utils
         [UnboundRPC]
         public static void RPCA_BanCard(int sniperId, int viewId)
         {
-            BlockedViews.Add(viewId);
             if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
-
             if (!IsValidSnipe(sniperId))
             {
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
+                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_LockFailed), sniperId, "Can't lock that card.");
                 return;
             }
 
-            HostQueue.Enqueue(new PendingBan { SniperId = sniperId, ViewId = viewId });
-            TryStartNextReplace();
+            if (BlockedViews.Contains(viewId))
+            {
+                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_LockFailed), sniperId, "That card is already locked.");
+                return;
+            }
+
+            var view = PhotonView.Find(viewId);
+            var card = view != null ? view.gameObject : null;
+            if (card == null || !IsInOfferedHand(card))
+            {
+                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_LockFailed), sniperId, "That card is gone.");
+                return;
+            }
+
+            if (UnlockedReadyCount() <= 1)
+            {
+                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_LockFailed), sniperId, "Can't lock the last card.");
+                return;
+            }
+
+            var picker = TakeAllManager.GetCurrentPicker();
+            var sniper = FindPlayer(sniperId);
+            var source = TakeAllManager.SourceOf(card);
+            var cardName = source != null && !string.IsNullOrEmpty(source.cardName) ? source.cardName : "a card";
+
+            // Record on the host before broadcasting so a second BanCard in the
+            // same frame cannot lock the last remaining card.
+            BlockedViews.Add(viewId);
+            ApplyLockVisual(viewId);
+            NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Lock), viewId);
+            NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_ConsumeUse), sniperId);
+            NetworkingManager.RPC(
+                typeof(DraftSniperManager),
+                nameof(RPCA_AnnounceBan),
+                PlayerLabel(sniper, sniperId),
+                cardName,
+                PlayerLabel(picker, picker != null ? picker.playerID : -1));
+            Plugin.Instance?.Log(
+                $"Draft Sniper lock view={viewId} card={cardName} sniper={sniperId} " +
+                $"picker={(picker != null ? picker.playerID : -1)} unlockedLeft={UnlockedReadyCount()}");
         }
 
         [UnboundRPC]
-        public static void RPCA_Unblock(int viewId) => BlockedViews.Remove(viewId);
+        public static void RPCA_Lock(int viewId)
+        {
+            BlockedViews.Add(viewId);
+            ApplyLockVisual(viewId);
+        }
+
+        [UnboundRPC]
+        public static void RPCA_LockFailed(int sniperId, string reason)
+        {
+            var local = PlayerStatsSnapshot.LocalPlayer();
+            if (local == null || local.playerID != sniperId) return;
+            if (string.IsNullOrEmpty(reason)) return;
+            CardTargetUi.ShowToast(reason);
+        }
 
         [UnboundRPC]
         public static void RPCA_ConsumeUse(int sniperId)
@@ -143,183 +191,9 @@ namespace MulliganMadness.Utils
         }
 
         [UnboundRPC]
-        public static void RPCA_SwapSpawned(int oldViewId, int newViewId)
-        {
-            BlockedViews.Remove(oldViewId);
-            if (Plugin.Instance == null)
-            {
-                SwapList(TakeAllManager.GetSpawnedCards(), oldViewId, newViewId);
-                return;
-            }
-
-            Plugin.Instance.StartCoroutine(SwapWhenReady(oldViewId, newViewId));
-        }
-
-        [UnboundRPC]
         public static void RPCA_AnnounceBan(string sniperName, string cardName, string targetName)
         {
-            CardTargetUi.ShowToast($"{sniperName} sniped {cardName} from {targetName}.");
-        }
-
-        private static void TryStartNextReplace()
-        {
-            if (_hostBusy || HostQueue.Count == 0) return;
-            var next = HostQueue.Dequeue();
-            _hostBusy = true;
-            Plugin.Instance.StartCoroutine(ReplaceCardRoutine(next.SniperId, next.ViewId));
-        }
-
-        private static IEnumerator SwapWhenReady(int oldViewId, int newViewId)
-        {
-            for (var i = 0; i < 30; i++)
-            {
-                if (PhotonView.Find(newViewId) != null) break;
-                yield return null;
-            }
-
-            SwapList(TakeAllManager.GetSpawnedCards(), oldViewId, newViewId);
-        }
-
-        private static void SwapList(List<GameObject> list, int oldViewId, int newViewId)
-        {
-            if (list == null) return;
-
-            GameObject neu = null;
-            var found = PhotonView.Find(newViewId);
-            if (found != null) neu = found.gameObject;
-
-            for (var i = list.Count - 1; i >= 0; i--)
-            {
-                var go = list[i];
-                if (go == null)
-                {
-                    list.RemoveAt(i);
-                    continue;
-                }
-
-                var view = go.GetComponent<PhotonView>();
-                if (view != null && view.ViewID == oldViewId)
-                {
-                    if (neu != null) list[i] = neu;
-                    else list.RemoveAt(i);
-                }
-            }
-
-            if (neu != null && !list.Contains(neu)) list.Add(neu);
-        }
-
-        private static IEnumerator ReplaceCardRoutine(int sniperId, int viewId)
-        {
-            yield return ReplaceOnce(sniperId, viewId);
-            _hostBusy = false;
-            TryStartNextReplace();
-        }
-
-        private static IEnumerator ReplaceOnce(int sniperId, int viewId)
-        {
-            var sniper = FindPlayer(sniperId);
-            if (Remaining(sniper) <= 0)
-            {
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
-                yield break;
-            }
-
-            var oldView = PhotonView.Find(viewId);
-            var old = oldView != null ? oldView.gameObject : null;
-            if (old == null)
-            {
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
-                yield break;
-            }
-
-            var picker = TakeAllManager.GetCurrentPicker();
-            var choice = CardChoice.instance;
-            // Never Spawn/Destroy into a finished or still-spawning hand (PPI race).
-            if (choice == null || !choice.IsPicking || picker == null || SpawnMethod == null
-                || !TakeAllManager.IsOfferedHandReady() || TakeAllManager.IsBusy)
-            {
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
-                yield break;
-            }
-
-            var banned = TakeAllManager.SourceOf(old);
-            var replacement = PickReplacement(picker, banned);
-            if (replacement == null || replacement.gameObject == null)
-            {
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
-                yield break;
-            }
-
-            var pos = old.transform.position;
-            var rot = old.transform.rotation;
-            var oldName = banned != null && !string.IsNullOrEmpty(banned.cardName) ? banned.cardName : "a card";
-
-            GameObject spawned = null;
-            try
-            {
-                spawned = SpawnMethod.Invoke(choice, new object[] { replacement.gameObject, pos, rot }) as GameObject;
-            }
-            catch
-            {
-                spawned = null;
-            }
-
-            yield return null;
-            if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
-            {
-                if (spawned != null) PhotonNetwork.Destroy(spawned);
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
-                yield break;
-            }
-
-            var newView = spawned != null ? spawned.GetComponent<PhotonView>() : null;
-            if (newView == null)
-            {
-                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
-                yield break;
-            }
-
-            PhotonNetwork.Destroy(old);
-            yield return null;
-
-            NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_ConsumeUse), sniperId);
-            NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_SwapSpawned), viewId, newView.ViewID);
-            NetworkingManager.RPC(
-                typeof(DraftSniperManager),
-                nameof(RPCA_AnnounceBan),
-                PlayerLabel(sniper, sniperId),
-                oldName,
-                PlayerLabel(picker, picker.playerID));
-        }
-
-        private static CardInfo PickReplacement(Player picker, CardInfo banned)
-        {
-            var all = CardsApi.all;
-            if (all == null || all.Count == 0) return null;
-
-            var options = new List<CardInfo>();
-            foreach (var card in all)
-            {
-                if (card == null || card == banned) continue;
-                if (banned != null && string.Equals(card.cardName, banned.cardName, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    if (!CardsApi.instance.PlayerIsAllowedCard(picker, card)) continue;
-                }
-                catch
-                {
-                    continue;
-                }
-
-                options.Add(card);
-            }
-
-            if (options.Count == 0) return null;
-            return options[Random.Range(0, options.Count)];
+            CardTargetUi.ShowToast($"{sniperName} locked {cardName} from {targetName}.");
         }
 
         private static bool CanLocalSnipe(Player local)
@@ -338,6 +212,7 @@ namespace MulliganMadness.Utils
             var sniper = FindPlayer(sniperId);
             if (sniper == null || Remaining(sniper) <= 0) return false;
             if (TakeAllManager.CollectingAll) return false;
+            if (!TakeAllManager.IsOfferedHandReady()) return false;
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker == null || picker.playerID == sniperId) return false;
             return !SameTeam(sniper, picker);
@@ -346,6 +221,59 @@ namespace MulliganMadness.Utils
         private static bool SameTeam(Player a, Player b)
         {
             return a != null && b != null && a.teamID == b.teamID;
+        }
+
+        private static bool IsInOfferedHand(GameObject card)
+        {
+            var spawned = TakeAllManager.GetSpawnedCards();
+            return spawned != null && card != null && spawned.Contains(card);
+        }
+
+        private static int UnlockedReadyCount()
+        {
+            var spawned = TakeAllManager.GetReadySpawnedCards();
+            if (spawned == null) return 0;
+            var n = 0;
+            foreach (var go in spawned)
+            {
+                if (go == null || IsBlocked(go)) continue;
+                n++;
+            }
+
+            return n;
+        }
+
+        private static void ApplyLockVisual(int viewId)
+        {
+            try
+            {
+                var view = PhotonView.Find(viewId);
+                var card = view != null ? view.gameObject : null;
+                if (card == null) return;
+                if (card.GetComponentInChildren<DraftSniperLockMark>(true) != null) return;
+
+                var parent = card.GetComponentInChildren<Canvas>(true);
+                var root = parent != null ? parent.transform : card.transform;
+                var go = new GameObject("MM_DraftSniperLock", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                go.transform.SetParent(root, false);
+                go.transform.SetAsLastSibling();
+                go.AddComponent<DraftSniperLockMark>();
+
+                var rect = go.GetComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+                rect.localScale = Vector3.one;
+
+                var img = go.GetComponent<Image>();
+                img.color = new Color(0.04f, 0.04f, 0.06f, 0.78f);
+                img.raycastTarget = false;
+            }
+            catch
+            {
+                // Overlay is cosmetic; lock still blocks Pick.
+            }
         }
 
         private static void MaybeHint(Player local)
@@ -362,8 +290,8 @@ namespace MulliganMadness.Utils
             _hintHandKey = key;
             var left = Remaining(local);
             CardTargetUi.ShowToast(left == 1
-                ? "Draft Sniper: click a card to replace it."
-                : $"Draft Sniper: click a card to replace it ({left} left).");
+                ? "Draft Sniper: click a card to lock it."
+                : $"Draft Sniper: click a card to lock it ({left} left).");
         }
 
         private static GameObject CardUnderCursor()
@@ -428,6 +356,10 @@ namespace MulliganMadness.Utils
             var name = player?.data?.view?.Owner?.NickName;
             return string.IsNullOrEmpty(name) ? "Player " + (id + 1) : name;
         }
+    }
+
+    internal sealed class DraftSniperLockMark : MonoBehaviour
+    {
     }
 
     internal sealed class DraftSniperTicker : MonoBehaviour

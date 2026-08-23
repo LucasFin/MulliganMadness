@@ -11,7 +11,9 @@ namespace MulliganMadness.Patches
         private static bool Prefix(GameObject pickedCard)
         {
             if (TakeAllManager.CollectingAll) return true;
-            return !DraftSniperManager.IsBlocked(pickedCard);
+            if (!DraftSniperManager.IsBlocked(pickedCard)) return true;
+            DraftSniperManager.NotifyLockedClick();
+            return false;
         }
     }
 }

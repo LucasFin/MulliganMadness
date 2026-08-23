@@ -1,0 +1,28 @@
+---
+description: Card art style, sizes, and mini icons for Mulligan Madness
+alwaysApply: true
+---
+
+# Card art
+
+Prefer the **orange ROUNDS blob** (round orange body, stubby limbs, simple black face) as the actor or victim. Kickback, Shove, Thief, TASER, and Fumble are the look to match.
+
+## Style
+
+- Solid black background. One huge centered action filling most of the frame.
+- Thick **cream sticker outline** around the whole subject, thick black inner outlines, flat cel colors.
+- **No text** on the PNG (no title, punchline, stats, or "50%"). The card UI already shows those.
+- Limited palette. Keep it readable at a glance.
+
+## Files
+
+Every card and curse needs both:
+
+- `MulliganMadness/Art/{name}.png` at **1100x865** (Cover-fit into pick cards)
+- `MulliganMadness/Art/{name}_mini.png` at **512x512** (one simplified symbol for the top-right card bar)
+
+`{name}` is lowercase, no spaces (same string as `CardArtFactory.Create("name")`). Copy both into `package/Art/` on build. Minis are applied automatically by `CardBarMiniIcons` when `{name}_mini.png` exists.
+
+## New cards
+
+Generate full 4:3 art plus a 1:1 mini in this style. Do not ship a card with missing art or letters-only bar icons.

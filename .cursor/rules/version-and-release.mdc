@@ -1,0 +1,20 @@
+---
+description: Check live version before bumping; do not install locally or push unasked
+alwaysApply: true
+---
+
+# Version and release
+
+Before changing any version number, **look up the live version first**. Do not increment from repo files alone.
+
+Check all of these, then set the next unused number:
+
+1. Thunderstore latest: `https://thunderstore.io/api/experimental/package/LJIndustries/MulliganMadness/` (`latest.version_number`)
+2. Repo: `thunderstore.toml` `versionNumber`, `manifest.json` `version_number`, `Plugin.Version`
+3. CI: `.github/workflows/publish-thunderstore.yml` auto-increments if the chosen version is already on Thunderstore
+
+If Thunderstore is `0.3.3` and the repo still says `0.3.1`, the next ship is `0.3.4`, not `0.3.2`. Keep Plugin / toml / manifest in sync with the version that will actually publish.
+
+Do not copy build output into r2modman profiles. Package for Thunderstore only (`package/`).
+
+Do not push to `main` (or anywhere) unless the user explicitly asks in that message.

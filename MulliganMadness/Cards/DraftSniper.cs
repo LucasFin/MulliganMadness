@@ -11,7 +11,7 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "During someone else's pick, click a card in their offer to replace it. Extra copies give extra snipes.";
+            "During someone else's pick, click a card in their offer to lock it. They can't pick that one. Extra copies give extra locks.";
 
         protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Rare;
 
@@ -21,7 +21,7 @@ namespace MulliganMadness.Cards
 
         protected override CardInfoStat[] GetStats() => new[]
         {
-            CardStatApply.Stat(true, "Snipe", "+1")
+            CardStatApply.Stat(true, "Lock", "+1")
         };
 
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,

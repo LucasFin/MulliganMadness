@@ -3,7 +3,6 @@ using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Utils;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace MulliganMadness.Patches
 {
@@ -16,7 +15,6 @@ namespace MulliganMadness.Patches
     internal static class CardVisualsFxPatch
     {
         private static readonly FieldInfo PartField = AccessTools.Field(typeof(CardVisuals), "part");
-        private static readonly FieldInfo ImagesField = AccessTools.Field(typeof(CardVisuals), "images");
         private static readonly FieldInfo SelectedColorField = AccessTools.Field(typeof(CardVisuals), "selectedColor");
         private static readonly FieldInfo DefaultColorField = AccessTools.Field(typeof(CardVisuals), "defaultColor");
         private static readonly FieldInfo IsSelectedField = AccessTools.Field(typeof(CardVisuals), "isSelected");
@@ -78,31 +76,35 @@ namespace MulliganMadness.Patches
                     baseline.Captured = true;
                 }
 
-                // Sticker PNGs + online remotes: kill most vanilla art bloom for every MM card.
-                part.saturationMultiplier = baseline.Saturation * (0.12f * glow);
-                part.rate = Mathf.Max(0.01f, baseline.Rate * (0.04f + glow * 0.08f));
-                part.simulationSpeedMultiplier = isSelected
-                    ? Mathf.Min(part.simulationSpeedMultiplier, 0.2f + glow * 0.15f)
-                    : Mathf.Min(part.simulationSpeedMultiplier, 0.08f);
-
-                if (part.particleSettings != null)
+                if (glow <= 0.001f)
                 {
-                    var c = part.particleSettings.randomColor;
-                    c = Color.Lerp(c, Color.white, 0.05f);
-                    c.a = Mathf.Clamp01(c.a * (0.1f + glow * 0.15f));
-                    part.particleSettings.randomColor = c;
+                    part.saturationMultiplier = 0f;
+                    part.rate = 0f;
+                    part.simulationSpeedMultiplier = 0f;
+                    part.enabled = false;
+                    if (part.particleSettings != null)
+                    {
+                        var off = part.particleSettings.randomColor;
+                        off.a = 0f;
+                        part.particleSettings.randomColor = off;
+                    }
                 }
-            }
-
-            if (ImagesField?.GetValue(visuals) is Image[] images)
-            {
-                for (var i = 0; i < images.Length; i++)
+                else
                 {
-                    var img = images[i];
-                    if (img == null) continue;
-                    var c = img.color;
-                    c.a = Mathf.Min(c.a, 0.28f + glow * 0.2f);
-                    img.color = c;
+                    part.enabled = true;
+                    part.saturationMultiplier = baseline.Saturation * (0.12f * glow);
+                    part.rate = Mathf.Max(0.01f, baseline.Rate * (0.04f + glow * 0.08f));
+                    part.simulationSpeedMultiplier = isSelected
+                        ? Mathf.Min(part.simulationSpeedMultiplier, 0.2f + glow * 0.15f)
+                        : Mathf.Min(part.simulationSpeedMultiplier, 0.08f);
+
+                    if (part.particleSettings != null)
+                    {
+                        var c = part.particleSettings.randomColor;
+                        c = Color.Lerp(c, Color.white, 0.05f);
+                        c.a = Mathf.Clamp01(c.a * (0.1f + glow * 0.15f));
+                        part.particleSettings.randomColor = c;
+                    }
                 }
             }
 
@@ -148,7 +150,7 @@ namespace MulliganMadness.Patches
                 fx = info.cardArt.AddComponent<MmCardArtFxTag>();
                 fx.Motion = MmCardArtMotion.None;
                 fx.MovingBackground = false;
-                fx.GlowScale = 0.14f;
+                fx.GlowScale = 0f;
             }
 
             return fx;

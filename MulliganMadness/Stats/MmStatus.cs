@@ -34,8 +34,8 @@ namespace MulliganMadness.Stats
             TabInfoManager.RegisterStat(category, "Draft Sniper",
                 player => DraftSniperManager.Remaining(player) > 0,
                 player => DraftSniperManager.Remaining(player) == 1
-                    ? "Click to snipe"
-                    : DraftSniperManager.Remaining(player) + " snipes");
+                    ? "Click to lock"
+                    : DraftSniperManager.Remaining(player) + " locks");
             TabInfoManager.RegisterStat(category, "Nest Egg",
                 player => NestEggManager.ShowStat(player, EggKind.Nest),
                 player => NestEggManager.StatusText(player, EggKind.Nest));

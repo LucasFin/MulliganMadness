@@ -152,20 +152,37 @@ namespace MulliganMadness.Utils
         }
 
         private static float _lastPlantTime;
+        private static float _lastPlantLog;
         private static Vector3 _lastPlantPos;
 
-        internal static void TryPlantFromHit(ProjectileHit hit)
+        /// <summary>
+        /// RPCA_DoHit already runs on every client. Plant locally on all of them so
+        /// non-hosts see the fuse; combat applies on master only (see DynamiteCharge).
+        /// </summary>
+        internal static void TryPlantFromHit(ProjectileHit hit, Vector2 hitPoint, bool wasBlocked)
         {
-            if (hit == null) return;
-            var owner = hit.ownPlayer;
-            if (owner == null || !CurseOwnership.Has(owner, Dynamite.Card)) return;
-            if (!OwnerIsMine(hit, owner)) return;
+            try
+            {
+                if (hit == null || wasBlocked) return;
+                var owner = hit.ownPlayer;
+                if (owner == null || !CurseOwnership.Has(owner, Dynamite.Card)) return;
 
-            var pos = hit.transform != null ? hit.transform.position : owner.transform.position;
-            if ((pos - _lastPlantPos).sqrMagnitude < 0.05f && Time.time - _lastPlantTime < 0.08f) return;
-            _lastPlantTime = Time.time;
-            _lastPlantPos = pos;
-            SpawnCharge(pos, owner);
+                var pos = hitPoint;
+                if (pos == Vector2.zero && hit.transform != null) pos = hit.transform.position;
+                if ((pos - (Vector2)_lastPlantPos).sqrMagnitude < 0.05f && Time.time - _lastPlantTime < 0.08f) return;
+                _lastPlantTime = Time.time;
+                _lastPlantPos = pos;
+                SpawnCharge(pos, owner);
+                if (Time.time - _lastPlantLog > 2f)
+                {
+                    _lastPlantLog = Time.time;
+                    Plugin.Instance?.Log(
+                        $"Dynamite plant owner={owner.playerID} combatAuth={IsCombatAuthority()}");
+                }
+            }
+            catch
+            {
+            }
         }
 
         internal static void SpawnCharge(Vector3 position, Player owner)
@@ -176,18 +193,8 @@ namespace MulliganMadness.Utils
             charge.Bind(owner);
         }
 
-        private static bool OwnerIsMine(ProjectileHit hit, Player owner)
+        internal static bool IsCombatAuthority()
         {
-            try
-            {
-                var attack = hit.GetComponent<SpawnedAttack>() ?? hit.GetComponentInParent<SpawnedAttack>();
-                if (attack != null) return attack.IsMine();
-            }
-            catch
-            {
-            }
-
-            if (owner?.data?.view != null) return owner.data.view.IsMine;
             return PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient;
         }
 
@@ -327,6 +334,8 @@ namespace MulliganMadness.Utils
         private void Detonate()
         {
             DynamiteBlast.PlayBoom(transform);
+            if (!DynamiteBlast.IsCombatAuthority()) return;
+
             var origin = (Vector2)transform.position;
             var players = PlayerManager.instance?.players;
             if (players != null)
@@ -402,21 +411,12 @@ namespace MulliganMadness.Utils
         }
     }
 
-    [HarmonyPatch(typeof(ProjectileHit), "Hit")]
-    internal static class DynamiteHitPatch
-    {
-        private static void Postfix(ProjectileHit __instance)
-        {
-            DynamiteBlast.TryPlantFromHit(__instance);
-        }
-    }
-
     [HarmonyPatch(typeof(ProjectileHit), "RPCA_DoHit")]
     internal static class DynamiteRpcHitPatch
     {
-        private static void Postfix(ProjectileHit __instance)
+        private static void Postfix(ProjectileHit __instance, Vector2 hitPoint, bool wasBlocked)
         {
-            DynamiteBlast.TryPlantFromHit(__instance);
+            DynamiteBlast.TryPlantFromHit(__instance, hitPoint, wasBlocked);
         }
     }
 }

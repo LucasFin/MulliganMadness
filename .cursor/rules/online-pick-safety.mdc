@@ -33,13 +33,28 @@ Lessons from empty online picks (0.3.19–0.3.24). Follow these when touching pa
 ## Pick / IDoEndPick prefixes
 
 - Prefix `return false` only with a proven alternate path and a flag that cannot stick across picks.
-- Clear all pick-transient flags on `PlayerPickEnd` / `PickEnd`: `CollectingAll`, Draft Sniper `BlockedViews` / host queue, Take All busy/auth, votes.
+- Clear all pick-transient flags on `PlayerPickEnd` / `PickEnd`: `CollectingAll`, Draft Sniper `BlockedViews`, Take All busy/auth, votes.
 - Photon ViewIDs reuse across picks — never keep per-view bans without clearing each pick.
 - Do not skip `Pick` / `IDoEndPick` "to be safe" — that softlocks online.
 - Vanilla `Pick(null)` only starts `ReplaceCards` when `view.IsMine`. Online TDM often shows pick UI on the host with `IsMine=false` for the acting picker — **master must own ReplaceCards**; never let every client force-spawn or you stack duplicate Photon cards (ghost borders, extra flip SFX).
 - After master Instantiates, **RPC-sync `spawnedCards` ViewIDs** to all clients. Remotes see Photon visuals but `DoPlayerSelect` only reads the local list — without sync the picker cannot flip or pick (stuck face-down backs).
 
+## Combat visuals vs authority
+
+- Anything that must appear on a friend's screen (Dynamite fuse, Bozo shoes, TASER stun) hooks `ProjectileHit.RPCA_DoHit` or RPCs from **master or shooter**, never `IsMine` alone. Non-host shooters do not run `IsMine` on the host.
+- Gun stats (Shove, Confetti, Pisser, Doorstop, Yeet knockback %) go through ApplyCardStats — those are fine once the card is granted.
+- Self-kick (Yeet / Kickback) stays `IsMine`: only the owner simulates their own body.
+- Grants (Take All, Silver Egg loot, Jar of Dirt) mutate cards on master only; sync the payload so every client sees the same result.
+
+## Ghost cards / wall pierce
+
+- Extra Photon pick cards behind the offer reuse ViewIDs. `ApplyCardStats.Pick` then applies the **wrong CardInfo** on a remote (Sneaky unblockable / shots through walls, “cards we didn’t have”).
+- Never Instantiates a second offer card then Destroy the old one (old Draft Sniper replace).
+- Skip overlapping `ReplaceCards` while `isPlaying`; destroy/hide orphans near pick slots after sync.
+- Bullets through walls is usually ghost unblockable stats, not an MM projectile patch. If it happens again, check whether Sneaky (or similar) is on **both** screens.
+
 ## Online vs sandbox
 
 - Mutating shared card state / grants: `PhotonNetwork.OfflineMode || IsMasterClient` (or `IsMine` where local-only).
-- Draft Sniper replace: require `IsPicking` + offered hand ready before Spawn/Destroy into `spawnedCards`.
+- Draft Sniper is lock-only: never Spawn/Destroy into `spawnedCards`. Ban `Pick` on that ViewID; never lock the last remaining card; clear `BlockedViews` each pick.
+- Sandbox is not proof. Do not call online pick/desync “fixed” without a real 2-client match (PPI + Pick N Cards). After they quit, read BepInEx `LogOutput.log` for `PickDiag`, `ReplaceCards`, `RPCA_SyncOfferedHand`, `Pick.apply`, Draft Sniper lock, Take All, orphan destroy.

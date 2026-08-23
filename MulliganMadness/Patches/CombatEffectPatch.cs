@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using MulliganMadness.Cards;
 using MulliganMadness.Utils;
+using Photon.Pun;
 using UnboundLib;
 using UnboundLib.Networking;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace MulliganMadness.Patches
             TryTaserStun(__instance, damagingPlayer);
         }
 
-        internal static void TryBozoMark(HealthHandler health, Player damagingPlayer)
+        internal static void TryBozoMark(HealthHandler health, Player damagingPlayer, bool network = true)
         {
             if (damagingPlayer == null || health == null) return;
             var victim = health.GetComponentInParent<Player>();
@@ -30,25 +31,36 @@ namespace MulliganMadness.Patches
             if (!CurseOwnership.Has(damagingPlayer, BozoShoes.Card)) return;
 
             BozoShoesRuntime.Mark(victim);
-            if (damagingPlayer.data?.view != null && damagingPlayer.data.view.IsMine)
+            if (network && ShouldBroadcastCombat(damagingPlayer))
             {
                 NetworkingManager.RPC(typeof(CombatEffectPatch), nameof(RPCA_BozoMark), victim.playerID);
             }
         }
 
-        internal static bool TryTaserStun(HealthHandler health, Player damagingPlayer)
+        internal static bool TryTaserStun(HealthHandler health, Player damagingPlayer, bool network = true)
         {
             if (damagingPlayer == null || health == null) return false;
             var victim = health.GetComponentInParent<Player>();
-            if (victim == null || victim.playerID == damagingPlayer.playerID) return false;
+            if (victim == null) return false;
             if (!CurseOwnership.Has(damagingPlayer, TaserTaserTaser.Card)) return false;
             if (!ApplyStun(victim)) return false;
-            if (damagingPlayer.data?.view != null && damagingPlayer.data.view.IsMine)
+            if (network && ShouldBroadcastCombat(damagingPlayer))
             {
                 NetworkingManager.RPC(typeof(CombatEffectPatch), nameof(RPCA_TaserStun), victim.playerID);
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Dynamite's old bug: IsMine-only meant a non-host shooter never RPCed.
+        /// Broadcast from the shooter or the master so remotes still get the effect
+        /// when damage only runs on the host.
+        /// </summary>
+        private static bool ShouldBroadcastCombat(Player damagingPlayer)
+        {
+            if (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient) return true;
+            return damagingPlayer?.data?.view != null && damagingPlayer.data.view.IsMine;
         }
 
         internal static bool ApplyStun(Player victim)
@@ -59,9 +71,19 @@ namespace MulliganMadness.Patches
 
             victim.data.stunTime = Mathf.Max(victim.data.stunTime, TaserTaserTaser.ExtraStunSeconds);
             var stun = victim.data.stunHandler ?? victim.GetComponentInChildren<StunHandler>(true);
-            if (stun == null) return true;
-            stun.AddStun(TaserTaserTaser.ExtraStunSeconds);
-            AccessTools.Method(typeof(StunHandler), "StartStun")?.Invoke(stun, null);
+            if (stun != null)
+            {
+                stun.AddStun(TaserTaserTaser.ExtraStunSeconds);
+                try
+                {
+                    AccessTools.Method(typeof(StunHandler), "StartStun")?.Invoke(stun, null);
+                }
+                catch
+                {
+                }
+            }
+
+            Plugin.Instance?.Log($"TASER stun player={victim.playerID}");
             return true;
         }
 
@@ -126,8 +148,36 @@ namespace MulliganMadness.Patches
         private static void Postfix(ProjectileHit __instance, HitInfo hit)
         {
             if (__instance?.ownPlayer == null || hit?.transform == null) return;
-            var health = hit.transform.GetComponentInParent<HealthHandler>();
+            var health = hit.transform.GetComponentInParent<HealthHandler>()
+                         ?? hit.transform.GetComponentInChildren<HealthHandler>();
             CombatEffectPatch.TryBozoMark(health, __instance.ownPlayer);
+            CombatEffectPatch.TryTaserStun(health, __instance.ownPlayer);
+        }
+    }
+
+    /// <summary>
+    /// RPCA_DoHit runs on every client (same hook Dynamite plants from). Apply Bozo /
+    /// TASER here so a non-host's shots still mark/stun on friends' screens.
+    /// </summary>
+    [HarmonyPatch(typeof(ProjectileHit), "RPCA_DoHit")]
+    internal static class CombatRpcHitPatch
+    {
+        private static void Postfix(ProjectileHit __instance, bool wasBlocked, int viewID)
+        {
+            try
+            {
+                if (wasBlocked || __instance?.ownPlayer == null || viewID <= 0) return;
+                var view = PhotonNetwork.GetPhotonView(viewID);
+                if (view == null) return;
+            var health = view.GetComponentInChildren<HealthHandler>(true)
+                             ?? view.GetComponentInParent<HealthHandler>();
+                if (health == null) return;
+                CombatEffectPatch.TryBozoMark(health, __instance.ownPlayer, network: false);
+                CombatEffectPatch.TryTaserStun(health, __instance.ownPlayer, network: false);
+            }
+            catch
+            {
+            }
         }
     }
 }

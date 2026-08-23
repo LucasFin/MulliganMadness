@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.31
+
+- Dynamite plants and explodes on every client (the fuse used to exist only on the shooter's machine, so non-hosts saw nothing). Knockback still applies once, on the host.
+- TASER stuns on a hit, including catching your own bullet (that path used to skip self).
+- Silver Egg hatch loot is rolled once on the host and synced; remotes no longer each roll a different hand.
+- Stop leftover Photon pick cards from stacking behind the offer. Those ghosts reused ViewIDs so a friend could see/apply **Sneaky** (and wall-pierce) the host never took.
+- Draft Sniper **locks** a card in someone else's offer (they pick another). No Photon spawn/destroy — that replace path was what stacked ghost cards and applied Sneaky on the wrong client. Can't lock the last remaining card.
+- Take All now grants every offered Null card (NullManager `NullCard` visuals + Photon spawn name), instead of skipping ones that failed to encode.
+- Turn off MulliganMadness pick-card particle glow entirely.
+
 ## 0.3.30
 
 - Fix stuck face-down picks: after the master Instantiates the offer hand, sync `spawnedCards` ViewIDs to all clients so the picker can flip and select (0.3.28–0.3.29 left remotes with empty local lists).

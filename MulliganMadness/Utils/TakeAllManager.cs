@@ -26,6 +26,7 @@ namespace MulliganMadness.Utils
         private static Type _distillAcquisition;
         private static Type _powerDistillation;
         private static Type _nullCardInfo;
+        private static Type _nullCardVisual;
         private static int _lastSpawnCount;
         private static float _spawnStableSince;
         private static int _authorizedPlayerId = -1;
@@ -364,16 +365,18 @@ namespace MulliganMadness.Utils
             {
                 if (go == null) continue;
                 var source = SourceOf(go);
-                if (source == null) continue;
 
+                // NullManager swaps the visual to its NullCard prefab. Detect that even
+                // when GetSourceCard still points at the original (non-[] ) card.
                 if (IsPlaceholderCard(source, go))
                 {
                     cashOutWithNull = true;
                     var encoded = EncodeNull(source, go);
-                    if (!string.IsNullOrEmpty(encoded)) keep.Add(encoded);
+                    keep.Add(string.IsNullOrEmpty(encoded) ? NullPayloadPrefix : encoded);
                     continue;
                 }
 
+                if (source == null) continue;
                 keep.Add(EncodeCard(source));
             }
 
@@ -535,7 +538,13 @@ namespace MulliganMadness.Utils
                     }
 
                     var card = ResolveCard(payload);
-                    if (card == null || IsPlaceholderCard(card, null)) continue;
+                    if (card == null) continue;
+                    if (IsPlaceholderCard(card, null))
+                    {
+                        var asNull = ResolveNullBySourceName(GetNulledSourceName(card, null), picker);
+                        if (asNull != null) nullCards.Add(asNull);
+                        continue;
+                    }
 
                     if (IsDistillKnowledge(card, null)) knowledgeCards.Add(card);
                     else if (IsDistillPower(card, null)) powerCards.Add(card);
@@ -543,9 +552,16 @@ namespace MulliganMadness.Utils
                 }
             }
 
-            if (nullCards.Count == 0 && cashOutWithNull)
+            // Live hand is source of truth: never drop offered Nulls that failed to encode.
+            var offeredNulls = CollectOfferedNulls(picker);
+            if (offeredNulls.Count > nullCards.Count)
             {
-                nullCards.AddRange(CollectOfferedNulls(picker));
+                nullCards.Clear();
+                nullCards.AddRange(offeredNulls);
+            }
+            else if (nullCards.Count == 0 && cashOutWithNull)
+            {
+                nullCards.AddRange(offeredNulls);
             }
 
             var hasKnowledge = knowledgeCards.Count > 0;
@@ -588,6 +604,21 @@ namespace MulliganMadness.Utils
             if (nullCards.Count > 0)
             {
                 Plugin.Instance.Log($"Take All granting {nullCards.Count} Null cards for player {playerID}.");
+            }
+
+            try
+            {
+                var names = new List<string>(grant.Count);
+                foreach (var c in grant)
+                {
+                    names.Add(c != null && !string.IsNullOrEmpty(c.cardName) ? c.cardName : "?");
+                }
+
+                Plugin.Instance.Log(
+                    $"Take All grant player={playerID} count={grant.Count} cards=[{string.Join(", ", names)}]");
+            }
+            catch
+            {
             }
 
             // Simulacrum doubles ApplyStats by adding the picker twice in Pick. Take All
@@ -873,7 +904,7 @@ namespace MulliganMadness.Utils
         private static string EncodeNull(CardInfo card, GameObject visual)
         {
             var sourceName = GetNulledSourceName(card, visual);
-            if (string.IsNullOrEmpty(sourceName)) return null;
+            if (string.IsNullOrEmpty(sourceName)) return NullPayloadPrefix;
             return NullPayloadPrefix + "\n" + sourceName;
         }
 
@@ -916,6 +947,8 @@ namespace MulliganMadness.Utils
 
         private static string GetNulledSourceName(CardInfo card, GameObject visual)
         {
+            if (TryGetNullPhotonSource(visual, out var photonName)) return photonName;
+
             var info = GetNullCardInfoComponent(card, visual);
             if (info != null)
             {
@@ -939,22 +972,53 @@ namespace MulliganMadness.Utils
             return string.IsNullOrEmpty(name) ? null : name;
         }
 
+        private static bool TryGetNullPhotonSource(GameObject visual, out string sourceName)
+        {
+            sourceName = null;
+            if (visual == null || !HasNullCardVisual(visual)) return false;
+            try
+            {
+                var view = visual.GetComponent<PhotonView>();
+                var data = view?.InstantiationData;
+                if (data == null || data.Length < 1) return false;
+                if (data[0] is string name && !string.IsNullOrEmpty(name))
+                {
+                    sourceName = StripClone(name);
+                    return !string.IsNullOrEmpty(sourceName);
+                }
+            }
+            catch
+            {
+                // Photon view not ready
+            }
+
+            return false;
+        }
+
+        private static bool HasNullCardVisual(GameObject visual) =>
+            HasComponentNamed(visual, ref _nullCardVisual, "Nullmanager.NullCard");
+
         private static object GetNullCardInfoComponent(CardInfo card, GameObject visual)
         {
             _nullCardInfo ??= AccessTools.TypeByName("Nullmanager.NullCardInfo");
             if (_nullCardInfo == null) return null;
 
-            if (visual != null)
+            // Prefer the exact CardInfo instance. NullCardInfo lives on NullManager's
+            // GameObject (many per player) — GetComponent there returns the wrong one.
+            if (card != null && _nullCardInfo.IsInstanceOfType(card)) return card;
+            if (card?.sourceCard != null && _nullCardInfo.IsInstanceOfType(card.sourceCard))
             {
-                var fromVisual = visual.GetComponent(_nullCardInfo) ?? visual.GetComponentInChildren(_nullCardInfo);
-                if (fromVisual != null) return fromVisual;
+                return card.sourceCard;
             }
 
-            if (card != null && _nullCardInfo.IsInstanceOfType(card)) return card;
-            if (card?.gameObject != null)
+            if (visual != null)
             {
-                return card.gameObject.GetComponent(_nullCardInfo)
-                       ?? card.gameObject.GetComponentInChildren(_nullCardInfo);
+                var visualInfo = visual.GetComponent<CardInfo>();
+                if (visualInfo != null && _nullCardInfo.IsInstanceOfType(visualInfo)) return visualInfo;
+                if (visualInfo?.sourceCard != null && _nullCardInfo.IsInstanceOfType(visualInfo.sourceCard))
+                {
+                    return visualInfo.sourceCard;
+                }
             }
 
             return null;
@@ -963,8 +1027,32 @@ namespace MulliganMadness.Utils
         private static CardInfo ResolveNullBySourceName(string sourceName, Player picker)
         {
             sourceName = StripClone(sourceName);
-            if (string.IsNullOrEmpty(sourceName) || picker == null) return null;
+            if (picker == null) return null;
+            if (string.IsNullOrEmpty(sourceName)) return null;
 
+            var resolved = InvokeGetNullCardInfo(sourceName, picker);
+            if (resolved != null) return resolved;
+
+            // Fallback: cardName was encoded instead of the Photon prefab name.
+            try
+            {
+                var original = CardsApi.instance?.GetCardWithName(sourceName);
+                var objectName = original?.gameObject != null ? StripClone(original.gameObject.name) : null;
+                if (!string.IsNullOrEmpty(objectName) && objectName != sourceName)
+                {
+                    return InvokeGetNullCardInfo(objectName, picker);
+                }
+            }
+            catch
+            {
+                // Cards API missing that name
+            }
+
+            return null;
+        }
+
+        private static CardInfo InvokeGetNullCardInfo(string sourceName, Player picker)
+        {
             try
             {
                 var type = AccessTools.TypeByName("Nullmanager.NullManager");
@@ -991,12 +1079,29 @@ namespace MulliganMadness.Utils
 
         private static bool IsPlaceholderCard(CardInfo card, GameObject visual)
         {
-            if (card == null) return true;
-            if (HasComponentNamed(visual, ref _nullCardInfo, "Nullmanager.NullCardInfo")) return true;
-            if (HasComponentNamed(card.gameObject, ref _nullCardInfo, "Nullmanager.NullCardInfo")) return true;
+            if (HasNullCardVisual(visual)) return true;
+
+            _nullCardInfo ??= AccessTools.TypeByName("Nullmanager.NullCardInfo");
+            if (_nullCardInfo != null)
+            {
+                if (card != null && _nullCardInfo.IsInstanceOfType(card)) return true;
+                if (card?.sourceCard != null && _nullCardInfo.IsInstanceOfType(card.sourceCard)) return true;
+                if (visual != null)
+                {
+                    var visualInfo = visual.GetComponent<CardInfo>();
+                    if (visualInfo != null && _nullCardInfo.IsInstanceOfType(visualInfo)) return true;
+                    if (visualInfo?.sourceCard != null && _nullCardInfo.IsInstanceOfType(visualInfo.sourceCard))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            if (card == null) return false;
             if (NameIs(card, "Null", "NullCard", "Null Card", "nullCard", "___NULL___", "__NULL__")) return true;
 
             var cardName = (card.cardName ?? "").Trim();
+            if (cardName.StartsWith("[]", StringComparison.Ordinal)) return true;
             if (cardName.Equals("null", StringComparison.OrdinalIgnoreCase)) return true;
 
             return false;
