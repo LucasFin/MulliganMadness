@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.30
+
+- Fix stuck face-down picks: after the master Instantiates the offer hand, sync `spawnedCards` ViewIDs to all clients so the picker can flip and select (0.3.28–0.3.29 left remotes with empty local lists).
+
 ## 0.3.29
 
 - Dial back pick-card glow for **all** MulliganMadness cards (not just Nest/Silver Egg): weaker vanilla particles, moving-bg off by default, hard glow cap; eggs stay lowest.

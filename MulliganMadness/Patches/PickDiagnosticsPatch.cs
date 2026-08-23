@@ -4,16 +4,17 @@ using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Utils;
 using Photon.Pun;
+using UnboundLib;
+using UnboundLib.Networking;
 using UnityEngine;
 
 namespace MulliganMadness.Patches
 {
     /// <summary>
     /// Online pick spawn authority + diagnostics.
-    /// Vanilla Pick(null) only StartCoroutine(ReplaceCards) when view.IsMine. In RWF TDM the
-    /// host often has IsMine=false for the acting picker, so nobody spawns. Forcing ReplaceCards
-    /// on every client that passes a local IsMine/stall check double-spawns (ghost borders +
-    /// extra flip sounds). Online: only the master starts ReplaceCards.
+    /// Master alone Instantiates the offer hand (avoids stacked Photon cards). Remotes must
+    /// still receive spawnedCards ViewIDs — DoPlayerSelect only reads the local list, so
+    /// without a sync the picker sees face-down backs and cannot flip or pick.
     /// </summary>
     [HarmonyPatch]
     internal static class PickDiagnosticsPatch
@@ -25,6 +26,7 @@ namespace MulliganMadness.Patches
             AccessTools.Method(typeof(CardChoice), "ReplaceCards", new[] { typeof(GameObject), typeof(bool) });
         private static int _watchGeneration;
         private static bool _retriedThisPick;
+        private static bool _syncedThisPick;
 
         [HarmonyPatch(typeof(CardChoice), nameof(CardChoice.StartPick))]
         [HarmonyPostfix]
@@ -34,6 +36,7 @@ namespace MulliganMadness.Patches
             try
             {
                 _retriedThisPick = false;
+                _syncedThisPick = false;
                 LogSnapshot($"StartPick.Post picksToSet={picksToSet}", __instance, pickerIDToSet);
                 _watchGeneration++;
                 var gen = _watchGeneration;
@@ -81,14 +84,12 @@ namespace MulliganMadness.Patches
                     $"CardChoice.Pick threw {__exception.GetType().Name}: {__exception.Message}");
             }
 
-            // Do not swallow — Prefix already owns the null-card path.
             return __exception;
         }
 
         /// <summary>
         /// IDoEndPick calls ReplaceCards directly (bypasses Pick). Non-masters must not
-        /// Photon-Instantiate when picks&gt;0 — master + IsMine both spawning stacks hands.
-        /// picks&lt;=0 still runs (PPI DonePicking).
+        /// Photon-Instantiate when picks&gt;0. picks&lt;=0 still runs (PPI DonePicking).
         /// </summary>
         [HarmonyPatch(typeof(CardChoice), "ReplaceCards", typeof(GameObject), typeof(bool))]
         [HarmonyPrefix]
@@ -188,6 +189,8 @@ namespace MulliganMadness.Patches
 
                 LogSnapshot($"PickWatch t={delay:0.0}s", choice, choice.pickrID);
 
+                TrySyncOfferedHand(choice, "watch");
+
                 if (delay < 1.5f || _retriedThisPick) continue;
                 if (!ShouldRetrySpawn(choice)) continue;
 
@@ -195,6 +198,51 @@ namespace MulliganMadness.Patches
                 Plugin.Instance?.LogWarn(
                     "Pick spawn stalled on master — forcing ReplaceCards once.");
                 TryStartReplaceCards(choice, clear: false, reason: "stall");
+            }
+        }
+
+        private static void TrySyncOfferedHand(CardChoice choice, string reason)
+        {
+            if (_syncedThisPick) return;
+            if (choice == null || !choice.IsPicking) return;
+            if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return;
+            if (IsPlaying(choice)) return;
+            if (!TakeAllManager.IsOfferedHandReady()) return;
+
+            var ids = TakeAllManager.GetSpawnedCardViewIds();
+            if (ids == null || ids.Length == 0) return;
+
+            var picks = PicksField != null ? (int)PicksField.GetValue(choice) : 0;
+            _syncedThisPick = true;
+
+            if (PhotonNetwork.OfflineMode)
+            {
+                TakeAllManager.ApplySyncedOfferedHand(ids, picks);
+                Plugin.Instance?.Log($"Synced offered hand locally via {reason} (n={ids.Length})");
+                return;
+            }
+
+            NetworkingManager.RPC(
+                typeof(PickDiagnosticsPatch),
+                nameof(RPCA_SyncOfferedHand),
+                ids,
+                picks);
+            Plugin.Instance?.Log($"RPC SyncOfferedHand via {reason} (n={ids.Length} picks={picks})");
+        }
+
+        [UnboundRPC]
+        public static void RPCA_SyncOfferedHand(int[] viewIds, int picksRemaining)
+        {
+            try
+            {
+                TakeAllManager.ApplySyncedOfferedHand(viewIds, picksRemaining);
+                _syncedThisPick = true;
+                Plugin.Instance?.Log(
+                    $"RPCA_SyncOfferedHand applied n={viewIds?.Length ?? 0} picks={picksRemaining}");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance?.LogWarn($"RPCA_SyncOfferedHand: {ex.Message}");
             }
         }
 
@@ -231,12 +279,32 @@ namespace MulliganMadness.Patches
 
                 choice.StartCoroutine(routine);
                 Plugin.Instance?.Log($"Started ReplaceCards via {reason}");
+                if (Plugin.Instance != null)
+                {
+                    Plugin.Instance.StartCoroutine(SyncAfterReplace(reason));
+                }
+
                 return true;
             }
             catch (Exception ex)
             {
                 Plugin.Instance?.LogWarn($"ReplaceCards via {reason} failed: {ex.Message}");
                 return false;
+            }
+        }
+
+        private static IEnumerator SyncAfterReplace(string reason)
+        {
+            // Wait out PPI deal delays, then push ViewIDs once the hand is stable.
+            for (var i = 0; i < 40; i++)
+            {
+                yield return new WaitForSecondsRealtime(0.1f);
+                var choice = CardChoice.instance;
+                if (choice == null || !choice.IsPicking) yield break;
+                if (_syncedThisPick) yield break;
+                if (IsPlaying(choice)) continue;
+                TrySyncOfferedHand(choice, "after:" + reason);
+                if (_syncedThisPick) yield break;
             }
         }
 
@@ -293,7 +361,7 @@ namespace MulliganMadness.Patches
                 $"IsPicking={choice.IsPicking} isPlaying={isPlaying} IsMine={isMine} " +
                 $"CollectingAll={TakeAllManager.CollectingAll} busy={TakeAllManager.IsBusy} " +
                 $"master={PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient} " +
-                $"ready={TakeAllManager.IsOfferedHandReady()}");
+                $"ready={TakeAllManager.IsOfferedHandReady()} synced={_syncedThisPick}");
         }
     }
 }

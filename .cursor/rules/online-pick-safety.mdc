@@ -37,6 +37,7 @@ Lessons from empty online picks (0.3.19–0.3.24). Follow these when touching pa
 - Photon ViewIDs reuse across picks — never keep per-view bans without clearing each pick.
 - Do not skip `Pick` / `IDoEndPick` "to be safe" — that softlocks online.
 - Vanilla `Pick(null)` only starts `ReplaceCards` when `view.IsMine`. Online TDM often shows pick UI on the host with `IsMine=false` for the acting picker — **master must own ReplaceCards**; never let every client force-spawn or you stack duplicate Photon cards (ghost borders, extra flip SFX).
+- After master Instantiates, **RPC-sync `spawnedCards` ViewIDs** to all clients. Remotes see Photon visuals but `DoPlayerSelect` only reads the local list — without sync the picker cannot flip or pick (stuck face-down backs).
 
 ## Online vs sandbox
 
