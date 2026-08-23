@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Curses;
@@ -24,10 +25,17 @@ namespace MulliganMadness.Patches
 
         private static void Postfix(int __0, ref int __result)
         {
-            if (__result <= 1) return;
-            var picker = ResolvePicker(__0);
-            if (picker == null || !CurseOwnership.Has(picker, ShortHand.Card)) return;
-            __result = Mathf.Max(1, __result - 1);
+            try
+            {
+                if (__result <= 1) return;
+                var picker = ResolvePicker(__0);
+                if (picker == null || !CurseOwnership.Has(picker, ShortHand.Card)) return;
+                __result = Mathf.Max(1, __result - 1);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance?.LogWarn($"ShortHandDrawPatch skipped: {ex.Message}");
+            }
         }
 
         internal static Player ResolvePicker(int playerOrTeamId)

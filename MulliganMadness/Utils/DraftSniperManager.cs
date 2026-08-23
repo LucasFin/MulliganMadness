@@ -34,8 +34,17 @@ namespace MulliganMadness.Utils
 
         internal static void ResetForNewGame()
         {
-            BlockedViews.Clear();
             UsesConsumed.Clear();
+            ResetForPick();
+        }
+
+        /// <summary>
+        /// Photon ViewIDs reuse across picks. Stale BlockedViews make DraftSniperPickPatch
+        /// skip Pick forever (online softlock). Flush bans/queue every pick end.
+        /// </summary>
+        internal static void ResetForPick()
+        {
+            BlockedViews.Clear();
             HostQueue.Clear();
             _hostBusy = false;
             _clickLockUntil = 0f;
@@ -225,7 +234,9 @@ namespace MulliganMadness.Utils
 
             var picker = TakeAllManager.GetCurrentPicker();
             var choice = CardChoice.instance;
-            if (choice == null || picker == null || SpawnMethod == null)
+            // Never Spawn/Destroy into a finished or still-spawning hand (PPI race).
+            if (choice == null || !choice.IsPicking || picker == null || SpawnMethod == null
+                || !TakeAllManager.IsOfferedHandReady() || TakeAllManager.IsBusy)
             {
                 NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
                 yield break;
@@ -254,6 +265,13 @@ namespace MulliganMadness.Utils
             }
 
             yield return null;
+            if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
+            {
+                if (spawned != null) PhotonNetwork.Destroy(spawned);
+                NetworkingManager.RPC(typeof(DraftSniperManager), nameof(RPCA_Unblock), viewId);
+                yield break;
+            }
+
             var newView = spawned != null ? spawned.GetComponent<PhotonView>() : null;
             if (newView == null)
             {

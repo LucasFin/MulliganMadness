@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Cards;
@@ -19,17 +20,25 @@ namespace MulliganMadness.Patches
 
         private static void Postfix(Player player, CardInfo card, ref bool __result)
         {
-            if (!__result || player == null || card == null) return;
-            if (IsJar(card))
+            try
             {
-                __result = JarOfDirtManager.HasEligibleNulls(OfferPlayer(player));
-                return;
-            }
+                if (!__result || player == null || card == null) return;
+                if (IsJar(card))
+                {
+                    __result = JarOfDirtManager.HasEligibleNulls(OfferPlayer(player));
+                    return;
+                }
 
-            if (IsReturnToSender(card))
+                if (IsReturnToSender(card))
+                {
+                    __result = ReturnToSenderManager.SenderHasCurse(OfferPlayer(player))
+                               || ReturnToSenderManager.SenderHasCurse(player);
+                }
+            }
+            catch (Exception ex)
             {
-                __result = ReturnToSenderManager.SenderHasCurse(OfferPlayer(player))
-                           || ReturnToSenderManager.SenderHasCurse(player);
+                // Leave __result unchanged — never abort hand build / ReplaceCards online.
+                Plugin.Instance?.LogWarn($"JarOfDirtOfferPatch skipped: {ex.Message}");
             }
         }
 

@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
@@ -31,7 +32,15 @@ namespace MulliganMadness.Patches
     {
         private static void Postfix(CardInfo __instance)
         {
-            CardArtFactory.TryAssignSprite(__instance);
+            try
+            {
+                CardArtFactory.TryAssignSprite(__instance);
+            }
+            catch (Exception ex)
+            {
+                // Never throw out of CardInfo.Awake — aborts Photon card spawn online.
+                Plugin.Instance?.LogWarn($"CardInfo mini sprite skipped: {ex.Message}");
+            }
         }
     }
 

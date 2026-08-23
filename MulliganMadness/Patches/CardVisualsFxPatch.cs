@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Utils;
@@ -31,7 +32,14 @@ namespace MulliganMadness.Patches
         private static void AfterStart(CardVisuals __instance)
         {
             if (__instance == null) return;
-            Apply(__instance);
+            try
+            {
+                Apply(__instance);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance?.LogWarn($"CardVisualsFx Start skipped: {ex.Message}");
+            }
         }
 
         [HarmonyPostfix]
@@ -39,7 +47,14 @@ namespace MulliganMadness.Patches
         private static void AfterChangeSelected(CardVisuals __instance)
         {
             if (__instance == null) return;
-            Apply(__instance);
+            try
+            {
+                Apply(__instance);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance?.LogWarn($"CardVisualsFx ChangeSelected skipped: {ex.Message}");
+            }
         }
 
         private static void Apply(CardVisuals visuals)

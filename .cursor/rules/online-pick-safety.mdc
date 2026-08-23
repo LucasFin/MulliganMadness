@@ -1,0 +1,43 @@
+---
+description: Harmony / online pick safety — avoid empty offers, softlocks, and sticky pick flags
+alwaysApply: true
+---
+
+# ROUNDS / MulliganMadness Harmony & pick safety
+
+Lessons from empty online picks (0.3.19–0.3.24). Follow these when touching patches, card spawn, or pick-phase code.
+
+## Harmony / Unity Mono
+
+- Never use `readonly struct` (or anything that emits `IsReadOnlyAttribute`) in the MM assembly. Unity Mono + Harmony `PatchAll` aborts and can leave MM (or worse, other mods after bad recovery) unpatched.
+- Prefer per-type `CreateClassProcessor` + catch over bare `PatchAll` (already in `Plugin.Awake`).
+- Never `UnpatchAll()` or patch with another mod's Harmony id.
+- Soft-dep targets: `Prepare()` + null `TargetMethod`; never assume the type exists.
+
+## StartPick / children / spawnedCards
+
+- Never Destroy, Clear, or rewrite `CardChoice.children` or `spawnedCards` from `StartPick`.
+- Never mutate the offered hand while Pick Phase Improvements' `FixHandSize` / `ReplaceCards` may still be spawning.
+- Hand-size changes: only via `GetPickerDraws` (or PPI-registered injectors), never by deleting slot children.
+- Sandbox OfflineMode is not a substitute for testing with a second client + PPI + Pick N Cards.
+
+## PPI / hand injectors / allow-card hooks
+
+- Any `RegisterHandModificationFunction`, `PlayerIsAllowedCard` postfix, or `GetPickerDraws` postfix MUST try/catch and return the original hand/result on failure.
+- Exceptions in those paths abort `ReplaceCards` → empty online offers (camera + rules toast, no cards / no Take All).
+
+## Card spawn hooks
+
+- `CardInfo.Awake`, `CardVisuals.Start` / visual Postfixes MUST never throw (art, FancyIcon, particles, file IO — all best-effort).
+
+## Pick / IDoEndPick prefixes
+
+- Prefix `return false` only with a proven alternate path and a flag that cannot stick across picks.
+- Clear all pick-transient flags on `PlayerPickEnd` / `PickEnd`: `CollectingAll`, Draft Sniper `BlockedViews` / host queue, Take All busy/auth, votes.
+- Photon ViewIDs reuse across picks — never keep per-view bans without clearing each pick.
+- Do not skip `Pick` / `IDoEndPick` "to be safe" — that softlocks online.
+
+## Online vs sandbox
+
+- Mutating shared card state / grants: `PhotonNetwork.OfflineMode || IsMasterClient` (or `IsMine` where local-only).
+- Draft Sniper replace: require `IsPicking` + offered hand ready before Spawn/Destroy into `spawnedCards`.

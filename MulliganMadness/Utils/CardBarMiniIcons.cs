@@ -90,26 +90,33 @@ namespace MulliganMadness.Utils
         /// </summary>
         internal static void AttachFancyIcon(CardInfo info)
         {
-            if (info == null || !IsMmCard(info)) return;
-            var fancyType = FancyIconType();
-            if (fancyType == null) return;
-
-            string artName = null;
-            if (info.cardArt != null)
+            try
             {
-                var tag = info.cardArt.GetComponent<MmCardArtTag>();
-                if (tag != null) artName = tag.ArtName;
+                if (info == null || !IsMmCard(info)) return;
+                var fancyType = FancyIconType();
+                if (fancyType == null) return;
+
+                string artName = null;
+                if (info.cardArt != null)
+                {
+                    var tag = info.cardArt.GetComponent<MmCardArtTag>();
+                    if (tag != null) artName = tag.ArtName;
+                }
+
+                if (string.IsNullOrEmpty(artName)) return;
+                var prefab = GetOrCreateFancyPrefab(artName);
+                if (prefab == null) return;
+
+                var existing = info.gameObject.GetComponent(fancyType);
+                if (existing == null)
+                    existing = info.gameObject.AddComponent(fancyType);
+                var field = AccessTools.Field(fancyType, "fancyIcon");
+                field?.SetValue(existing, prefab);
             }
-
-            if (string.IsNullOrEmpty(artName)) return;
-            var prefab = GetOrCreateFancyPrefab(artName);
-            if (prefab == null) return;
-
-            var existing = info.gameObject.GetComponent(fancyType);
-            if (existing == null)
-                existing = info.gameObject.AddComponent(fancyType);
-            var field = AccessTools.Field(fancyType, "fancyIcon");
-            field?.SetValue(existing, prefab);
+            catch (Exception ex)
+            {
+                Plugin.Instance?.LogWarn($"AttachFancyIcon skipped: {ex.Message}");
+            }
         }
 
         private static Type FancyIconType()

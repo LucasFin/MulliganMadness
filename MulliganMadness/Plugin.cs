@@ -28,7 +28,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.3.24";
+        public const string Version = "0.3.25";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -132,7 +132,9 @@ namespace MulliganMadness
         private static IEnumerator OnPlayerPickStart(IGameModeHandler gm)
         {
             FumbleController.ResetForPick();
+            DraftSniperManager.ResetForPick();
             TakeAllManager.ClearAuthorization();
+            TakeAllManager.ClearPickTransientState();
             TakeAllManager.ApplyDeferredKnowledge();
             TakeAllButton.RefreshVisibility();
             AutoPickController.NotifyPlayerPickStarted();
@@ -150,9 +152,11 @@ namespace MulliganMadness
         private static IEnumerator OnPlayerPickEnd(IGameModeHandler gm)
         {
             FumbleController.ResetForPick();
+            DraftSniperManager.ResetForPick();
             TakeAllVoteManager.CancelIfActive("Take All vote cancelled - pick ended.");
             TakeAllManager.ClearAuthorization();
             TakeAllManager.ClearActingPicker();
+            TakeAllManager.ClearPickTransientState();
             PickAnnounceUi.HidePanic();
             TakeAllButton.RefreshVisibility();
             yield break;
@@ -161,9 +165,11 @@ namespace MulliganMadness
         private static IEnumerator OnPickEnd(IGameModeHandler gm)
         {
             FumbleController.ResetForPick();
+            DraftSniperManager.ResetForPick();
             TakeAllVoteManager.CancelIfActive("Take All vote cancelled - pick ended.");
             TakeAllManager.ClearAuthorization();
             TakeAllManager.ClearActingPicker();
+            TakeAllManager.ClearPickTransientState();
             PickAnnounceUi.HidePanic();
             TakeAllButton.Hide();
             yield break;

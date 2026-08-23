@@ -24,92 +24,99 @@ namespace MulliganMadness.Patches
 
         private static IEnumerator CollectAll(CardChoice choice, GameObject pickedCard, int theInt, int pickId)
         {
-            var spawnedField = AccessTools.Field(typeof(CardChoice), "spawnedCards");
-            var spawned = spawnedField?.GetValue(choice) as List<GameObject> ?? new List<GameObject>();
-            var speed = Traverse.Create(choice).Field("speed").GetValue<float>();
-            if (speed <= 0.01f) speed = 4f;
-
-            var endPos = CardChoiceVisuals.instance != null
-                ? CardChoiceVisuals.instance.transform.position
-                : Vector3.zero;
-            var pickedStart = pickedCard != null ? pickedCard.transform.position : endPos;
-
-            var cards = new List<GameObject>();
-            var starts = new List<Vector3>();
-            foreach (var go in spawned)
-            {
-                if (go == null) continue;
-                cards.Add(go);
-                starts.Add(go.transform.position);
-            }
-
-            float t = 0f;
-            while (t < 1f)
-            {
-                if (CardChoiceVisuals.instance != null)
-                {
-                    CardChoiceVisuals.instance.framesToSnap = 1;
-                }
-
-                t += Time.deltaTime * speed;
-                var lerp = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
-                for (var i = 0; i < cards.Count; i++)
-                {
-                    if (cards[i] == null) continue;
-                    cards[i].transform.position = Vector3.LerpUnclamped(starts[i], endPos, lerp);
-                }
-
-                if (theInt >= 0 && theInt < choice.transform.childCount)
-                {
-                    choice.transform.GetChild(theInt).position = Vector3.LerpUnclamped(pickedStart, endPos, lerp);
-                }
-
-                yield return null;
-            }
-
             try
             {
-                GamefeelManager.GameFeel((pickedStart - endPos).normalized * 2f);
-            }
-            catch
-            {
-                // Gamefeel is optional
-            }
+                var spawnedField = AccessTools.Field(typeof(CardChoice), "spawnedCards");
+                var spawned = spawnedField?.GetValue(choice) as List<GameObject> ?? new List<GameObject>();
+                var speed = Traverse.Create(choice).Field("speed").GetValue<float>();
+                if (speed <= 0.01f) speed = 4f;
 
-            foreach (var go in cards)
-            {
-                if (go == null) continue;
-                var visuals = go.GetComponentInChildren<CardVisuals>();
-                if (visuals != null) visuals.Leave();
-            }
+                var endPos = CardChoiceVisuals.instance != null
+                    ? CardChoiceVisuals.instance.transform.position
+                    : Vector3.zero;
+                var pickedStart = pickedCard != null ? pickedCard.transform.position : endPos;
 
-            yield return new WaitForSeconds(0.3f);
+                var cards = new List<GameObject>();
+                var starts = new List<Vector3>();
+                foreach (var go in spawned)
+                {
+                    if (go == null) continue;
+                    cards.Add(go);
+                    starts.Add(go.transform.position);
+                }
 
-            if (theInt >= 0 && theInt < choice.transform.childCount)
-            {
-                var child = choice.transform.GetChild(theInt);
-                var from = child.position;
-                t = 0f;
+                float t = 0f;
                 while (t < 1f)
                 {
-                    t += Time.deltaTime * speed * 1.5f;
-                    child.position = Vector3.LerpUnclamped(from, pickedStart, Mathf.Clamp01(t));
+                    if (CardChoiceVisuals.instance != null)
+                    {
+                        CardChoiceVisuals.instance.framesToSnap = 1;
+                    }
+
+                    t += Time.deltaTime * speed;
+                    var lerp = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+                    for (var i = 0; i < cards.Count; i++)
+                    {
+                        if (cards[i] == null) continue;
+                        cards[i].transform.position = Vector3.LerpUnclamped(starts[i], endPos, lerp);
+                    }
+
+                    if (theInt >= 0 && theInt < choice.transform.childCount)
+                    {
+                        choice.transform.GetChild(theInt).position = Vector3.LerpUnclamped(pickedStart, endPos, lerp);
+                    }
+
                     yield return null;
                 }
 
-                child.position = pickedStart;
-            }
-
-            spawned.Clear();
-
-            var picker = TakeAllManager.FindPlayer(pickId) ?? TakeAllManager.GetCurrentPicker();
-            if (picker != null && PlayerStatsSnapshot.IsLocallyControlled(picker))
-            {
-                var replace = AccessTools.Method(typeof(CardChoice), "ReplaceCards", new[] { typeof(GameObject), typeof(bool) });
-                if (replace != null)
+                try
                 {
-                    choice.StartCoroutine((IEnumerator)replace.Invoke(choice, new object[] { pickedCard, false }));
+                    GamefeelManager.GameFeel((pickedStart - endPos).normalized * 2f);
                 }
+                catch
+                {
+                    // Gamefeel is optional
+                }
+
+                foreach (var go in cards)
+                {
+                    if (go == null) continue;
+                    var visuals = go.GetComponentInChildren<CardVisuals>();
+                    if (visuals != null) visuals.Leave();
+                }
+
+                yield return new WaitForSeconds(0.3f);
+
+                if (theInt >= 0 && theInt < choice.transform.childCount)
+                {
+                    var child = choice.transform.GetChild(theInt);
+                    var from = child.position;
+                    t = 0f;
+                    while (t < 1f)
+                    {
+                        t += Time.deltaTime * speed * 1.5f;
+                        child.position = Vector3.LerpUnclamped(from, pickedStart, Mathf.Clamp01(t));
+                        yield return null;
+                    }
+
+                    child.position = pickedStart;
+                }
+
+                spawned.Clear();
+
+                var picker = TakeAllManager.FindPlayer(pickId) ?? TakeAllManager.GetCurrentPicker();
+                if (picker != null && PlayerStatsSnapshot.IsLocallyControlled(picker))
+                {
+                    var replace = AccessTools.Method(typeof(CardChoice), "ReplaceCards", new[] { typeof(GameObject), typeof(bool) });
+                    if (replace != null)
+                    {
+                        choice.StartCoroutine((IEnumerator)replace.Invoke(choice, new object[] { pickedCard, false }));
+                    }
+                }
+            }
+            finally
+            {
+                TakeAllManager.CollectingAll = false;
             }
         }
     }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.25
+
+- Harden pick phase: clear sticky Take All collect flag and Draft Sniper bans each pick; never-throw guards on card spawn / hand-build hooks so one bad art or allow-card path cannot empty online offers.
+
 ## 0.3.24
 
 - Fix online empty card offers: stop destroying CardChoice children on StartPick (raced Pick Phase Improvements' hand rebuild). Take All button needs a spawned hand, so it stayed hidden too.

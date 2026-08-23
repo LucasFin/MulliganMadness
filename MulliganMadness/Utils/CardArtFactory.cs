@@ -90,19 +90,27 @@ namespace MulliganMadness.Utils
 
         internal static void TryAssignSprite(CardInfo info)
         {
-            if (info == null) return;
-            string artName = null;
-            if (info.cardArt != null)
+            try
             {
-                var tag = info.cardArt.GetComponent<MmCardArtTag>();
-                if (tag != null) artName = tag.ArtName;
-            }
+                if (info == null) return;
+                string artName = null;
+                if (info.cardArt != null)
+                {
+                    var tag = info.cardArt.GetComponent<MmCardArtTag>();
+                    if (tag != null) artName = tag.ArtName;
+                }
 
-            if (string.IsNullOrEmpty(artName)) return;
-            var mini = GetMiniSprite(artName);
-            if (mini != null) info.sprite = mini;
-            // Soft-dep FancyCardBar: custom bar icon prefab beats muddy auto-gen.
-            CardBarMiniIcons.AttachFancyIcon(info);
+                if (string.IsNullOrEmpty(artName)) return;
+                var mini = GetMiniSprite(artName);
+                if (mini != null) info.sprite = mini;
+                // Soft-dep FancyCardBar: custom bar icon prefab beats muddy auto-gen.
+                CardBarMiniIcons.AttachFancyIcon(info);
+            }
+            catch (System.Exception ex)
+            {
+                // Called from CardInfo.Awake — never throw into Photon spawn.
+                Plugin.Instance?.LogWarn($"TryAssignSprite skipped: {ex.Message}");
+            }
         }
 
         internal static void BindLoadedCardInfos()

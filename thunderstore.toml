@@ -8,7 +8,7 @@ repository = "https://thunderstore.io"
 # Must match your Thunderstore team name exactly
 namespace = "LJIndustries"
 name = "MulliganMadness"
-versionNumber = "0.3.24"
+versionNumber = "0.3.25"
 description = "Adds a configurable Take All option in the pick phase, a pack of cards and curses, and a stats HUD with a tab menu."
 websiteUrl = "https://github.com/LucasFin/MulliganMadness"
 containsNsfwContent = false

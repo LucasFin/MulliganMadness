@@ -77,6 +77,18 @@ namespace MulliganMadness.Utils
             _authorizedCashOut = false;
         }
 
+        /// <summary>
+        /// Clears flags that must not stick into the next pick (Take All collect mode, busy).
+        /// Call from pick-end hooks and FinishPick failure paths.
+        /// </summary>
+        internal static void ClearPickTransientState()
+        {
+            CollectingAll = false;
+            _busy = false;
+            _lastSpawnCount = 0;
+            _spawnStableSince = 0f;
+        }
+
         internal static void NoteActingPicker(int pickerId)
         {
             _actingPickerId = pickerId;
@@ -589,10 +601,18 @@ namespace MulliganMadness.Utils
         {
             try
             {
-                if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return;
+                if (CardChoice.instance == null || !CardChoice.instance.IsPicking)
+                {
+                    CollectingAll = false;
+                    return;
+                }
 
                 var spawned = GetSpawnedCards();
-                if (spawned == null || spawned.Count == 0) return;
+                if (spawned == null || spawned.Count == 0)
+                {
+                    CollectingAll = false;
+                    return;
+                }
 
                 StripDistillAcquisitionFromHand();
 
@@ -621,6 +641,12 @@ namespace MulliganMadness.Utils
                     visual = spawned.FirstOrDefault(go => go != null);
                 }
 
+                if (visual == null)
+                {
+                    CollectingAll = false;
+                    return;
+                }
+
                 // Close the UI without ApplyCardStats.Pick - cards were already granted.
                 CollectingAll = true;
                 EndPickWithoutApplying(visual);
@@ -637,7 +663,11 @@ namespace MulliganMadness.Utils
         public static void EndPickWithoutApplying(GameObject visual)
         {
             var choice = CardChoice.instance;
-            if (choice == null || visual == null) return;
+            if (choice == null || visual == null)
+            {
+                CollectingAll = false;
+                return;
+            }
 
             var view = choice.GetComponent<PhotonView>();
             var visualView = visual.GetComponent<PhotonView>();
