@@ -1,16 +1,23 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
 using MulliganMadness.Cards;
 using Photon.Pun;
+using Sonigon;
+using SoundImplementation;
 using UnboundLib.GameModes;
 using UnityEngine;
+using CardsApi = ModdingUtils.Utils.Cards;
+using Object = UnityEngine.Object;
 
 namespace MulliganMadness.Utils
 {
     internal static class DynamiteBlast
     {
         private const string EffectName = "MM_DynamiteCharge";
+        private static SoundEvent _boom;
+        private static bool _boomResolved;
 
         internal static void RegisterHooks()
         {
@@ -21,12 +28,127 @@ namespace MulliganMadness.Utils
 
         internal static void Warmup()
         {
-            // No-op: charges are spawned on hit, not via ObjectsToSpawn cloning.
+            ResolveBoom();
         }
 
         internal static void ApplyToGun(Gun gun)
         {
             // Kept for card SetupCard/OnAddCard call sites; hit patch does the work.
+            ResolveBoom();
+        }
+
+        internal static void PlayBoom(Transform at)
+        {
+            ResolveBoom();
+            if (_boom == null || at == null) return;
+            try
+            {
+                var sm = SoundManager.Instance;
+                if (sm == null) return;
+                sm.Play(_boom, at);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void ResolveBoom()
+        {
+            if (_boomResolved && _boom != null) return;
+            _boomResolved = true;
+            try
+            {
+                var gun = FindTimedDetonationGun();
+                if (gun?.objectsToSpawn == null) return;
+                foreach (var spawn in gun.objectsToSpawn)
+                {
+                    var effect = spawn?.effect;
+                    if (effect == null) continue;
+
+                    foreach (var explosion in effect.GetComponentsInChildren<Explosion>(true))
+                    {
+                        if (explosion?.soundDamage != null)
+                        {
+                            _boom = explosion.soundDamage;
+                            return;
+                        }
+                    }
+
+                    foreach (var player in effect.GetComponentsInChildren<SoundUnityEventPlayer>(true))
+                    {
+                        if (player == null) continue;
+                        if (player.soundStart != null)
+                        {
+                            _boom = player.soundStart;
+                            return;
+                        }
+
+                        if (player.soundEnd != null)
+                        {
+                            _boom = player.soundEnd;
+                            return;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static Gun FindTimedDetonationGun()
+        {
+            CardInfo info = null;
+            try
+            {
+                info = CardsApi.instance?.GetCardWithName("Timed Detonation");
+            }
+            catch
+            {
+                info = null;
+            }
+
+            if (info == null)
+            {
+                var all = CardsApi.all;
+                if (all != null)
+                {
+                    foreach (var card in all)
+                    {
+                        if (IsTimedDetonation(card))
+                        {
+                            info = card;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (info == null)
+            {
+                foreach (var card in Resources.FindObjectsOfTypeAll<CardInfo>())
+                {
+                    if (!IsTimedDetonation(card)) continue;
+                    info = card;
+                    break;
+                }
+            }
+
+            return info == null ? null : info.GetComponent<Gun>() ?? info.GetComponentInChildren<Gun>(true);
+        }
+
+        private static bool IsTimedDetonation(CardInfo card)
+        {
+            if (card == null) return false;
+            if (!string.IsNullOrEmpty(card.cardName)
+                && card.cardName.IndexOf("Timed Detonation", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            var objectName = card.gameObject != null ? card.gameObject.name : "";
+            return objectName.IndexOf("TimedDetonation", StringComparison.OrdinalIgnoreCase) >= 0
+                   || objectName.IndexOf("Timed Detonation", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static float _lastPlantTime;
@@ -169,7 +291,6 @@ namespace MulliganMadness.Utils
         private IEnumerator Run()
         {
             var pulse = MakePulse();
-            var stick = MakeStick();
             var elapsed = 0f;
             while (elapsed < Dynamite.BlastDelay)
             {
@@ -195,25 +316,17 @@ namespace MulliganMadness.Utils
                     }
                 }
 
-                if (stick != null)
-                {
-                    var sr = stick.GetComponent<SpriteRenderer>();
-                    if (sr != null)
-                        sr.color = on ? new Color(1f, 0.95f, 0.75f, 1f) : Color.white;
-                    stick.transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(elapsed * 40f) * (8f + t * 18f));
-                }
-
                 yield return null;
             }
 
             Detonate();
             if (pulse != null) Object.Destroy(pulse);
-            if (stick != null) Object.Destroy(stick);
             Object.Destroy(gameObject);
         }
 
         private void Detonate()
         {
+            DynamiteBlast.PlayBoom(transform);
             var origin = (Vector2)transform.position;
             var players = PlayerManager.instance?.players;
             if (players != null)
@@ -259,21 +372,6 @@ namespace MulliganMadness.Utils
             sr.color = new Color(1f, 0.18f, 0.12f, 0.95f);
             sr.sortingOrder = 40;
             go.transform.localScale = Vector3.one * 0.55f;
-            return go;
-        }
-
-        private GameObject MakeStick()
-        {
-            var mini = CardArtFactory.GetMiniSprite("dynamite");
-            if (mini == null) return null;
-            var go = new GameObject("MM_DynamiteStick");
-            go.transform.SetParent(transform, false);
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localScale = Vector3.one * 0.85f;
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = mini;
-            sr.sortingOrder = 41;
-            sr.color = Color.white;
             return go;
         }
 

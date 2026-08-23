@@ -99,6 +99,10 @@
       <HintPath>$(Managed)/Photon3Unity3D.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="SonigonAudioEngine.Runtime">
+      <HintPath>$(Managed)/SonigonAudioEngine.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <ProjectReference Include="../TabInfoShim/TabInfoShim.csproj" />
   </ItemGroup>
 

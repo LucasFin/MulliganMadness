@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.22
+
+- Dynamite planted charge is the flashing circle again (no mini-art sticker overlay).
+- Dynamite boom uses Timed Detonation's explosion sound.
+
 ## 0.3.21
 
 - Cleaner card text: drop backwards stat lines, Pisser spread row, and egg "per copy" clutter.
