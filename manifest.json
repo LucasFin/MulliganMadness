@@ -1,6 +1,6 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.3.22",
+  "version_number": "0.3.23",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
   "description": "Adds a configurable Take All option in the pick phase, a pack of cards and curses, and a stats HUD with a tab menu.",
   "dependencies": [

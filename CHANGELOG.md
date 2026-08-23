@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.23
+
+- Fix Harmony startup: a `readonly struct` in card-art FX made PatchAll abort on Unity Mono, so MM pick/combat patches never applied (empty/broken online picks).
+
 ## 0.3.22
 
 - Dynamite planted charge is the flashing circle again (no mini-art sticker overlay).

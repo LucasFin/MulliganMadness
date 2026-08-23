@@ -176,11 +176,13 @@ namespace MulliganMadness.Utils
             ["nestegg"] = new FxSpec(MmCardArtMotion.None, movingBg: true, glow: 0.45f),
         };
 
-        private readonly struct FxSpec
+        // Must NOT be `readonly struct`: Unity's Mono lacks IsReadOnlyAttribute, and
+        // Harmony PatchAll scans every type — one readonly struct aborts all MM patches.
+        private struct FxSpec
         {
-            internal readonly MmCardArtMotion Motion;
-            internal readonly bool MovingBg;
-            internal readonly float Glow;
+            internal MmCardArtMotion Motion;
+            internal bool MovingBg;
+            internal float Glow;
 
             internal FxSpec(MmCardArtMotion motion, bool movingBg, float glow)
             {

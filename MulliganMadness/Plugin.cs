@@ -28,7 +28,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.3.22";
+        public const string Version = "0.3.23";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -47,7 +47,20 @@ namespace MulliganMadness
             RoundWinTracker.RegisterHooks();
             try
             {
-                new Harmony(ModId).PatchAll();
+                var harmony = new Harmony(ModId);
+                // Patch per type so one bad/unloadable type cannot abort every MM patch
+                // (Unity Mono historically chokes on IsReadOnlyAttribute from readonly structs).
+                foreach (var type in typeof(Plugin).Assembly.GetTypes())
+                {
+                    try
+                    {
+                        harmony.CreateClassProcessor(type).Patch();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning($"Harmony skip {type.FullName}: {ex.GetType().Name}: {ex.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
