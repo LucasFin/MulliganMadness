@@ -20,6 +20,8 @@ namespace MulliganMadness.Patches
         private static readonly FieldInfo ChildrenField = AccessTools.Field(typeof(CardChoice), "children");
         private static readonly FieldInfo PicksField = AccessTools.Field(typeof(CardChoice), "picks");
         private static readonly FieldInfo IsPlayingField = AccessTools.Field(typeof(CardChoice), "isPlaying");
+        private static readonly MethodInfo ReplaceCardsMethod =
+            AccessTools.Method(typeof(CardChoice), "ReplaceCards", new[] { typeof(GameObject), typeof(bool) });
         private static int _watchGeneration;
         private static bool _retriedThisPick;
 
@@ -138,16 +140,27 @@ namespace MulliganMadness.Patches
                 if (!ShouldRetrySpawn(choice)) continue;
 
                 _retriedThisPick = true;
+                // Vanilla Pick() only StartCoroutine(ReplaceCards) when view.IsMine.
+                // Online TDM often has IsMine=false on the host while pick UI still runs —
+                // calling Pick() again does nothing. Force ReplaceCards (PPI Prefix still owns it).
                 Plugin.Instance?.LogWarn(
-                    "Pick spawn stalled (IsPicking, zero cards). Clearing isPlaying and retrying Pick().");
+                    "Pick spawn stalled (IsPicking, zero cards, IsMine skipped ReplaceCards). Forcing ReplaceCards.");
                 try
                 {
                     if (IsPlayingField != null) IsPlayingField.SetValue(choice, false);
-                    choice.Pick(null, false);
+                    if (ReplaceCardsMethod == null)
+                    {
+                        Plugin.Instance?.LogWarn("ReplaceCards method missing — cannot force spawn.");
+                        continue;
+                    }
+
+                    var routine = ReplaceCardsMethod.Invoke(choice, new object[] { null, false }) as IEnumerator;
+                    if (routine != null) choice.StartCoroutine(routine);
+                    else Plugin.Instance?.LogWarn("Forced ReplaceCards returned null enumerator.");
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Instance?.LogWarn($"Pick spawn retry failed: {ex.Message}");
+                    Plugin.Instance?.LogWarn($"Forced ReplaceCards failed: {ex.Message}");
                 }
             }
         }

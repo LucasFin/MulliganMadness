@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.27
+
+- Fix online empty offers: when pick stalls with zero cards because vanilla skipped ReplaceCards (`IsMine=false` on host), force-start ReplaceCards on the master instead of calling Pick() again (which hits the same gate).
+
 ## 0.3.26
 
 - Add pick-phase diagnostics (ReplaceCards / spawn watch logs) and stricter online hand-ready checks so Draft Sniper / AutoPick cannot touch a half-built PPI hand.
