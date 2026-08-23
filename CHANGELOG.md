@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.28
+
+- Fix stacked pick cards / extra flip sounds: online, only the master starts ReplaceCards (vanilla IsMine spawn on every client was doubling Photon Instantiates after the 0.3.27 stall force).
+
 ## 0.3.27
 
 - Fix online empty offers: when pick stalls with zero cards because vanilla skipped ReplaceCards (`IsMine=false` on host), force-start ReplaceCards on the master instead of calling Pick() again (which hits the same gate).

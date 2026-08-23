@@ -36,7 +36,7 @@ Lessons from empty online picks (0.3.19–0.3.24). Follow these when touching pa
 - Clear all pick-transient flags on `PlayerPickEnd` / `PickEnd`: `CollectingAll`, Draft Sniper `BlockedViews` / host queue, Take All busy/auth, votes.
 - Photon ViewIDs reuse across picks — never keep per-view bans without clearing each pick.
 - Do not skip `Pick` / `IDoEndPick` "to be safe" — that softlocks online.
-- Vanilla `Pick(null)` only starts `ReplaceCards` when `view.IsMine`. Online TDM often shows pick UI on the host with `IsMine=false` for the acting picker — stall recovery must **force `ReplaceCards`**, not call `Pick()` again.
+- Vanilla `Pick(null)` only starts `ReplaceCards` when `view.IsMine`. Online TDM often shows pick UI on the host with `IsMine=false` for the acting picker — **master must own ReplaceCards**; never let every client force-spawn or you stack duplicate Photon cards (ghost borders, extra flip SFX).
 
 ## Online vs sandbox
 

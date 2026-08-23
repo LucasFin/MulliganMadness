@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Reflection;
 using HarmonyLib;
-using MulliganMadness.Stats;
 using MulliganMadness.Utils;
 using Photon.Pun;
 using UnityEngine;
@@ -10,9 +9,11 @@ using UnityEngine;
 namespace MulliganMadness.Patches
 {
     /// <summary>
-    /// Online empty-offer diagnostics + stall recovery.
-    /// Vanilla only starts ReplaceCards when the picker's view IsMine; if that coroutine
-    /// throws, IsPicking stays true with zero cards (camera + rules toast, no hand).
+    /// Online pick spawn authority + diagnostics.
+    /// Vanilla Pick(null) only StartCoroutine(ReplaceCards) when view.IsMine. In RWF TDM the
+    /// host often has IsMine=false for the acting picker, so nobody spawns. Forcing ReplaceCards
+    /// on every client that passes a local IsMine/stall check double-spawns (ghost borders +
+    /// extra flip sounds). Online: only the master starts ReplaceCards.
     /// </summary>
     [HarmonyPatch]
     internal static class PickDiagnosticsPatch
@@ -47,6 +48,29 @@ namespace MulliganMadness.Patches
             }
         }
 
+        /// <summary>
+        /// Intercept offer spawn (pickedCard == null). Selecting a card still uses vanilla.
+        /// Online: master alone starts ReplaceCards; other clients skip (avoids stacked hands).
+        /// </summary>
+        [HarmonyPatch(typeof(CardChoice), nameof(CardChoice.Pick))]
+        [HarmonyPrefix]
+        [HarmonyPriority(Priority.First)]
+        private static bool BeforePick(CardChoice __instance, GameObject pickedCard, bool clear)
+        {
+            if (pickedCard != null) return true;
+            if (__instance == null || !__instance.IsPicking) return false;
+
+            if (!PhotonNetwork.OfflineMode && !PhotonNetwork.IsMasterClient)
+            {
+                Plugin.Instance?.Log("Pick(null) skipped on non-master (master owns ReplaceCards).");
+                return false;
+            }
+
+            if (IsPlaying(__instance)) return false;
+
+            return !TryStartReplaceCards(__instance, clear, "Pick.Prefix");
+        }
+
         [HarmonyPatch(typeof(CardChoice), nameof(CardChoice.Pick))]
         [HarmonyFinalizer]
         private static Exception AfterPick(Exception __exception)
@@ -57,7 +81,8 @@ namespace MulliganMadness.Patches
                     $"CardChoice.Pick threw {__exception.GetType().Name}: {__exception.Message}");
             }
 
-            return null; // swallow so IsPicking softlock can still be recovered by WatchSpawn
+            // Do not swallow — Prefix already owns the null-card path.
+            return __exception;
         }
 
         [HarmonyPatch(typeof(CardChoice), "ReplaceCards", typeof(GameObject), typeof(bool))]
@@ -140,34 +165,18 @@ namespace MulliganMadness.Patches
                 if (!ShouldRetrySpawn(choice)) continue;
 
                 _retriedThisPick = true;
-                // Vanilla Pick() only StartCoroutine(ReplaceCards) when view.IsMine.
-                // Online TDM often has IsMine=false on the host while pick UI still runs —
-                // calling Pick() again does nothing. Force ReplaceCards (PPI Prefix still owns it).
                 Plugin.Instance?.LogWarn(
-                    "Pick spawn stalled (IsPicking, zero cards, IsMine skipped ReplaceCards). Forcing ReplaceCards.");
-                try
-                {
-                    if (IsPlayingField != null) IsPlayingField.SetValue(choice, false);
-                    if (ReplaceCardsMethod == null)
-                    {
-                        Plugin.Instance?.LogWarn("ReplaceCards method missing — cannot force spawn.");
-                        continue;
-                    }
-
-                    var routine = ReplaceCardsMethod.Invoke(choice, new object[] { null, false }) as IEnumerator;
-                    if (routine != null) choice.StartCoroutine(routine);
-                    else Plugin.Instance?.LogWarn("Forced ReplaceCards returned null enumerator.");
-                }
-                catch (Exception ex)
-                {
-                    Plugin.Instance?.LogWarn($"Forced ReplaceCards failed: {ex.Message}");
-                }
+                    "Pick spawn stalled on master — forcing ReplaceCards once.");
+                TryStartReplaceCards(choice, clear: false, reason: "stall");
             }
         }
 
         private static bool ShouldRetrySpawn(CardChoice choice)
         {
             if (choice == null || !choice.IsPicking) return false;
+            if (!(PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient)) return false;
+            if (IsPlaying(choice)) return false;
+
             var spawned = TakeAllManager.GetSpawnedCards();
             if (spawned != null)
             {
@@ -177,14 +186,36 @@ namespace MulliganMadness.Patches
                 }
             }
 
-            // Vanilla only starts ReplaceCards when view.IsMine. RWF / local PlayerAPI can
-            // show pick UI for a "local" picker whose Photon view is not IsMine yet — then
-            // nobody on this client spawns. Retry if MM considers them locally controlled.
-            var picker = TakeAllManager.FindPlayer(choice.pickrID) ?? TakeAllManager.GetCurrentPicker();
-            if (picker == null) return PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient;
-            return PlayerStatsSnapshot.IsLocallyControlled(picker)
-                   || PhotonNetwork.OfflineMode
-                   || PhotonNetwork.IsMasterClient;
+            return true;
+        }
+
+        private static bool TryStartReplaceCards(CardChoice choice, bool clear, string reason)
+        {
+            if (choice == null || ReplaceCardsMethod == null) return false;
+            try
+            {
+                if (IsPlayingField != null) IsPlayingField.SetValue(choice, false);
+                var routine = ReplaceCardsMethod.Invoke(choice, new object[] { null, clear }) as IEnumerator;
+                if (routine == null)
+                {
+                    Plugin.Instance?.LogWarn($"ReplaceCards invoke null ({reason})");
+                    return false;
+                }
+
+                choice.StartCoroutine(routine);
+                Plugin.Instance?.Log($"Started ReplaceCards via {reason}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance?.LogWarn($"ReplaceCards via {reason} failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool IsPlaying(CardChoice choice)
+        {
+            return IsPlayingField != null && choice != null && (bool)IsPlayingField.GetValue(choice);
         }
 
         private static void LogSnapshot(string tag, CardChoice choice, int pickerId)
@@ -198,7 +229,7 @@ namespace MulliganMadness.Patches
             var children = ChildrenField?.GetValue(choice) as Transform[];
             var spawned = TakeAllManager.GetSpawnedCards();
             var picks = PicksField != null ? (int)PicksField.GetValue(choice) : -999;
-            var isPlaying = IsPlayingField != null && (bool)IsPlayingField.GetValue(choice);
+            var isPlaying = IsPlaying(choice);
             var aliveChildren = 0;
             if (children != null)
             {
