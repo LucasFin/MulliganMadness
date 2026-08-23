@@ -1,6 +1,5 @@
 using System;
 using MulliganMadness.Curses;
-using MulliganMadness.Stats;
 using UnityEngine;
 
 namespace MulliganMadness.Utils
@@ -37,7 +36,7 @@ namespace MulliganMadness.Utils
         {
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker == null || !Has(picker, curse)) return false;
-            return PlayerStatsSnapshot.IsLocallyControlled(picker);
+            return LocalPlayerUtil.IsLocallyControlled(picker);
         }
     }
 }

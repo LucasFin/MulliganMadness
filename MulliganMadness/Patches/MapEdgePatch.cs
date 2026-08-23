@@ -1,11 +1,20 @@
+using System;
 using HarmonyLib;
-using MulliganMadness.Cards;
 using MulliganMadness.Curses;
 using MulliganMadness.Utils;
 using UnityEngine;
 
 namespace MulliganMadness.Patches
 {
+    /// <summary>
+    /// Marks the window in which a map-edge bounce is being processed, so Hard Edges can
+    /// amplify only that knockback.
+    ///
+    /// Vanilla OutOfBoundsHandler.LateUpdate only calls CallTakeForce when data.view.IsMine,
+    /// so the flag is set on the owning client alone. The Finalizer guarantees it is cleared
+    /// even if the LateUpdate body throws — a stale flag would keep multiplying unrelated
+    /// knockback for the rest of the match.
+    /// </summary>
     [HarmonyPatch(typeof(OutOfBoundsHandler), "LateUpdate")]
     internal static class MapEdgeOobFlagPatch
     {
@@ -14,68 +23,60 @@ namespace MulliganMadness.Patches
         private static void Prefix(OutOfBoundsHandler __instance)
         {
             Current = null;
-            var tr = Traverse.Create(__instance);
-            if (!IsOobFlag(tr.Field("outOfBounds").GetValue()) && !IsOobFlag(tr.Field("almostOutOfBounds").GetValue()))
+            try
             {
-                return;
+                var tr = Traverse.Create(__instance);
+                if (!IsOobFlag(tr.Field("outOfBounds").GetValue()) &&
+                    !IsOobFlag(tr.Field("almostOutOfBounds").GetValue()))
+                {
+                    return;
+                }
+
+                var data = tr.Field("data").GetValue<CharacterData>();
+                var player = data != null ? data.player : null;
+
+                var view = data?.view ?? player?.GetComponent<Photon.Pun.PhotonView>();
+                if (view == null || !view.IsMine) return;
+
+                Current = player;
             }
-            var data = tr.Field("data").GetValue<CharacterData>();
-            Current = data != null ? data.player : null;
+            catch
+            {
+                Current = null;
+            }
         }
 
-        private static bool IsOobFlag(object value)
-        {
-            if (value is bool b) return b;
-            return false;
-        }
+        private static bool IsOobFlag(object value) => value is bool b && b;
 
         private static void Postfix() => Current = null;
-    }
 
-    [HarmonyPatch(typeof(HealthHandler), nameof(HealthHandler.CallTakeDamage))]
-    internal static class MapEdgeDamagePatch
-    {
-        private static bool Prefix(HealthHandler __instance)
+        private static Exception Finalizer(Exception __exception)
         {
-            var player = MapEdgeOobFlagPatch.Current;
-            if (player == null) return true;
-            var victim = __instance.GetComponentInParent<Player>() ?? player;
-            if (victim != player) return true;
-            return !CurseOwnership.Has(player, SafetyNet.Card);
+            Current = null;
+            return __exception;
         }
     }
 
-    [HarmonyPatch(typeof(HealthHandler), "DoDamage")]
-    internal static class MapEdgeDoDamagePatch
-    {
-        private static bool Prefix(HealthHandler __instance)
-        {
-            var player = MapEdgeOobFlagPatch.Current;
-            if (player == null) return true;
-            var victim = __instance.GetComponentInParent<Player>() ?? player;
-            if (victim != player) return true;
-            return !CurseOwnership.Has(player, SafetyNet.Card);
-        }
-    }
+    /// <summary>
+    /// Hard Edges: map edges bounce you harder.
+    ///
+    /// CallTakeForce is the broadcast point (view.RPC("RPCA_SendTakeForce", RpcTarget.All)),
+    /// so the multiplier is baked into the value every client receives and only the owning
+    /// client — the one that raised it — needs to apply it.
+    /// </summary>
     [HarmonyPatch(typeof(HealthHandler), nameof(HealthHandler.CallTakeForce))]
-    internal static class KnockbackForcePatch
+    internal static class HardEdgesForcePatch
     {
-        private static void Prefix(HealthHandler __instance, ref Vector2 force, bool forceIgnoreMass)
+        private static void Prefix(HealthHandler __instance, ref Vector2 force)
         {
+            var player = MapEdgeOobFlagPatch.Current;
+            if (player == null) return;
+
             var victim = __instance.GetComponentInParent<Player>();
-            if (victim == null) return;
+            if (victim != player) return;
+            if (!CurseOwnership.Has(victim, HardEdges.Card)) return;
 
-            if (MapEdgeOobFlagPatch.Current != null
-                && MapEdgeOobFlagPatch.Current == victim
-                && CurseOwnership.Has(victim, HardEdges.Card))
-            {
-                force *= HardEdges.BounceMultiplier;
-            }
-
-            if (!BozoShoesRuntime.IsMarked(victim)) return;
-            // Self-kicks use forceIgnoreMass. Leave those alone unless this is a map-edge bounce.
-            if (forceIgnoreMass && MapEdgeOobFlagPatch.Current != victim) return;
-            force *= BozoShoes.KnockbackMultiplier;
+            force *= HardEdges.BounceMultiplier;
         }
     }
 }

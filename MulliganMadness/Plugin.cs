@@ -9,11 +9,9 @@ using MulliganMadness.Patches;
 using MulliganMadness.Stats;
 using MulliganMadness.UI;
 using MulliganMadness.Utils;
-using Photon.Pun;
 using UnboundLib;
 using UnboundLib.GameModes;
 using UnityEngine;
-using WillsWackyManagers.Utils;
 
 namespace MulliganMadness
 {
@@ -29,7 +27,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.3.31";
+        public const string Version = "0.4.0";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -46,11 +44,12 @@ namespace MulliganMadness
             SessionSettingsSync.Register();
             SessionRulesBanner.RegisterHooks();
             RoundWinTracker.RegisterHooks();
+
+            // Patch per type so one bad/unloadable type cannot abort every MM patch
+            // (Unity Mono historically chokes on IsReadOnlyAttribute from readonly structs).
             try
             {
                 var harmony = new Harmony(ModId);
-                // Patch per type so one bad/unloadable type cannot abort every MM patch
-                // (Unity Mono historically chokes on IsReadOnlyAttribute from readonly structs).
                 Type[] types;
                 try
                 {
@@ -77,7 +76,7 @@ namespace MulliganMadness
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Harmony PatchAll failed: {ex}");
+                Logger.LogError($"Harmony patching failed: {ex}");
             }
         }
 
@@ -86,13 +85,8 @@ namespace MulliganMadness
             AutoPickCurse.RegisterAll();
             CardRegistration.RegisterAll();
             CardArtFactory.BindLoadedCardInfos();
-            TakebacksiesBlacklist.EnsureGlobalBlacklist();
-            BozoShoesRuntime.RegisterHooks();
             NestEggManager.RegisterHooks();
-            DynamiteBlast.RegisterHooks();
             MmStatus.Register();
-            Instance.ExecuteAfterSeconds(0.8f, DynamiteBlast.Warmup);
-            Instance.ExecuteAfterSeconds(2.5f, DynamiteBlast.Warmup);
 
             Unbound.RegisterMenu(ModName, () => { }, DrawSettingsMenu, null, true);
             Unbound.RegisterHandshake(ModId, OnHandshake);
@@ -104,20 +98,20 @@ namespace MulliganMadness
 
             gameObject.GetOrAddComponent<TakeAllButton>();
             gameObject.GetOrAddComponent<AutoPickController>();
-            gameObject.GetOrAddComponent<StatsController>();
             gameObject.GetOrAddComponent<SessionVoteTicker>();
             gameObject.GetOrAddComponent<FumbleController>();
             gameObject.GetOrAddComponent<BlindDraftController>();
-            gameObject.GetOrAddComponent<DraftSniperTicker>();
-            StatsController.RegisterHooks();
         }
 
         private static void OnHandshake()
         {
-            if (SessionSettings.IsHost)
-            {
-                SessionSettingsSync.BroadcastToAllIfHost();
-            }
+            // Only meaningful in a room. Raising an Unbound event outside one logs
+            // "RaiseEvent(69) failed" and drops the payload.
+            if (!SessionSettings.IsHost) return;
+            if (Photon.Pun.PhotonNetwork.OfflineMode) return;
+            if (!Photon.Pun.PhotonNetwork.InRoom) return;
+
+            SessionSettingsSync.BroadcastToAllIfHost();
         }
 
         private static IEnumerator OnGameStart(IGameModeHandler gm)
@@ -127,28 +121,20 @@ namespace MulliganMadness
             MercyTakeAllManager.ResetForNewGame();
             RoundWinTracker.Reset();
             AutoPickController.ResetForNewGame();
-            StealLedger.ResetForNewGame();
-            SandbagManager.ResetForNewGame();
-            DraftSniperManager.ResetForNewGame();
             NestEggManager.ResetForNewGame();
-            BozoShoesRuntime.Clear();
-            SafetyNetEscape.Reset();
             KeysUnlockReset.Reapply();
             Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
-            Instance.ExecuteAfterSeconds(0.5f, TakebacksiesBlacklist.EnsureGlobalBlacklist);
             yield break;
         }
 
         private static IEnumerator OnPlayerPickStart(IGameModeHandler gm)
         {
             FumbleController.ResetForPick();
-            DraftSniperManager.ResetForPick();
             TakeAllManager.ClearAuthorization();
             TakeAllManager.ClearPickTransientState();
             TakeAllManager.ApplyDeferredKnowledge();
             TakeAllButton.RefreshVisibility();
             AutoPickController.NotifyPlayerPickStarted();
-            StealLedger.TryOpenDeferredThiefPrompt();
 
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker != null)
@@ -162,7 +148,6 @@ namespace MulliganMadness
         private static IEnumerator OnPlayerPickEnd(IGameModeHandler gm)
         {
             FumbleController.ResetForPick();
-            DraftSniperManager.ResetForPick();
             TakeAllVoteManager.CancelIfActive("Take All vote cancelled - pick ended.");
             TakeAllManager.ClearAuthorization();
             TakeAllManager.ClearActingPicker();
@@ -175,7 +160,6 @@ namespace MulliganMadness
         private static IEnumerator OnPickEnd(IGameModeHandler gm)
         {
             FumbleController.ResetForPick();
-            DraftSniperManager.ResetForPick();
             TakeAllVoteManager.CancelIfActive("Take All vote cancelled - pick ended.");
             TakeAllManager.ClearAuthorization();
             TakeAllManager.ClearActingPicker();
@@ -191,6 +175,7 @@ namespace MulliganMadness
         }
 
         internal void Log(string message) => Logger.LogInfo($"[{ModName}] {message}");
+
         internal void LogWarn(string message) => Logger.LogWarning($"[{ModName}] {message}");
     }
 

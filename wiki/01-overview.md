@@ -1,22 +1,25 @@
 # Overview
 
-**MulliganMadness** adds a **Take All** button during the pick phase, a pack of MulliganMadness cards and curses, and a stats HUD with a Tab menu. Built to replace **Infoholic** and **TabInfo**.
+Mulligan Madness lets a picker take the **whole offered hand** instead of one card — subject to
+the host's rules, and usually at the cost of a curse.
 
-Host match rules live in **Mods -> Mulligan Madness** and sync to the lobby. A one-line summary appears at the first card pick.
+As of 0.4.0 this mod is Take All and its curses only. Two features were split out:
 
-## Quick start
+| Was | Now |
+| --- | --- |
+| Stats HUD, Tab overlay, card-hover previews | [ProMLGStats](https://github.com/3WiseStooges/ProMLGStats) |
+| The 14 general cards | [LeanAndMeanCards](https://github.com/3WiseStooges/LeanAndMeanCards) |
 
-1. Install with r2modman / Thunderstore (dependencies come with the package).
-2. Host opens **Mods -> Mulligan Madness** and sets Take All / curse / mercy rules.
-3. Turn individual cards and curses on or off under **Toggle Cards -> MulliganMadness**.
+Nest Egg, Silver Egg and Return to Sender stayed here — they are built on Take All and curses.
 
-## Wiki pages
+## Pages
 
-- **Host settings & Take All** - match rules, vote modes, Nest Egg
-- **Cards** - full card list by rarity
-- **Curses** - curse list and how they apply
-- **Stats HUD & Tab** - HUD keys and Tab panel
+- [Host settings and Take All](02-host-settings-and-take-all.md)
+- [Curses](04-curses.md)
 
-## Works well with
+## Multiplayer
 
-Pick N Cards, PickPhaseImprovements, Genie, Root Curses / Root Nulled Cards, NullManager, KeysCards, RarityLib, WillsWackyManagers.
+Everyone in the lobby needs this mod. It does not override how ROUNDS spawns cards: the picker's
+own client builds their hand, exactly as vanilla does. Releases 0.3.27–0.3.31 did override that,
+which is what caused the glitchy picker and cards appearing on the wrong player. See
+`CHANGELOG.md` for the full account.

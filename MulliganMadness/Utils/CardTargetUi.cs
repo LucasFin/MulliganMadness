@@ -254,8 +254,8 @@ namespace MulliganMadness.Utils
                     if (player == null) continue;
                     if (!includeSelf && _actor != null && player.playerID == _actor.playerID) continue;
 
-                    var stealable = _actor != null ? StealRules.CountStealableCards(_actor, player) : 0;
-                    if (filterStealable && stealable <= 0) continue;
+                    // Steal filtering moved out with Thief; every target is offered here.
+                    var stealable = 0;
 
                     var label = BuildPlayerLabel(player, stealable, filterStealable);
                     var button = CreateGridButton(label, player);

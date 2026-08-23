@@ -6,14 +6,12 @@ using UnityEngine;
 namespace MulliganMadness.Utils
 {
     /// <summary>
-    /// Applies self-knockback opposite the gun aim for Yeet Cannon and Kickback.
+    /// Applies self-knockback opposite the gun aim for the Kickback curse.
     /// Uses Gun.Attack postfix so it stays reliable when guns are replaced mid-match.
     /// </summary>
     internal static class SelfKick
     {
-        internal const float YeetForce = 2400f;
         internal const float KickbackForce = 1700f;
-        internal const float YeetFlying = 0.32f;
         internal const float KickbackFlying = 0.22f;
 
         private static float _lastKickTime;
@@ -32,9 +30,7 @@ namespace MulliganMadness.Utils
             if (player?.data?.view == null || !player.data.view.IsMine) return;
             if (player.data.healthHandler == null) return;
 
-            var hasYeet = CurseOwnership.Has(player, YeetCannon.Card);
-            var hasKick = CurseOwnership.Has(player, Kickback.Card);
-            if (!hasYeet && !hasKick) return;
+            if (!CurseOwnership.Has(player, Kickback.Card)) return;
 
             // Attack can fire multiple internal shots; one kick per volley.
             if (player.playerID == _lastKickPlayer && Time.time - _lastKickTime < 0.05f) return;
@@ -51,19 +47,8 @@ namespace MulliganMadness.Utils
             }
 
             // Kick away from the muzzle — opposite aim — so aiming down can boost upward.
-            var forceMag = 0f;
-            var flying = 0f;
-            if (hasYeet)
-            {
-                forceMag += YeetForce;
-                flying = Mathf.Max(flying, YeetFlying);
-            }
-
-            if (hasKick)
-            {
-                forceMag += KickbackForce;
-                flying = Mathf.Max(flying, KickbackFlying);
-            }
+            var forceMag = KickbackForce;
+            var flying = KickbackFlying;
 
             var force = -aim.normalized * forceMag;
             // Upward bias so horizontal shots still hop; aiming down is a real jump.

@@ -1,60 +1,83 @@
 ---
-description: Harmony / online pick safety — avoid empty offers, softlocks, and sticky pick flags
+description: Harmony / online pick safety — avoid empty offers, softlocks, and desynced picks
 alwaysApply: true
 ---
 
 # ROUNDS / MulliganMadness Harmony & pick safety
 
-Lessons from empty online picks (0.3.19–0.3.24). Follow these when touching patches, card spawn, or pick-phase code.
+Lessons from empty online picks (0.3.19–0.3.24) and the desync those fixes caused (0.3.27–0.3.31).
 
-## Harmony / Unity Mono
+## The pick phase belongs to the game. Do not take it.
 
-- Never use `readonly struct` (or anything that emits `IsReadOnlyAttribute`) in the MM assembly. Unity Mono + Harmony `PatchAll` aborts and can leave MM (or worse, other mods after bad recovery) unpatched.
-- Prefer per-type `CreateClassProcessor` + catch over bare `PatchAll` (already in `Plugin.Awake`).
-- Never `UnpatchAll()` or patch with another mod's Harmony id.
-- Soft-dep targets: `Prepare()` + null `TargetMethod`; never assume the type exists.
+Vanilla `CardChoice.Pick`:
 
-## StartPick / children / spawnedCards
+```csharp
+else if (PlayerManager.instance.GetPlayerWithID(pickrID).data.view.IsMine)
+    StartCoroutine(ReplaceCards(pickedCard, clear));
+```
 
-- Never Destroy, Clear, or rewrite `CardChoice.children` or `spawnedCards` from `StartPick`.
-- Never mutate the offered hand while Pick Phase Improvements' `FixHandSize` / `ReplaceCards` may still be spawning.
-- Hand-size changes: only via `GetPickerDraws` (or PPI-registered injectors), never by deleting slot children.
-- Sandbox OfflineMode is not a substitute for testing with a second client + PPI + Pick N Cards.
+**The picker spawns their own hand.** `SpawnUniqueCard` uses `PhotonNetwork.Instantiate`, so
+every client receives it. `RPCA_DoEndPick` gates the follow-up `ReplaceCards` on `IsMine` too.
 
-## PPI / hand injectors / allow-card hooks
+- `IsMine == false` on the host is **correct** whenever a non-host is picking. It is not a stall,
+  and it is not a bug to fix.
+- **Never re-gate card spawning on `IsMasterClient`.** 0.3.27 did. The picker's private
+  `spawnedCards` list then stayed empty, and `CardChoice.DoPlayerSelect` returns early on
+  `spawnedCards.Count == 0`, so the picker could not select or confirm anything. It also left
+  the host Photon-owning cards for someone else's pick, whose reused ViewIDs applied card
+  effects to the wrong player.
+- **Never write `CardChoice.spawnedCards`, `children`, `picks` or `pickerType`** by reflection,
+  from an RPC, or at all. Those are authoritative game state.
+- **Never `PhotonNetwork.Destroy` an offered card.** It produces `Ev Destroy Failed` on clients
+  that still hold the view.
 
-- Any `RegisterHandModificationFunction`, `PlayerIsAllowedCard` postfix, or `GetPickerDraws` postfix MUST try/catch and return the original hand/result on failure.
-- Exceptions in those paths abort `ReplaceCards` → empty online offers (camera + rules toast, no cards / no Take All).
+If a pick genuinely comes up empty, the cause is in your own hooks — see below — not in vanilla's
+ownership model.
 
-## Card spawn hooks
+## Real causes of empty online offers, all previously hit
 
-- `CardInfo.Awake`, `CardVisuals.Start` / visual Postfixes MUST never throw (art, FancyIcon, particles, file IO — all best-effort).
+- A `readonly struct` anywhere in the assembly. Unity Mono chokes on the emitted
+  `IsReadOnlyAttribute` and a bare `PatchAll` aborts, leaving the mod unpatched (0.3.23).
+- Destroying or clearing `CardChoice.children` in a `StartPick` hook — it races Pick Phase
+  Improvements' hand rebuild (0.3.24).
+- A throw inside `ReplaceCards` / `SpawnUniqueCard` / `PlayerIsAllowedCard` / `GetPickerDraws` /
+  `CardInfo.Awake` / `CardVisuals.Start`. The coroutine dies mid-build and `isPlaying` sticks.
 
-## Pick / IDoEndPick prefixes
+## Harmony rules
 
-- Prefix `return false` only with a proven alternate path and a flag that cannot stick across picks.
-- Clear all pick-transient flags on `PlayerPickEnd` / `PickEnd`: `CollectingAll`, Draft Sniper `BlockedViews`, Take All busy/auth, votes.
-- Photon ViewIDs reuse across picks — never keep per-view bans without clearing each pick.
-- Do not skip `Pick` / `IDoEndPick` "to be safe" — that softlocks online.
-- Vanilla `Pick(null)` only starts `ReplaceCards` when `view.IsMine`. Online TDM often shows pick UI on the host with `IsMine=false` for the acting picker — **master must own ReplaceCards**; never let every client force-spawn or you stack duplicate Photon cards (ghost borders, extra flip SFX).
-- After master Instantiates, **RPC-sync `spawnedCards` ViewIDs** to all clients. Remotes see Photon visuals but `DoPlayerSelect` only reads the local list — without sync the picker cannot flip or pick (stuck face-down backs).
+- Prefer per-type `CreateClassProcessor` + catch over bare `PatchAll` (see `Plugin.Awake`).
+- Never `UnpatchAll()`, and never patch using another mod's Harmony id.
+- Soft-dep targets need `Prepare()` + a null-returning `TargetMethod`; never assume a type exists.
+- Prefer `Postfix` and `Finalizer`. A `Prefix` returning `false` on a networked method cancels it
+  on that client only.
 
-## Combat visuals vs authority
+## Networking rules
 
-- Anything that must appear on a friend's screen (Dynamite fuse, Bozo shoes, TASER stun) hooks `ProjectileHit.RPCA_DoHit` or RPCs from **master or shooter**, never `IsMine` alone. Non-host shooters do not run `IsMine` on the host.
-- Gun stats (Shove, Confetti, Pisser, Doorstop, Yeet knockback %) go through ApplyCardStats — those are fine once the card is granted.
-- Self-kick (Yeet / Kickback) stays `IsMine`: only the owner simulates their own body.
-- Grants (Take All, Silver Egg loot, Jar of Dirt) mutate cards on master only; sync the payload so every client sees the same result.
+- `HealthHandler.CallTakeDamage` and `CallTakeForce` **are** the RPC broadcast points
+  (`RpcTarget.All`). Suppressing or modifying them affects every client — but only if the client
+  that raises the RPC is the one you patched. Gate on the owner (`view.IsMine`), not on chance.
+- `HealthHandler.DoDamage` runs on **every** client from `RPCA_SendTakeDamage`. Cancelling it
+  conditionally desyncs health. Suppress at `CallTakeDamage` instead.
+- Pick exactly one authority per broadcast. "Master OR shooter" means two clients send the same
+  RPC; with additive effects like `AddStun` the result differs on every machine.
+- A static flag set in a `Prefix` and cleared in a `Postfix` needs a `Finalizer` too, or a throw
+  leaves it stuck for the rest of the match.
+- `NetworkingManager.RaiseEvent` outside a room logs `RaiseEvent(69) failed` and drops the
+  payload. Check `PhotonNetwork.InRoom` first.
+- Keep `AssemblyVersion` pinned. UnboundLib resolves RPC targets via
+  `Type.AssemblyQualifiedName`, which embeds it.
 
-## Ghost cards / wall pierce
+## Never claim another mod's plugin GUID
 
-- Extra Photon pick cards behind the offer reuse ViewIDs. `ApplyCardStats.Pick` then applies the **wrong CardInfo** on a remote (Sneaky unblockable / shots through walls, “cards we didn’t have”).
-- Never Instantiates a second offer card then Destroy the old one (old Draft Sniper replace).
-- Skip overlapping `ReplaceCards` while `isPlaying`; destroy/hide orphans near pick slots after sync.
-- Bullets through walls is usually ghost unblockable stats, not an MM projectile patch. If it happens again, check whether Sneaky (or similar) is on **both** screens.
+`[BepInPlugin]` GUIDs are identity. Shipping a stub that declares someone else's GUID (this repo
+shipped a `TabInfo.dll` claiming `com.willuwontu.rounds.tabinfo`) collides with the real mod and
+forces users to disable it. Integrate with other mods by reflection —
+`AccessTools.TypeByName` + null checks — never by shipping their assembly.
 
-## Online vs sandbox
+## Hand size and offer contents
 
-- Mutating shared card state / grants: `PhotonNetwork.OfflineMode || IsMasterClient` (or `IsMine` where local-only).
-- Draft Sniper is lock-only: never Spawn/Destroy into `spawnedCards`. Ban `Pick` on that ViewID; never lock the last remaining card; clear `BlockedViews` each pick.
-- Sandbox is not proof. Do not call online pick/desync “fixed” without a real 2-client match (PPI + Pick N Cards). After they quit, read BepInEx `LogOutput.log` for `PickDiag`, `ReplaceCards`, `RPCA_SyncOfferedHand`, `Pick.apply`, Draft Sniper lock, Take All, orphan destroy.
+- Hand-size changes go through `GetPickerDraws` or a PPI-registered injector, never by deleting
+  slot children.
+- Any `RegisterHandModificationFunction`, `PlayerIsAllowedCard` postfix, or `GetPickerDraws`
+  postfix MUST try/catch and return the original hand/result on failure.
+- Sandbox `OfflineMode` is not a substitute for testing with a second client + PPI + Pick N Cards.

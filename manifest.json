@@ -1,8 +1,8 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.3.31",
+  "version_number": "0.4.0",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
-  "description": "Adds a configurable Take All option in the pick phase, a pack of cards and curses, and a stats HUD with a tab menu.",
+  "description": "A configurable Take All option in the pick phase, with a pack of curses as the price for using it.",
   "dependencies": [
     "BepInEx-BepInExPack_ROUNDS-5.4.1900",
     "willis81808-UnboundLib-3.2.14",

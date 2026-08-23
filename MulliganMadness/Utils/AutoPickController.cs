@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using MulliganMadness.Curses;
 using MulliganMadness.Patches;
-using MulliganMadness.Stats;
 using MulliganMadness.UI;
 using UnityEngine;
 
@@ -50,7 +49,7 @@ namespace MulliganMadness.Utils
         {
             var picker = TakeAllManager.GetCurrentPicker();
             if (picker == null || picker.data?.currentCards == null) return;
-            if (!PlayerStatsSnapshot.IsLocallyControlled(picker)) return;
+            if (!LocalPlayerUtil.IsLocallyControlled(picker)) return;
 
             var mode = ResolveMode(picker);
             if (mode == AutoPickMode.None) return;
@@ -217,7 +216,7 @@ namespace MulliganMadness.Utils
         private static GameObject SelectCard(List<GameObject> spawned, AutoPickMode mode)
         {
             if (spawned == null || spawned.Count == 0) return null;
-            var open = spawned.FindAll(go => go != null && !DraftSniperManager.IsBlocked(go));
+            var open = spawned.FindAll(go => go != null);
             if (open.Count == 0) return null;
             switch (mode)
             {
@@ -259,7 +258,6 @@ namespace MulliganMadness.Utils
         {
             var choice = CardChoice.instance;
             if (choice == null || pick == null || !choice.IsPicking) return;
-            if (DraftSniperManager.IsBlocked(pick)) return;
 
             var spawned = TakeAllManager.GetSpawnedCards();
             if (spawned == null || !spawned.Contains(pick)) return;

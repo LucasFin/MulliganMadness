@@ -7,8 +7,11 @@ using CardsApi = ModdingUtils.Utils.Cards;
 
 namespace MulliganMadness.Patches
 {
+    /// <summary>
+    /// Return to Sender is only worth offering to someone who actually holds a curse to pass on.
+    /// </summary>
     [HarmonyPatch]
-    internal static class JarOfDirtOfferPatch
+    internal static class ReturnToSenderOfferPatch
     {
         private static bool Prepare() => TargetMethod() != null;
 
@@ -23,22 +26,16 @@ namespace MulliganMadness.Patches
             try
             {
                 if (!__result || player == null || card == null) return;
-                if (IsJar(card))
-                {
-                    __result = JarOfDirtManager.HasEligibleNulls(OfferPlayer(player));
-                    return;
-                }
+                if (!IsReturnToSender(card)) return;
 
-                if (IsReturnToSender(card))
-                {
-                    __result = ReturnToSenderManager.SenderHasCurse(OfferPlayer(player))
-                               || ReturnToSenderManager.SenderHasCurse(player);
-                }
+                __result = ReturnToSenderManager.SenderHasCurse(OfferPlayer(player))
+                           || ReturnToSenderManager.SenderHasCurse(player);
             }
             catch (Exception ex)
             {
-                // Leave __result unchanged — never abort hand build / ReplaceCards online.
-                Plugin.Instance?.LogWarn($"JarOfDirtOfferPatch skipped: {ex.Message}");
+                // Leave __result unchanged. A throw here aborts ReplaceCards and empties
+                // the online offer entirely.
+                Plugin.Instance?.LogWarn($"ReturnToSenderOfferPatch skipped: {ex.Message}");
             }
         }
 
@@ -53,16 +50,10 @@ namespace MulliganMadness.Patches
             return player;
         }
 
-        private static bool IsJar(CardInfo card)
-        {
-            if (JarOfDirt.Card != null && card == JarOfDirt.Card) return true;
-            return string.Equals(card.cardName, JarOfDirt.Title, System.StringComparison.OrdinalIgnoreCase);
-        }
-
         private static bool IsReturnToSender(CardInfo card)
         {
             if (ReturnToSender.Card != null && card == ReturnToSender.Card) return true;
-            return string.Equals(card.cardName, ReturnToSender.Title, System.StringComparison.OrdinalIgnoreCase);
+            return string.Equals(card.cardName, ReturnToSender.Title, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

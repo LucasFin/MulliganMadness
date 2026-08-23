@@ -25,6 +25,7 @@ namespace MulliganMadness.Utils
         public ConfigEntry<bool> EnableSandbagSimulator { get; }
         public ConfigEntry<bool> EnableJarOfDirt { get; }
         public ConfigEntry<bool> SandbagOncePerGame { get; }
+        public ConfigEntry<bool> LogPickPhase { get; }
 
         // Client-local stats UI
         public ConfigEntry<bool> EnableStatsHud { get; }
@@ -170,6 +171,12 @@ namespace MulliganMadness.Utils
                 "SandbagOncePerGame",
                 true,
                 "Limit Sandbag Simulator to once per game per player.");
+
+            LogPickPhase = config.Bind(
+                "Diagnostics",
+                "LogPickPhase",
+                false,
+                "Log a line each time a card pick starts. Only useful when reporting a bug.");
 
             // Legacy migration: old "Take All.Enabled" key
             var legacyTakeAll = config.Bind("Take All", "Enabled", true, "Deprecated - use Session Defaults.TakeAllMode.");

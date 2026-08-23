@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
-using MulliganMadness.Stats;
 using CardsApi = ModdingUtils.Utils.Cards;
 using Photon.Pun;
 using UnboundLib;
@@ -159,7 +158,7 @@ namespace MulliganMadness.Utils
         {
             if (CardChoice.instance == null || !CardChoice.instance.IsPicking) return false;
             var picker = GetCurrentPicker();
-            return picker != null && PlayerStatsSnapshot.IsLocallyControlled(picker);
+            return picker != null && LocalPlayerUtil.IsLocallyControlled(picker);
         }
 
         public static Player GetCurrentPicker()
@@ -218,7 +217,7 @@ namespace MulliganMadness.Utils
             {
                 if (player == null) continue;
                 if (lowest == null || player.playerID < lowest.playerID) lowest = player;
-                if (local == null && PlayerStatsSnapshot.IsLocallyControlled(player)) local = player;
+                if (local == null && LocalPlayerUtil.IsLocallyControlled(player)) local = player;
             }
 
             return local ?? lowest;
@@ -413,56 +412,6 @@ namespace MulliganMadness.Utils
             var choice = CardChoice.instance;
             if (choice == null) return null;
             return SpawnedCardsField?.GetValue(choice) as List<GameObject>;
-        }
-
-        /// <summary>
-        /// Master Instantiates the offer hand; remotes only get Photon objects. DoPlayerSelect
-        /// reads CardChoice.spawnedCards locally — without this sync the picker cannot flip/pick.
-        /// </summary>
-        internal static void ApplySyncedOfferedHand(int[] viewIds, int picksRemaining)
-        {
-            var choice = CardChoice.instance;
-            if (choice == null || viewIds == null || SpawnedCardsField == null) return;
-
-            try
-            {
-                var picksField = AccessTools.Field(typeof(CardChoice), "picks");
-                if (picksField != null) picksField.SetValue(choice, picksRemaining);
-
-                var list = new List<GameObject>(viewIds.Length);
-                for (var i = 0; i < viewIds.Length; i++)
-                {
-                    var view = PhotonNetwork.GetPhotonView(viewIds[i]);
-                    if (view == null || view.gameObject == null) continue;
-                    var go = view.gameObject;
-                    var pub = go.GetComponent<PublicInt>() ?? go.AddComponent<PublicInt>();
-                    pub.theInt = i;
-                    list.Add(go);
-                }
-
-                SpawnedCardsField.SetValue(choice, list);
-                _lastSpawnCount = list.Count;
-                _spawnStableSince = Time.unscaledTime;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Instance?.LogWarn($"ApplySyncedOfferedHand: {ex.Message}");
-            }
-        }
-
-        internal static int[] GetSpawnedCardViewIds()
-        {
-            var spawned = GetSpawnedCards();
-            if (spawned == null || spawned.Count == 0) return Array.Empty<int>();
-            var ids = new List<int>(spawned.Count);
-            foreach (var go in spawned)
-            {
-                if (go == null) continue;
-                var view = go.GetComponent<PhotonView>();
-                if (view != null) ids.Add(view.ViewID);
-            }
-
-            return ids.ToArray();
         }
 
         public static List<GameObject> GetReadySpawnedCards()

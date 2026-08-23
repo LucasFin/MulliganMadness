@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using ModdingUtils.Utils;
@@ -18,12 +19,25 @@ namespace MulliganMadness.Patches
             StampMm(__instance);
         }
 
+        // Five different hooks can report the same card addition (Cards.SilentAddToCardBar ->
+        // CardBarUtils.SilentAddToCardBar -> CardBar.AddCard, plus FancyCardBar's own pass).
+        // Without this guard one added card triggered up to fifteen full-bar sweeps.
+        private static readonly HashSet<CardBar> PendingBars = new HashSet<CardBar>();
+
         internal static void StampMm(CardBar bar)
         {
+            if (bar == null) return;
             CardBarMiniIcons.ApplyAllMmOnBar(bar);
+
             if (Unbound.Instance == null) return;
+            if (!PendingBars.Add(bar)) return;
+
             Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyAllMmOnBar(bar));
-            Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyAllMmOnBar(bar));
+            Unbound.Instance.ExecuteAfterFrames(8, () =>
+            {
+                CardBarMiniIcons.ApplyAllMmOnBar(bar);
+                PendingBars.Remove(bar);
+            });
         }
     }
 
