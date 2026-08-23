@@ -20,8 +20,7 @@ namespace MulliganMadness.Cards
 
         protected override CardInfoStat[] GetStats() => new[]
         {
-            CardStatApply.Stat(true, "On hit", "Clown shoes"),
-            CardStatApply.Stat(false, "Marked knockback", "+50%")
+            CardStatApply.Stat(false, "Knockback", "+50%")
         };
     }
 }

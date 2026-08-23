@@ -28,9 +28,7 @@ namespace MulliganMadness.Cards
 
         protected override CardInfoStat[] GetStats() => new[]
         {
-            CardStatApply.Stat(true, "Damage", "+20%"),
-            CardStatApply.Stat(true, "Delayed blast", "Small"),
-            CardStatApply.Stat(true, "Blast knockback", "Huge")
+            CardStatApply.Stat(true, "Damage", "+20%")
         };
 
         public override void SetupCard(CardInfo cardInfo, Gun gun, ApplyCardStats cardStats, CharacterStatModifiers statModifiers)

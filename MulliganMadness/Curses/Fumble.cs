@@ -20,7 +20,7 @@ namespace MulliganMadness.Curses
             new CardInfoStat
             {
                 positive = false,
-                stat = "Fumble",
+                stat = "Fumble chance",
                 amount = "50%",
                 simepleAmount = CardInfoStat.SimpleAmount.notAssigned
             }

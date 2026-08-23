@@ -19,16 +19,7 @@ namespace MulliganMadness.Cards
 
         protected override GameObject GetCardArt() => CardArtFactory.Create("takebacksies");
 
-        protected override CardInfoStat[] GetStats() => new[]
-        {
-            new CardInfoStat
-            {
-                positive = true,
-                stat = "Takeback",
-                amount = "Stolen card",
-                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
-            }
-        };
+        protected override CardInfoStat[] GetStats() => System.Array.Empty<CardInfoStat>();
 
         public override bool GetEnabled() => true;
 

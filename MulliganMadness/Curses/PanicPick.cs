@@ -15,15 +15,6 @@ namespace MulliganMadness.Curses
 
         protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Uncommon;
 
-        protected override CardInfoStat[] GetStats() => new[]
-        {
-            new CardInfoStat
-            {
-                positive = false,
-                stat = "Pick timer",
-                amount = "Short",
-                simepleAmount = CardInfoStat.SimpleAmount.slightlyLower
-            }
-        };
+        protected override CardInfoStat[] GetStats() => System.Array.Empty<CardInfoStat>();
     }
 }

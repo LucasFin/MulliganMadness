@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.21
+
+- Cleaner card text: drop backwards stat lines, Pisser spread row, and egg "per copy" clutter.
+- Bozo Shoes: yellow BOZO label over the head plus small shoes (no more giant card-mini squares).
+
 ## 0.3.20
 
 - Stop rewriting other mods' card-bar icons (FancyCardBar silhouettes).

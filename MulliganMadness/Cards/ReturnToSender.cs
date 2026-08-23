@@ -11,17 +11,13 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "Give your Mulligan Madness curse to a player of your choosing. If they already have one, they keep theirs and still get yours. Only offered if you have a curse.";
+            "Give your curse to another player, they deserve it.";
 
         protected override CardInfo.Rarity GetRarity() => RarityHelper.Unique;
 
         protected override GameObject GetCardArt() => CardArtFactory.Create("returntosender");
 
-        protected override CardInfoStat[] GetStats() => new[]
-        {
-            CardStatApply.Stat(true, "Your curse", "Moved"),
-            CardStatApply.Stat(false, "Target", "Keeps existing curse")
-        };
+        protected override CardInfoStat[] GetStats() => System.Array.Empty<CardInfoStat>();
 
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
             Gravity gravity, Block block, CharacterStatModifiers characterStats)

@@ -17,23 +17,7 @@ namespace MulliganMadness.Cards
 
         protected override GameObject GetCardArt() => CardArtFactory.Create("sandbag");
 
-        protected override CardInfoStat[] GetStats() => new[]
-        {
-            new CardInfoStat
-            {
-                positive = true,
-                stat = "Reroll",
-                amount = "Any player",
-                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
-            },
-            new CardInfoStat
-            {
-                positive = false,
-                stat = "Limit",
-                amount = "Session setting",
-                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
-            }
-        };
+        protected override CardInfoStat[] GetStats() => System.Array.Empty<CardInfoStat>();
 
         public override bool GetEnabled() => true;
 

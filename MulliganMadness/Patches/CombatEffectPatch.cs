@@ -119,4 +119,15 @@ namespace MulliganMadness.Patches
             hit.stun += TaserTaserTaser.ExtraStunSeconds;
         }
     }
+
+    [HarmonyPatch(typeof(ProjectileHit), "Hit")]
+    internal static class BozoProjectileHitPatch
+    {
+        private static void Postfix(ProjectileHit __instance, HitInfo hit)
+        {
+            if (__instance?.ownPlayer == null || hit?.transform == null) return;
+            var health = hit.transform.GetComponentInParent<HealthHandler>();
+            CombatEffectPatch.TryBozoMark(health, __instance.ownPlayer);
+        }
+    }
 }

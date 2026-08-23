@@ -20,7 +20,7 @@ namespace MulliganMadness.Cards
 
         protected override CardInfoStat[] GetStats() => new[]
         {
-            CardStatApply.Stat(true, "Stun on hit", "+0.5s"),
+            CardStatApply.Stat(true, "Stun", "+0.5s"),
             CardStatApply.Stat(true, "Attack speed", "+15%"),
             CardStatApply.Stat(false, "Ammo", "-1")
         };

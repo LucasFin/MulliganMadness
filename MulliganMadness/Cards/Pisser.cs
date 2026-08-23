@@ -21,7 +21,6 @@ namespace MulliganMadness.Cards
         {
             CardStatApply.Stat(true, "Ammo", "+4"),
             CardStatApply.Stat(true, "Attack speed", "+40%"),
-            CardStatApply.Stat(true, "Spread", "None"),
             CardStatApply.Stat(false, "Damage", "-20%")
         };
 

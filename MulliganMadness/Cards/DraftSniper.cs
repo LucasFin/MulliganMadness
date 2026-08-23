@@ -21,8 +21,7 @@ namespace MulliganMadness.Cards
 
         protected override CardInfoStat[] GetStats() => new[]
         {
-            CardStatApply.Stat(true, "Snipe", "Click an offer"),
-            CardStatApply.Stat(true, "Per copy", "1 snipe")
+            CardStatApply.Stat(true, "Snipe", "+1")
         };
 
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,

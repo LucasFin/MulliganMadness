@@ -17,23 +17,7 @@ namespace MulliganMadness.Cards
 
         protected override GameObject GetCardArt() => CardArtFactory.Create("thief");
 
-        protected override CardInfoStat[] GetStats() => new[]
-        {
-            new CardInfoStat
-            {
-                positive = true,
-                stat = "Steal",
-                amount = "1 card",
-                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
-            },
-            new CardInfoStat
-            {
-                positive = false,
-                stat = "Uses",
-                amount = "Once per game",
-                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
-            }
-        };
+        protected override CardInfoStat[] GetStats() => System.Array.Empty<CardInfoStat>();
 
         public override bool GetEnabled() => true;
 

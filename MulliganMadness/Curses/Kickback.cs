@@ -24,13 +24,6 @@ namespace MulliganMadness.Curses
                 stat = "Damage",
                 amount = "+25%",
                 simepleAmount = CardInfoStat.SimpleAmount.Some
-            },
-            new CardInfoStat
-            {
-                positive = false,
-                stat = "Recoil",
-                amount = "Strong self kick",
-                simepleAmount = CardInfoStat.SimpleAmount.notAssigned
             }
         };
 

@@ -24,9 +24,8 @@ namespace MulliganMadness.Cards
 
         protected override CardInfoStat[] GetStats() => new[]
         {
-            CardStatApply.Stat(true, "Hatch", "3 rounds"),
-            CardStatApply.Stat(true, "Take All", "Curse-free"),
-            CardStatApply.Stat(true, "Per copy", "+1")
+            CardStatApply.Stat(true, "after 3 rounds", "Hatch"),
+            CardStatApply.Stat(true, "Take All", "Curse-free")
         };
 
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
