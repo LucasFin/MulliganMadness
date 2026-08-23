@@ -8,8 +8,9 @@ using UnityEngine.UI;
 namespace MulliganMadness.Patches
 {
     /// <summary>
-    /// Softens vanilla CardVisuals particle glow for MulliganMadness cards, and tints
+    /// Softens (or kills) vanilla CardVisuals particle glow for MulliganMadness cards, and tints
     /// MmMovingCardBackground from the card theme colors.
+    /// Stacked Photon cards + Nest Egg yellow art made remote views wash out white.
     /// </summary>
     [HarmonyPatch(typeof(CardVisuals))]
     internal static class CardVisualsFxPatch
@@ -77,17 +78,18 @@ namespace MulliganMadness.Patches
                     baseline.Captured = true;
                 }
 
-                part.saturationMultiplier = baseline.Saturation * (0.5f * glow);
-                part.rate = Mathf.Max(0.04f, baseline.Rate * (0.3f + glow * 0.45f));
+                // Sticker PNGs + online remotes: kill most vanilla art bloom for every MM card.
+                part.saturationMultiplier = baseline.Saturation * (0.12f * glow);
+                part.rate = Mathf.Max(0.01f, baseline.Rate * (0.04f + glow * 0.08f));
                 part.simulationSpeedMultiplier = isSelected
-                    ? Mathf.Min(part.simulationSpeedMultiplier, 0.5f + glow * 0.35f)
-                    : Mathf.Min(part.simulationSpeedMultiplier, 0.22f);
+                    ? Mathf.Min(part.simulationSpeedMultiplier, 0.2f + glow * 0.15f)
+                    : Mathf.Min(part.simulationSpeedMultiplier, 0.08f);
 
                 if (part.particleSettings != null)
                 {
                     var c = part.particleSettings.randomColor;
-                    c = Color.Lerp(c, Color.white, 0.28f);
-                    c.a = Mathf.Clamp01(c.a * (0.4f + glow * 0.35f));
+                    c = Color.Lerp(c, Color.white, 0.05f);
+                    c.a = Mathf.Clamp01(c.a * (0.1f + glow * 0.15f));
                     part.particleSettings.randomColor = c;
                 }
             }
@@ -99,13 +101,19 @@ namespace MulliganMadness.Patches
                     var img = images[i];
                     if (img == null) continue;
                     var c = img.color;
-                    c.a = Mathf.Min(c.a, 0.5f + glow * 0.35f);
+                    c.a = Mathf.Min(c.a, 0.28f + glow * 0.2f);
                     img.color = c;
                 }
             }
 
             var moving = visuals.GetComponentInChildren<MmMovingCardBackground>(true);
             if (moving == null) return;
+
+            if (!fx.MovingBackground)
+            {
+                moving.enabled = false;
+                return;
+            }
 
             var selected = SelectedColorField != null
                 ? (Color)SelectedColorField.GetValue(visuals)
@@ -115,8 +123,10 @@ namespace MulliganMadness.Patches
                 : selected;
             var tint = isSelected ? selected : def;
             if (tint.maxColorComponent < 0.05f) tint = selected;
+            // Cap brightness so any saturated theme cannot wash the art out.
+            var max = Mathf.Max(tint.r, tint.g, tint.b);
+            if (max > 0.4f) tint *= 0.4f / max;
             moving.SetTint(tint);
-            // Ambient drift stays on (vanilla art particles often loop while parked).
             moving.enabled = true;
         }
 
@@ -128,7 +138,20 @@ namespace MulliganMadness.Patches
             var info = visuals.GetComponentInParent<CardInfo>();
             if (info == null) info = visuals.GetComponent<CardInfo>();
             if (info?.cardArt == null) return null;
-            return info.cardArt.GetComponent<MmCardArtFxTag>();
+
+            fx = info.cardArt.GetComponent<MmCardArtFxTag>();
+            if (fx != null) return fx;
+
+            // Fallback: any MM factory art still gets glow cut even if AttachToTemplate was skipped.
+            if (info.cardArt.GetComponent<MmCardArtTag>() != null)
+            {
+                fx = info.cardArt.AddComponent<MmCardArtFxTag>();
+                fx.Motion = MmCardArtMotion.None;
+                fx.MovingBackground = false;
+                fx.GlowScale = 0.14f;
+            }
+
+            return fx;
         }
     }
 }

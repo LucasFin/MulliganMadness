@@ -85,9 +85,19 @@ namespace MulliganMadness.Patches
             return __exception;
         }
 
+        /// <summary>
+        /// IDoEndPick calls ReplaceCards directly (bypasses Pick). Non-masters must not
+        /// Photon-Instantiate when picks&gt;0 — master + IsMine both spawning stacks hands.
+        /// picks&lt;=0 still runs (PPI DonePicking).
+        /// </summary>
         [HarmonyPatch(typeof(CardChoice), "ReplaceCards", typeof(GameObject), typeof(bool))]
         [HarmonyPrefix]
-        private static void BeforeReplaceCards(CardChoice __instance, GameObject pickedCard, bool clear)
+        [HarmonyPriority(Priority.First)]
+        private static bool BeforeReplaceCards(
+            CardChoice __instance,
+            GameObject pickedCard,
+            bool clear,
+            ref IEnumerator __result)
         {
             try
             {
@@ -100,6 +110,23 @@ namespace MulliganMadness.Patches
             {
                 Plugin.Instance?.LogWarn($"PickDiagnostics ReplaceCards.Pre: {ex.Message}");
             }
+
+            if (PhotonNetwork.OfflineMode || PhotonNetwork.IsMasterClient) return true;
+
+            var picks = PicksField != null && __instance != null
+                ? (int)PicksField.GetValue(__instance)
+                : 0;
+            if (picks <= 0) return true;
+
+            Plugin.Instance?.Log(
+                "ReplaceCards spawn skipped on non-master (master owns Instantiates).");
+            __result = SkipReplaceCards();
+            return false;
+        }
+
+        private static IEnumerator SkipReplaceCards()
+        {
+            yield break;
         }
 
         [HarmonyPatch(typeof(CardChoice), "ReplaceCards", typeof(GameObject), typeof(bool))]

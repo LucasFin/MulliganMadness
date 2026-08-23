@@ -20,7 +20,8 @@ namespace MulliganMadness.Utils
     {
         public MmCardArtMotion Motion;
         public bool MovingBackground;
-        public float GlowScale = 0.4f;
+        /// <summary>Vanilla particle / border bloom scale. Keep low — sticker PNGs wash out easily.</summary>
+        public float GlowScale = 0.14f;
     }
 
     /// <summary>
@@ -33,13 +34,13 @@ namespace MulliganMadness.Utils
         private const int BlobCount = 5;
         private Image[] _blobs;
         private Vector2[] _seeds;
-        private Color _tint = new Color(1f, 0.55f, 0.15f, 0.22f);
+        private Color _tint = new Color(1f, 0.55f, 0.15f, 0.05f);
         private bool _built;
 
         internal void SetTint(Color themeColor)
         {
             _tint = themeColor;
-            _tint.a = 0.2f;
+            _tint.a = 0.05f;
             if (_blobs == null) return;
             foreach (var img in _blobs)
             {
@@ -158,23 +159,26 @@ namespace MulliganMadness.Utils
 
     internal static class CardArtFx
     {
+        // Glow values are multipliers into CardVisualsFxPatch (already harsh). Keep ≤0.16 for all.
         private static readonly Dictionary<string, FxSpec> Specs = new Dictionary<string, FxSpec>
         {
-            // Chaotic / high-energy — moving bg + shake
-            ["dynamite"] = new FxSpec(MmCardArtMotion.EnergeticShake, movingBg: true, glow: 0.32f),
-            ["yeetcannon"] = new FxSpec(MmCardArtMotion.EnergeticShake, movingBg: true, glow: 0.35f),
-            ["kickback"] = new FxSpec(MmCardArtMotion.EnergeticShake, movingBg: true, glow: 0.35f),
-            ["tasertasertaser"] = new FxSpec(MmCardArtMotion.Jitter, movingBg: true, glow: 0.3f),
-            ["fumble"] = new FxSpec(MmCardArtMotion.Jitter, movingBg: false, glow: 0.38f),
-            ["bozoshoes"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: true, glow: 0.4f),
-            ["shove"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0.4f),
-            ["thief"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0.42f),
-            ["confetti"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: true, glow: 0.38f),
-            // Themed energy without spam
-            ["returntosender"] = new FxSpec(MmCardArtMotion.None, movingBg: true, glow: 0.4f),
-            ["silveregg"] = new FxSpec(MmCardArtMotion.None, movingBg: true, glow: 0.45f),
-            ["nestegg"] = new FxSpec(MmCardArtMotion.None, movingBg: true, glow: 0.45f),
+            // Chaotic / high-energy — shake only; moving bg off (was washing remotes).
+            ["dynamite"] = new FxSpec(MmCardArtMotion.EnergeticShake, movingBg: false, glow: 0.14f),
+            ["yeetcannon"] = new FxSpec(MmCardArtMotion.EnergeticShake, movingBg: false, glow: 0.14f),
+            ["kickback"] = new FxSpec(MmCardArtMotion.EnergeticShake, movingBg: false, glow: 0.14f),
+            ["tasertasertaser"] = new FxSpec(MmCardArtMotion.Jitter, movingBg: false, glow: 0.12f),
+            ["fumble"] = new FxSpec(MmCardArtMotion.Jitter, movingBg: false, glow: 0.14f),
+            ["bozoshoes"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0.14f),
+            ["shove"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0.14f),
+            ["thief"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0.14f),
+            ["confetti"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0.14f),
+            ["returntosender"] = new FxSpec(MmCardArtMotion.None, movingBg: false, glow: 0.14f),
+            // Bright yellow sticker art — lowest glow.
+            ["silveregg"] = new FxSpec(MmCardArtMotion.None, movingBg: false, glow: 0.1f),
+            ["nestegg"] = new FxSpec(MmCardArtMotion.None, movingBg: false, glow: 0.1f),
         };
+
+        private const float DefaultGlow = 0.14f;
 
         // Must NOT be `readonly struct`: Unity's Mono lacks IsReadOnlyAttribute, and
         // Harmony PatchAll scans every type — one readonly struct aborts all MM patches.
@@ -202,12 +206,13 @@ namespace MulliganMadness.Utils
             fx.MovingBackground = spec.MovingBg;
             fx.GlowScale = spec.Glow;
 
-            // Default: gentle glow cut for every MM card, even without a Specs entry.
+            // Every MM card (including Art/ orphans not listed in Specs) gets a hard glow cut.
             if (!Specs.ContainsKey(artName))
-                fx.GlowScale = 0.42f;
+                fx.GlowScale = DefaultGlow;
 
             ApplyMotion(root, spec.Motion);
 
+            // Moving bg is opt-in only; default off so PNG stickers stay readable online.
             if (spec.MovingBg)
             {
                 var bg = root.GetComponent<MmMovingCardBackground>()
@@ -218,12 +223,12 @@ namespace MulliganMadness.Utils
         }
 
         internal static float GlowScaleFor(MmCardArtFxTag fx) =>
-            fx != null ? Mathf.Clamp(fx.GlowScale, 0.15f, 1f) : 0.42f;
+            fx != null ? Mathf.Clamp(fx.GlowScale, 0.05f, 0.28f) : DefaultGlow;
 
         private static FxSpec Resolve(string artName)
         {
             if (Specs.TryGetValue(artName, out var spec)) return spec;
-            return new FxSpec(MmCardArtMotion.None, movingBg: false, glow: 0.42f);
+            return new FxSpec(MmCardArtMotion.None, movingBg: false, glow: DefaultGlow);
         }
 
         private static void ApplyMotion(GameObject root, MmCardArtMotion motion)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.29
+
+- Dial back pick-card glow for **all** MulliganMadness cards (not just Nest/Silver Egg): weaker vanilla particles, moving-bg off by default, hard glow cap; eggs stay lowest.
+- Also block non-master `ReplaceCards` when it would Instantiates (IDoEndPick bypasses Pick) so orphan card backs cannot stick into the fight.
+
 ## 0.3.28
 
 - Fix stacked pick cards / extra flip sounds: online, only the master starts ReplaceCards (vanilla IsMine spawn on every client was doubling Photon Instantiates after the 0.3.27 stall force).
