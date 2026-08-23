@@ -14,13 +14,15 @@ namespace MulliganMadness.Patches
     {
         private static void Postfix(CardBar __instance)
         {
-            CardBarMiniIcons.ApplyToLatestButton(__instance);
-            // FancyCardBar paints after AddCard — stamp again a few frames later.
-            if (Unbound.Instance != null)
-            {
-                Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyToLatestButton(__instance));
-                Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyToLatestButton(__instance));
-            }
+            StampMm(__instance);
+        }
+
+        internal static void StampMm(CardBar bar)
+        {
+            CardBarMiniIcons.ApplyAllMmOnBar(bar);
+            if (Unbound.Instance == null) return;
+            Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyAllMmOnBar(bar));
+            Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyAllMmOnBar(bar));
         }
     }
 
@@ -56,13 +58,7 @@ namespace MulliganMadness.Patches
         {
             try
             {
-                var bar = CardBarUtils.instance.PlayersCardBar(playerID);
-                CardBarMiniIcons.ApplyToLatestButton(bar);
-                if (Unbound.Instance != null)
-                {
-                    Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyToLatestButton(bar));
-                    Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyToLatestButton(bar));
-                }
+                CardBarMiniIconPatch.StampMm(CardBarUtils.instance.PlayersCardBar(playerID));
             }
             catch
             {
@@ -88,13 +84,7 @@ namespace MulliganMadness.Patches
         {
             try
             {
-                var bar = CardBarUtils.instance.PlayersCardBar(playerID);
-                CardBarMiniIcons.ApplyToLatestButton(bar);
-                if (Unbound.Instance != null)
-                {
-                    Unbound.Instance.ExecuteAfterFrames(2, () => CardBarMiniIcons.ApplyToLatestButton(bar));
-                    Unbound.Instance.ExecuteAfterFrames(8, () => CardBarMiniIcons.ApplyToLatestButton(bar));
-                }
+                CardBarMiniIconPatch.StampMm(CardBarUtils.instance.PlayersCardBar(playerID));
             }
             catch
             {
@@ -120,6 +110,25 @@ namespace MulliganMadness.Patches
             var field = AccessTools.Field(__instance.GetType(), "card");
             var card = field?.GetValue(__instance) as CardInfo;
             CardBarMiniIcons.Apply(mb.gameObject, card);
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class FancyIconAdderMiniPatch
+    {
+        private static bool Prepare() => TargetMethod() != null;
+
+        private static MethodBase TargetMethod()
+        {
+            var type = AccessTools.TypeByName("FancyCardBar.Patches.FancyIconAdder");
+            return type == null ? null : AccessTools.Method(type, "addIcon", new[] { typeof(CardBar) });
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPriority(Priority.Last)]
+        private static void Postfix(CardBar __0)
+        {
+            CardBarMiniIconPatch.StampMm(__0);
         }
     }
 }

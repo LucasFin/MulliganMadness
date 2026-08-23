@@ -384,7 +384,9 @@ namespace MulliganMadness.UI
 
         private static bool AssignBlockText(TextMeshProUGUI block, string text)
         {
-            if (block == null || block.text == text) return false;
+            if (block == null) return false;
+            block.lineSpacing = 4f;
+            if (block.text == text) return false;
             block.text = text;
             return true;
         }
@@ -455,7 +457,7 @@ namespace MulliganMadness.UI
                 var text = StatsUiHelper.CreateText(blockGo.transform, "Text", "", StatsUiHelper.BaseFont);
                 text.enableWordWrapping = true;
                 text.overflowMode = TextOverflowModes.Overflow;
-                text.lineSpacing = -2f;
+                text.lineSpacing = 4f;
                 text.rectTransform.anchorMin = new Vector2(0f, 0f);
                 text.rectTransform.anchorMax = new Vector2(1f, 1f);
                 text.rectTransform.offsetMin = new Vector2(10f, 8f);

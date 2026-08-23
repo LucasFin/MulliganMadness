@@ -17,7 +17,7 @@ namespace MulliganMadness.UI
 
         internal static Color AccentColor => new Color(0.78f, 0.80f, 0.84f);
         internal static Color TitleColor => new Color(0.93f, 0.94f, 0.96f, 0.98f);
-        internal static Color HintColor => new Color(0.62f, 0.65f, 0.70f, 0.88f);
+        internal static Color HintColor => new Color(0.84f, 0.87f, 0.92f, 0.96f);
         internal static Color PanelColor => new Color(0.07f, 0.08f, 0.10f, 0.90f);
         internal static Color BlockColor => new Color(1f, 1f, 1f, 0.04f);
         internal static Color ButtonFill => new Color(1f, 1f, 1f, 0.07f);

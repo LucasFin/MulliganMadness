@@ -7,9 +7,9 @@ namespace MulliganMadness.UI
 {
     internal static class StatsViewBuilder
     {
-        private static readonly Color LabelColor = new Color(0.96f, 0.97f, 0.99f, 1f);
+        private static readonly Color LabelColor = new Color(1f, 1f, 1f, 1f);
         private static readonly Color ValueColor = new Color(1f, 1f, 1f, 1f);
-        private static readonly Color SectionColor = new Color(0.88f, 0.90f, 0.94f, 1f);
+        private static readonly Color SectionColor = new Color(0.94f, 0.95f, 0.97f, 1f);
 
         internal static string BuildHud(PlayerStatsSnapshot snap, bool simple, PlayerStatsSnapshot baseline, PlayerStatsSnapshot preview, IEnumerable<(string category, string label, string value)> extensions, string headerSuffix = null, bool omitHealthDelta = false, bool pickHoverMode = false)
         {
@@ -174,7 +174,10 @@ namespace MulliganMadness.UI
 
         private static void AppendSection(StringBuilder sb, string title)
         {
-            sb.Append("<size=88%><color=#").Append(ColorToHex(SectionColor)).Append(">").Append(title).Append("</color></size>").AppendLine();
+            sb.AppendLine();
+            sb.Append("<size=90%><b><color=#").Append(ColorToHex(SectionColor)).Append(">— ")
+                .Append(title)
+                .Append(" —</color></b></size>").AppendLine();
         }
 
         private static readonly (string label, string key)[] PreviewExtraStats =
@@ -263,7 +266,7 @@ namespace MulliganMadness.UI
             return diff.ToString("F1");
         }
 
-        private static string Label(string text) => $"<color=#{ColorToHex(LabelColor)}>{text}</color>";
+        private static string Label(string text) => $"<color=#{ColorToHex(LabelColor)}><b>{text}</b></color>";
         private static string Value(string text) => $"<color=#{ColorToHex(ValueColor)}><b>{text}</b></color>";
 
         private static string MapKey(string label)

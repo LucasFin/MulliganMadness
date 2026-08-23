@@ -17,7 +17,7 @@ namespace MulliganMadness.Cards
         protected override string GetTitle() => Title;
 
         protected override string GetDescription() =>
-            "Bullets plant a small delayed blast on hit, including bounces. Weak boom, but anyone in the radius goes flying.";
+            "Bullets plant a small delayed blast on hit, including bounces. Weak boom, but players and loose objects in the radius go flying.";
 
         protected override CardInfo.Rarity GetRarity() => CardInfo.Rarity.Uncommon;
 

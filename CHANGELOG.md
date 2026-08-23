@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.20
+
+- Stop rewriting other mods' card-bar icons (FancyCardBar silhouettes).
+- Stats category headers are spaced and labeled so Combat / Mobility / Projectile read as groups.
+- Dynamite blast now shoves boxes, hanging props, and other loose physics objects.
+- TASER TASER TASER actually stuns on hit.
+
 ## 0.3.19
 
 - Clearer card-bar minis: transparent cropped icons, FancyCardBar `FancyIcon` soft-dep, strip RGB rainbow overlays.

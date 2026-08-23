@@ -86,6 +86,7 @@ namespace MulliganMadness.UI
             if (_root == null || _body == null) return;
             _root.SetActive(true);
 
+            _body.lineSpacing = 2f;
             _body.fontSize = StatsUiHelper.BaseFont;
             _body.color = Color.white;
             _body.outlineWidth = 0.35f;

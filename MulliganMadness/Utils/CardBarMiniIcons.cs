@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -14,23 +15,40 @@ namespace MulliganMadness.Utils
         private static GameObject _fancyHolder;
         private static Type _fancyIconType;
         private static bool _fancyResolved;
+        private static readonly FieldInfo CardField = AccessTools.Field(typeof(CardBarButton), "card");
+
+        internal static bool IsMmCard(CardInfo card)
+        {
+            if (card?.cardArt == null) return false;
+            return card.cardArt.GetComponent<MmCardArtTag>() != null;
+        }
 
         internal static void ApplyToLatestButton(CardBar bar)
         {
+            ApplyAllMmOnBar(bar);
+        }
+
+        internal static void ApplyAllMmOnBar(CardBar bar)
+        {
             if (bar == null) return;
             var t = bar.transform;
-            if (t.childCount < 1) return;
-            var go = t.GetChild(t.childCount - 1).gameObject;
-            var button = go.GetComponent<CardBarButton>();
-            if (button == null) return;
-            var cardField = AccessTools.Field(typeof(CardBarButton), "card");
-            var card = cardField?.GetValue(button) as CardInfo;
-            Apply(go, card);
+            for (var i = 0; i < t.childCount; i++)
+            {
+                var go = t.GetChild(i).gameObject;
+                var button = go.GetComponent<CardBarButton>();
+                if (button == null) continue;
+                var card = CardField?.GetValue(button) as CardInfo;
+                Apply(go, card);
+            }
         }
 
         internal static void Apply(GameObject button, CardInfo card)
         {
             if (button == null || card == null) return;
+            // FancyCardBar owns every other mod's icons. Touching those buttons
+            // (disabling RGB overlays / TMP) blanked the whole bar.
+            if (!IsMmCard(card)) return;
+
             CardArtFactory.TryAssignSprite(card);
             AttachFancyIcon(card);
 
@@ -43,11 +61,7 @@ namespace MulliganMadness.Utils
                 tmp.text = "";
             }
 
-            // FancyCardBar's I_RGB / RGBColorShift rainbow overlays muddy our stickers.
             StripFancyOverlays(button);
-
-            // Prefer a single clean overlay — do NOT stamp every Image (that paints the
-            // chromatic RGB copies FancyCardBar may have added).
             EnsureCleanOverlay(button, sprite);
 
             if (card.sprite == null)
@@ -67,7 +81,7 @@ namespace MulliganMadness.Utils
                 }
             }
 
-            return card.sprite;
+            return IsMmCard(card) ? card.sprite : null;
         }
 
         /// <summary>
@@ -76,7 +90,7 @@ namespace MulliganMadness.Utils
         /// </summary>
         internal static void AttachFancyIcon(CardInfo info)
         {
-            if (info == null) return;
+            if (info == null || !IsMmCard(info)) return;
             var fancyType = FancyIconType();
             if (fancyType == null) return;
 
@@ -153,7 +167,6 @@ namespace MulliganMadness.Utils
         {
             if (button == null) return;
 
-            // Disable rainbow hue shifters (I_RGB).
             foreach (var mb in button.GetComponentsInChildren<MonoBehaviour>(true))
             {
                 if (mb == null) continue;
@@ -163,8 +176,6 @@ namespace MulliganMadness.Utils
                     mb.gameObject.SetActive(false);
             }
 
-            // Hide auto-generated blankIcon clones that nest a shrunk full cardArt copy.
-            // Keep our MM_MiniIcon and any FancyIcon instance that is just an Image sprite.
             for (var i = button.transform.childCount - 1; i >= 0; i--)
             {
                 var child = button.transform.GetChild(i);
@@ -172,15 +183,10 @@ namespace MulliganMadness.Utils
                 if (child.name == ChildName) continue;
                 if (child.name.StartsWith("MM_FancyBarIcon_", StringComparison.Ordinal)) continue;
 
-                // genIcons path: blank template containing Instantiated cardArt (has MmCardArtTag).
                 if (child.GetComponentInChildren<MmCardArtTag>(true) != null)
                 {
                     child.gameObject.SetActive(false);
-                    continue;
                 }
-
-                // Extra Image stacks FancyCardBar sometimes leaves behind — mute non-ours.
-                // Leave the button's own Graphic (frame) alone.
             }
         }
 
