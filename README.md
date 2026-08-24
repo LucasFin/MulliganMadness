@@ -14,12 +14,11 @@ Mulligan Madness used to also ship a stats HUD and a general card pack. Those no
 their own mods. Install them alongside this one if you want the old setup back:
 
 - [**LeanAndMeanCards**](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/):
-  the extra cards (Confetti, Shove, Takebacksies, Dynamite, Thief, Nest Egg, Silver Egg, and the rest)
+  the extra cards (Confetti, Shove, Takebacksies, Dynamite, Thief, and the rest)
 - [**ProMLGStats**](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/):
   live stats HUD, Tab overlay, and card-hover previews
 
-This mod is Take All, its curses, and **Return to Sender**. Nest Egg and Silver Egg live in
-LeanAndMeanCards.
+This mod is Take All, its curses, **Nest Egg**, and **Return to Sender**.
 
 ## Host session settings
 
@@ -45,8 +44,8 @@ On your pick, **Take All** grabs every card in the current offer.
   rules as a normal vote.
 - **Take All inflicts a curse**: grabbing the whole hand also gives you a random curse.
 
-A curse-free bonus Take All (from **Nest Egg** in LeanAndMeanCards) does not spend a session
-use and does not inflict a curse.
+A curse-free bonus Take All from **Nest Egg** does not spend a session use and does not
+inflict a curse.
 
 ## Curses
 
@@ -70,9 +69,10 @@ use and does not inflict a curse.
 
 ## Cards
 
-**Return to Sender** stays here because it is built around curses. Nest Egg and Silver Egg
-are in [LeanAndMeanCards](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/).
+**Nest Egg** stays here because it is a curse-free Take All. **Return to Sender** stays
+because it is built around curses. Silver Egg is out of this pack.
 
 | | |
 | :---: | --- |
+| <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/nestegg_mini.png" width="72" alt="Nest Egg"> | **Nest Egg** (Legendary): after 3 rounds, gain 1 curse-free Take All. Extra copies each hatch another. |
 | <img src="https://raw.githubusercontent.com/LucasFin/MulliganMadness/main/package/Art/returntosender_mini.png" width="72" alt="Return to Sender"> | **Return to Sender** (Unique): only offered if you have a curse. Give that curse to another player. |

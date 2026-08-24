@@ -136,7 +136,7 @@ namespace MulliganMadness.Utils
         }
 
         /// <summary>
-        /// Extra curse-free Take Alls granted by other mods (LeanAndMeanCards Nest Egg).
+        /// Extra curse-free Take Alls granted by Nest Egg (and other mods).
         /// </summary>
         public static int BonusCount(Player player)
         {

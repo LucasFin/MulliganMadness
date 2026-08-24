@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.6
+
+- Bring **Nest Egg** back. It hatches a curse-free Take All after 3 rounds, so it belongs
+  in this mod. Silver Egg stays out.
+- Nest Egg full art and mini icon have no glow (flat sticker, black background).
+
 ## 0.4.5
 
 - Thunderstore icon: original TAKE ALL card fan with the green blob in the corner.

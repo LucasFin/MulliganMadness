@@ -172,6 +172,7 @@ namespace MulliganMadness.Utils
             ["thief"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0f),
             ["confetti"] = new FxSpec(MmCardArtMotion.SubtleShake, movingBg: false, glow: 0f),
             ["returntosender"] = new FxSpec(MmCardArtMotion.None, movingBg: false, glow: 0f),
+            ["nestegg"] = new FxSpec(MmCardArtMotion.None, movingBg: false, glow: 0f),
         };
 
         private const float DefaultGlow = 0f;

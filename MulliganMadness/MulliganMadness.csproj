@@ -11,7 +11,7 @@
          assembly version. Keep AssemblyVersion pinned so clients on adjacent releases can
          still exchange events; bump Version for releases instead. -->
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <Version>0.4.5</Version>
+    <Version>0.4.6</Version>
   </PropertyGroup>
 
   <!-- Paths. Override on the command line, e.g.

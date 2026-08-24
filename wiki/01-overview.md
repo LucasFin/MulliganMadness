@@ -10,8 +10,8 @@ As of 0.4.0 this mod is Take All and its curses. Two features were split out:
 | Stats HUD, Tab overlay, card-hover previews | [ProMLGStats](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/) |
 | The 14 general cards | [LeanAndMeanCards](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) |
 
-Return to Sender stays here; it is built on curses. Nest Egg and Silver Egg moved to
-LeanAndMeanCards in 0.4.4.
+Return to Sender and Nest Egg stay here. Nest Egg is a curse-free Take All, so it belongs
+with this mod. Silver Egg is out of this pack.
 
 ## Pages
 

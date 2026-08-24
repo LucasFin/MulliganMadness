@@ -47,6 +47,10 @@ namespace MulliganMadness.Stats
                     player => CurseOwnership.Has(player, ShortHand.Card),
                     _ => "One fewer card per offer");
 
+                Stat("Nest Egg",
+                    player => NestEggManager.ShowStat(player),
+                    player => NestEggManager.StatusText(player));
+
                 Plugin.Instance?.Log("Registered Mulligan Madness statuses with TabInfo.");
             }
             catch (Exception ex)
