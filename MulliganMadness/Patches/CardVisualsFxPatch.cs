@@ -3,6 +3,7 @@ using System.Reflection;
 using HarmonyLib;
 using MulliganMadness.Utils;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MulliganMadness.Patches
 {
@@ -26,6 +27,25 @@ namespace MulliganMadness.Patches
             public bool Captured;
         }
 
+        private sealed class GlowGuard : MonoBehaviour
+        {
+            private CardVisuals _visuals;
+
+            private void Awake() => _visuals = GetComponent<CardVisuals>();
+
+            private void LateUpdate()
+            {
+                if (_visuals == null) return;
+                try
+                {
+                    Apply(_visuals, keepParticlesDown: true);
+                }
+                catch
+                {
+                }
+            }
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch("Start")]
         private static void AfterStart(CardVisuals __instance)
@@ -33,7 +53,9 @@ namespace MulliganMadness.Patches
             if (__instance == null) return;
             try
             {
-                Apply(__instance);
+                Apply(__instance, keepParticlesDown: true);
+                if (IsMmVisual(__instance) && __instance.GetComponent<GlowGuard>() == null)
+                    __instance.gameObject.AddComponent<GlowGuard>();
             }
             catch (Exception ex)
             {
@@ -48,7 +70,7 @@ namespace MulliganMadness.Patches
             if (__instance == null) return;
             try
             {
-                Apply(__instance);
+                Apply(__instance, keepParticlesDown: true);
             }
             catch (Exception ex)
             {
@@ -56,12 +78,13 @@ namespace MulliganMadness.Patches
             }
         }
 
-        private static void Apply(CardVisuals visuals)
+        private static void Apply(CardVisuals visuals, bool keepParticlesDown = false)
         {
+            if (visuals == null) return;
             var fx = FindFx(visuals);
-            if (fx == null) return;
+            if (fx == null && !IsMmVisual(visuals)) return;
 
-            var glow = CardArtFx.GlowScaleFor(fx);
+            var glow = fx != null ? CardArtFx.GlowScaleFor(fx) : 0f;
             var isSelected = IsSelectedField != null && (bool)IsSelectedField.GetValue(visuals);
             var part = PartField?.GetValue(visuals) as GeneralParticleSystem;
 
@@ -78,16 +101,9 @@ namespace MulliganMadness.Patches
 
                 if (glow <= 0.001f)
                 {
-                    part.saturationMultiplier = 0f;
-                    part.rate = 0f;
-                    part.simulationSpeedMultiplier = 0f;
-                    part.enabled = false;
-                    if (part.particleSettings != null)
-                    {
-                        var off = part.particleSettings.randomColor;
-                        off.a = 0f;
-                        part.particleSettings.randomColor = off;
-                    }
+                    KillParticle(part);
+                    if (part.gameObject != visuals.gameObject)
+                        part.gameObject.SetActive(false);
                 }
                 else
                 {
@@ -108,8 +124,17 @@ namespace MulliganMadness.Patches
                 }
             }
 
+            if (keepParticlesDown && glow <= 0.001f)
+            {
+                KillAllParticles(visuals.transform);
+                var info = CardInfoOf(visuals);
+                if (info != null) KillAllParticles(info.transform);
+            }
+
+            LockArtColors(visuals);
+
             var moving = visuals.GetComponentInChildren<MmMovingCardBackground>(true);
-            if (moving == null) return;
+            if (moving == null || fx == null) return;
 
             if (!fx.MovingBackground)
             {
@@ -125,11 +150,64 @@ namespace MulliganMadness.Patches
                 : selected;
             var tint = isSelected ? selected : def;
             if (tint.maxColorComponent < 0.05f) tint = selected;
-            // Cap brightness so any saturated theme cannot wash the art out.
             var max = Mathf.Max(tint.r, tint.g, tint.b);
             if (max > 0.4f) tint *= 0.4f / max;
             moving.SetTint(tint);
             moving.enabled = true;
+        }
+
+        private static bool IsMmVisual(CardVisuals visuals)
+        {
+            return CardBarMiniIcons.IsMmCard(CardInfoOf(visuals));
+        }
+
+        private static CardInfo CardInfoOf(CardVisuals visuals)
+        {
+            return visuals.GetComponentInParent<CardInfo>() ?? visuals.GetComponent<CardInfo>();
+        }
+
+        private static void LockArtColors(CardVisuals visuals)
+        {
+            var info = CardInfoOf(visuals);
+            var root = info != null ? info.transform : visuals.transform;
+            foreach (var tag in root.GetComponentsInChildren<MmCardArtTag>(true))
+            {
+                var img = tag.GetComponent<Image>();
+                if (img != null) img.color = MmArtColorLock.ArtColor;
+                if (tag.GetComponent<MmArtColorLock>() == null)
+                    tag.gameObject.AddComponent<MmArtColorLock>();
+            }
+        }
+
+        internal static void KillAllParticles(Transform root)
+        {
+            if (root == null) return;
+            foreach (var gps in root.GetComponentsInChildren<GeneralParticleSystem>(true))
+                KillParticle(gps);
+
+            foreach (var ps in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                if (ps == null) continue;
+                if (ps.isPlaying) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                var em = ps.emission;
+                em.enabled = false;
+                ps.Clear(true);
+            }
+        }
+
+        private static void KillParticle(GeneralParticleSystem part)
+        {
+            if (part == null) return;
+            part.saturationMultiplier = 0f;
+            part.rate = 0f;
+            part.simulationSpeedMultiplier = 0f;
+            part.enabled = false;
+            if (part.particleSettings != null)
+            {
+                var off = part.particleSettings.randomColor;
+                off.a = 0f;
+                part.particleSettings.randomColor = off;
+            }
         }
 
         private static MmCardArtFxTag FindFx(CardVisuals visuals)
@@ -144,7 +222,6 @@ namespace MulliganMadness.Patches
             fx = info.cardArt.GetComponent<MmCardArtFxTag>();
             if (fx != null) return fx;
 
-            // Fallback: any MM factory art still gets glow cut even if AttachToTemplate was skipped.
             if (info.cardArt.GetComponent<MmCardArtTag>() != null)
             {
                 fx = info.cardArt.AddComponent<MmCardArtFxTag>();

@@ -62,6 +62,11 @@ namespace MulliganMadness.Patches
                 PendingBars.Add(bar);
                 ScheduleRestamp(bar);
             });
+
+            Unbound.Instance.ExecuteAfterFrames(20, () =>
+            {
+                if (bar != null) CardBarMiniIcons.ApplyAllMmOnBar(bar);
+            });
         }
     }
 
@@ -176,6 +181,17 @@ namespace MulliganMadness.Patches
         private static void Postfix(CardBar __0)
         {
             CardBarMiniIconPatch.StampMm(__0);
+        }
+    }
+
+    [HarmonyPatch(typeof(CardBarHandler), "AddCard")]
+    [HarmonyPriority(Priority.Last)]
+    internal static class CardBarHandlerMiniIconPatch
+    {
+        private static void Postfix()
+        {
+            foreach (var bar in UnityEngine.Object.FindObjectsOfType<CardBar>())
+                CardBarMiniIconPatch.StampMm(bar);
         }
     }
 }

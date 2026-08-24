@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.7
+
+- Kill pick-card bloom on selected sticker art so the PNG does not wash white.
+- Stamp mini-icon PNGs in local games when CardInfo clones drop art tags.
+
 ## 0.4.6
 
 - Bring **Nest Egg** back. It hatches a curse-free Take All after 3 rounds, so it belongs

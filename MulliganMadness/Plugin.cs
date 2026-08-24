@@ -27,7 +27,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.4.6";
+        public const string Version = "0.4.7";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -166,6 +166,9 @@ namespace MulliganMadness
             TakeAllManager.ClearPickTransientState();
             PickAnnounceUi.HidePanic();
             TakeAllButton.Hide();
+            CardBarMiniIcons.RestampAll();
+            Instance.ExecuteAfterSeconds(0.25f, CardBarMiniIcons.RestampAll);
+            Instance.ExecuteAfterSeconds(1f, CardBarMiniIcons.RestampAll);
             yield break;
         }
 

@@ -25,7 +25,27 @@ namespace MulliganMadness.Utils
     }
 
     /// <summary>
-    /// Soft drifting blobs behind sticker art — stands in for vanilla art-local
+    /// Sticker PNGs are already bright. CardVisuals.ChangeSelected tints every child
+    /// Image with selectedColor (often HDR white / theme yellow), then the game bloom
+    /// turns that into a halo that hides the art. Lock the sticker back to a
+    /// below-bloom white every LateUpdate, including when Harmony misses a retint.
+    /// </summary>
+    internal sealed class MmArtColorLock : MonoBehaviour
+    {
+        internal static readonly Color ArtColor = new Color(0.82f, 0.82f, 0.82f, 1f);
+
+        private Image _image;
+
+        private void Awake() => _image = GetComponent<Image>();
+
+        private void LateUpdate()
+        {
+            if (_image != null) _image.color = ArtColor;
+        }
+    }
+
+    /// <summary>
+    /// Soft drifting blobs behind sticker art. Stands in for vanilla art-local
     /// GeneralParticleSystem backgrounds when we only ship PNGs (no asset bundle).
     /// Enabled/disabled with other CardAnimation components by CardVisuals.ChangeSelected.
     /// </summary>
@@ -202,6 +222,8 @@ namespace MulliganMadness.Utils
             fx.Motion = spec.Motion;
             fx.MovingBackground = spec.MovingBg;
             fx.GlowScale = spec.Glow;
+            if (root.GetComponent<MmArtColorLock>() == null)
+                root.AddComponent<MmArtColorLock>();
 
             // Every MM card (including Art/ orphans not listed in Specs) gets a hard glow cut.
             if (!Specs.ContainsKey(artName))
