@@ -1,16 +1,17 @@
 # Overview
 
-Mulligan Madness lets a picker take the **whole offered hand** instead of one card — subject to
+Mulligan Madness lets a picker take the **whole offered hand** instead of one card, subject to
 the host's rules, and usually at the cost of a curse.
 
-As of 0.4.0 this mod is Take All and its curses only. Two features were split out:
+As of 0.4.0 this mod is Take All and its curses. Two features were split out:
 
 | Was | Now |
 | --- | --- |
 | Stats HUD, Tab overlay, card-hover previews | [ProMLGStats](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/) |
 | The 14 general cards | [LeanAndMeanCards](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) |
 
-Nest Egg, Silver Egg and Return to Sender stayed here — they are built on Take All and curses.
+Return to Sender stays here; it is built on curses. Nest Egg and Silver Egg moved to
+LeanAndMeanCards in 0.4.4.
 
 ## Pages
 

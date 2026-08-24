@@ -27,7 +27,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.4.3";
+        public const string Version = "0.4.4";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -85,7 +85,6 @@ namespace MulliganMadness
             AutoPickCurse.RegisterAll();
             CardRegistration.RegisterAll();
             CardArtFactory.BindLoadedCardInfos();
-            NestEggManager.RegisterHooks();
             MmStatus.Register();
 
             Unbound.RegisterMenu(ModName, () => { }, DrawSettingsMenu, null, true);
@@ -121,7 +120,6 @@ namespace MulliganMadness
             MercyTakeAllManager.ResetForNewGame();
             RoundWinTracker.Reset();
             AutoPickController.ResetForNewGame();
-            NestEggManager.ResetForNewGame();
             KeysUnlockReset.Reapply();
             Instance.ExecuteAfterSeconds(0.35f, KeysUnlockReset.Reapply);
             yield break;

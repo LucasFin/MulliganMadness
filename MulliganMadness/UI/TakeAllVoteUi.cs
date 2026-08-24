@@ -53,8 +53,7 @@ namespace MulliganMadness.UI
                 rect.anchoredPosition = new Vector2(0f, 110f);
                 rect.sizeDelta = new Vector2(420f, 120f);
 
-                var bg = gameObject.AddComponent<Image>();
-                bg.color = new Color(0.06f, 0.10f, 0.14f, 0.96f);
+                MmUiGfx.Solid(gameObject.AddComponent<Image>(), new Color(0.06f, 0.10f, 0.14f, 0.96f));
 
                 _title = CreateText("Title", new Vector2(12f, -8f), new Vector2(-12f, -38f), 22f, FontStyles.Bold);
                 _subtitle = CreateText("Subtitle", new Vector2(12f, -40f), new Vector2(-12f, -62f), 15f, FontStyles.Normal);
@@ -143,7 +142,7 @@ namespace MulliganMadness.UI
                 rect.offsetMin = Vector2.zero;
                 rect.offsetMax = Vector2.zero;
 
-                go.GetComponent<Image>().color = new Color(0.12f, 0.42f, 0.28f, 1f);
+                MmUiGfx.Solid(go.GetComponent<Image>(), new Color(0.12f, 0.42f, 0.28f, 1f), raycast: true);
                 var button = go.GetComponent<Button>();
                 button.onClick.AddListener(onClick);
 

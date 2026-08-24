@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4
+
+- Nest Egg and Silver Egg moved to
+  [LeanAndMeanCards](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/).
+  Return to Sender stays here. Take All still accepts a curse-free bonus charge from other mods
+  (Nest Egg uses that when both are installed).
+- Take All toast and button frames match the box (no leftover 9-slice border).
+
 ## 0.4.3
 
 - **Fix missing card-bar mini icons**, same regression as LeanAndMeanCards 1.1.4: a card

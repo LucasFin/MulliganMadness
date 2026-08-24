@@ -24,4 +24,5 @@ On your pick, **Take All** grabs every card in the current offer.
 - **Mercy vote** - if you are far behind on rounds, the lobby is asked automatically. Same as Vote: a yes only unlocks Take All, it does not take the hand for you.
 - **Take All inflicts a curse** - grabbing the whole hand also gives you a random MulliganMadness curse
 
-**Nest Egg** adds an extra curse-free Take All after it hatches. **Silver Egg** does not - it hatches into random cards instead.
+A curse-free bonus Take All (from **Nest Egg** in LeanAndMeanCards) does not spend a session
+use and does not inflict a curse.

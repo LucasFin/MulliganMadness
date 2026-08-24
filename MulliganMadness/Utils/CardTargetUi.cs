@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MulliganMadness.UI;
 using TMPro;
 using UnboundLib;
 using UnityEngine;
@@ -79,27 +80,34 @@ namespace MulliganMadness.Utils
             private TextMeshProUGUI _label;
             private CanvasGroup _group;
             private Image _bg;
+            private RectTransform _rect;
 
             internal void Build()
             {
-                var rect = gameObject.GetComponent<RectTransform>();
-                rect.anchorMin = new Vector2(0.5f, 1f);
-                rect.anchorMax = new Vector2(0.5f, 1f);
-                rect.pivot = new Vector2(0.5f, 1f);
-                rect.anchoredPosition = new Vector2(0f, -28f);
-                rect.sizeDelta = new Vector2(720f, 56f);
+                _rect = gameObject.GetComponent<RectTransform>();
+                _rect.anchorMin = new Vector2(0.5f, 1f);
+                _rect.anchorMax = new Vector2(0.5f, 1f);
+                _rect.pivot = new Vector2(0.5f, 1f);
+                _rect.anchoredPosition = new Vector2(0f, -28f);
+                _rect.sizeDelta = new Vector2(720f, 56f);
 
                 _group = gameObject.AddComponent<CanvasGroup>();
                 _group.blocksRaycasts = false;
                 _group.interactable = false;
                 _group.alpha = 0f;
 
-                _bg = gameObject.AddComponent<Image>();
-                _bg.color = new Color(0.06f, 0.10f, 0.08f, 0.92f);
-                _bg.raycastTarget = false;
+                var borderGo = new GameObject("Border", typeof(RectTransform), typeof(Image));
+                borderGo.transform.SetParent(transform, false);
+                MmUiGfx.Stretch(borderGo.GetComponent<RectTransform>(), Vector2.zero, Vector2.zero);
+                MmUiGfx.Solid(borderGo.GetComponent<Image>(), new Color(0.95f, 0.82f, 0.35f, 1f));
+
+                var fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+                fillGo.transform.SetParent(borderGo.transform, false);
+                MmUiGfx.Stretch(fillGo.GetComponent<RectTransform>(), new Vector2(3f, 3f), new Vector2(-3f, -3f));
+                _bg = MmUiGfx.Solid(fillGo.GetComponent<Image>(), new Color(0.06f, 0.10f, 0.08f, 0.92f));
 
                 var textGo = new GameObject("Label", typeof(RectTransform));
-                textGo.transform.SetParent(transform, false);
+                textGo.transform.SetParent(fillGo.transform, false);
                 var textRect = textGo.GetComponent<RectTransform>();
                 textRect.anchorMin = Vector2.zero;
                 textRect.anchorMax = Vector2.one;
@@ -111,6 +119,8 @@ namespace MulliganMadness.Utils
                 _label.fontStyle = FontStyles.Bold;
                 _label.color = new Color(1f, 0.95f, 0.82f, 1f);
                 _label.raycastTarget = false;
+                _label.enableWordWrapping = false;
+                _label.overflowMode = TextOverflowModes.Overflow;
             }
 
             internal void Show(string message)
@@ -118,6 +128,12 @@ namespace MulliganMadness.Utils
                 if (_label == null || string.IsNullOrWhiteSpace(message)) return;
                 gameObject.SetActive(true);
                 _label.text = message;
+                _label.ForceMeshUpdate();
+                if (_rect != null)
+                {
+                    var width = _label.preferredWidth + 48f;
+                    _rect.sizeDelta = new Vector2(Mathf.Clamp(width, 280f, 980f), 56f);
+                }
                 _group.alpha = 1f;
                 CancelInvoke(nameof(Hide));
                 Invoke(nameof(Hide), 3f);
@@ -154,8 +170,7 @@ namespace MulliganMadness.Utils
                 dim.color = new Color(0f, 0f, 0f, 0.72f);
 
                 _panel = CreatePanel("Panel", transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 520f));
-                var panelBg = _panel.gameObject.AddComponent<Image>();
-                panelBg.color = new Color(0.08f, 0.12f, 0.10f, 0.98f);
+                MmUiGfx.Solid(_panel.gameObject.AddComponent<Image>(), new Color(0.08f, 0.12f, 0.10f, 0.98f));
 
                 _title = CreateText("Title", _panel, new Vector2(24f, -20f), 30f, FontStyles.Bold);
                 _subtitle = CreateText("Subtitle", _panel, new Vector2(24f, -58f), 18f, FontStyles.Normal);
@@ -290,8 +305,7 @@ namespace MulliganMadness.Utils
             {
                 var go = new GameObject("Choice", typeof(RectTransform), typeof(Image), typeof(Button));
                 go.transform.SetParent(_playerGrid, false);
-                var image = go.GetComponent<Image>();
-                image.color = new Color(0.14f, 0.20f, 0.16f, 1f);
+                var image = MmUiGfx.Solid(go.GetComponent<Image>(), new Color(0.14f, 0.20f, 0.16f, 1f), raycast: true);
                 var button = go.GetComponent<Button>();
                 var textGo = new GameObject("Label", typeof(RectTransform));
                 textGo.transform.SetParent(go.transform, false);
@@ -312,10 +326,12 @@ namespace MulliganMadness.Utils
             {
                 var go = new GameObject("Player_" + player.playerID, typeof(RectTransform), typeof(Image), typeof(Button));
                 go.transform.SetParent(_playerGrid, false);
-                var image = go.GetComponent<Image>();
-                image.color = _selected != null && _selected.playerID == player.playerID
-                    ? new Color(0.18f, 0.48f, 0.30f, 1f)
-                    : new Color(0.14f, 0.20f, 0.16f, 1f);
+                var image = MmUiGfx.Solid(
+                    go.GetComponent<Image>(),
+                    _selected != null && _selected.playerID == player.playerID
+                        ? new Color(0.18f, 0.48f, 0.30f, 1f)
+                        : new Color(0.14f, 0.20f, 0.16f, 1f),
+                    raycast: true);
                 var button = go.GetComponent<Button>();
                 var textGo = new GameObject("Label", typeof(RectTransform));
                 textGo.transform.SetParent(go.transform, false);
@@ -371,7 +387,7 @@ namespace MulliganMadness.Utils
                 rect.anchorMax = max;
                 rect.offsetMin = offsetMin;
                 rect.offsetMax = offsetMax;
-                return go.GetComponent<Image>();
+                return MmUiGfx.Solid(go.GetComponent<Image>(), Color.white);
             }
 
             private static TextMeshProUGUI CreateText(string name, Transform parent, Vector2 anchoredPos, float size, FontStyles style)
@@ -401,7 +417,7 @@ namespace MulliganMadness.Utils
                 rect.pivot = new Vector2(0f, 0f);
                 rect.sizeDelta = new Vector2(260f, 48f);
                 rect.anchoredPosition = Vector2.zero;
-                go.GetComponent<Image>().color = new Color(0.12f, 0.42f, 0.28f, 1f);
+                MmUiGfx.Solid(go.GetComponent<Image>(), new Color(0.12f, 0.42f, 0.28f, 1f), raycast: true);
                 var button = go.GetComponent<Button>();
                 var textGo = new GameObject("Label", typeof(RectTransform));
                 textGo.transform.SetParent(go.transform, false);

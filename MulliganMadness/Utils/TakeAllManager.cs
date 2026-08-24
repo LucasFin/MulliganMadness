@@ -17,6 +17,7 @@ namespace MulliganMadness.Utils
     {
         private static readonly Dictionary<int, int> UsesConsumed = new Dictionary<int, int>();
         private static readonly Dictionary<int, int> DeferredKnowledge = new Dictionary<int, int>();
+        private static readonly Dictionary<int, int> BonusCharges = new Dictionary<int, int>();
         private static bool _busy;
         private static readonly FieldInfo PickerTypeField = AccessTools.Field(typeof(CardChoice), "pickerType");
         private static readonly FieldInfo SpawnedCardsField = AccessTools.Field(typeof(CardChoice), "spawnedCards");
@@ -43,6 +44,7 @@ namespace MulliganMadness.Utils
         {
             UsesConsumed.Clear();
             DeferredKnowledge.Clear();
+            BonusCharges.Clear();
             _busy = false;
             _lastSpawnCount = 0;
             _spawnStableSince = 0f;
@@ -133,9 +135,31 @@ namespace MulliganMadness.Utils
             return used < limit;
         }
 
-        public static bool HasBonus(Player player) => HasNestBonus(player);
+        /// <summary>
+        /// Extra curse-free Take Alls granted by other mods (LeanAndMeanCards Nest Egg).
+        /// </summary>
+        public static int BonusCount(Player player)
+        {
+            if (player == null) return 0;
+            return BonusCharges.TryGetValue(player.playerID, out var n) ? n : 0;
+        }
 
-        public static bool HasNestBonus(Player player) => NestEggManager.HasCharge(player, EggKind.Nest);
+        public static bool HasBonus(Player player) => BonusCount(player) > 0;
+
+        public static bool HasNestBonus(Player player) => HasBonus(player);
+
+        public static void GrantBonusCharge(int playerId)
+        {
+            BonusCharges.TryGetValue(playerId, out var n);
+            BonusCharges[playerId] = n + 1;
+        }
+
+        public static bool TryConsumeBonus(int playerId)
+        {
+            if (!BonusCharges.TryGetValue(playerId, out var n) || n <= 0) return false;
+            BonusCharges[playerId] = n - 1;
+            return true;
+        }
 
         public static bool CanUseTakeAll(Player player) => HasBonus(player) || HasRemaining(player);
 
@@ -167,8 +191,8 @@ namespace MulliganMadness.Utils
             if (choice == null) return null;
 
             // RWF / Unbound TDM calls StartPick(playerID) per player even when pickerType
-            // stays Team. Prefer that acting player so teammate B's eggs, curses, and Take
-            // All bind to B instead of the lowest id on the team.
+            // stays Team. Prefer that acting player so teammate B's bonus Take Alls, curses,
+            // and Take All bind to B instead of the lowest id on the team.
             if (choice.IsPicking && _actingPickerId >= 0)
             {
                 var acting = FindPlayer(_actingPickerId);
@@ -293,7 +317,7 @@ namespace MulliganMadness.Utils
             var picker = GetCurrentPicker();
             if (picker == null) return false;
 
-            if (HasNestBonus(picker))
+            if (HasBonus(picker))
             {
                 return BeginTakeAll(picker.playerID, consumeUse: false, skipCurse: true, consumeBonus: true);
             }
@@ -528,7 +552,7 @@ namespace MulliganMadness.Utils
             }
 
             ConsumeUse(playerID, consumeUse);
-            if (consumeBonus) NestEggManager.TryConsumeCharge(playerID, EggKind.Nest);
+            if (consumeBonus) TryConsumeBonus(playerID);
             UI.TakeAllButton.RefreshVisibility();
             UI.PickAnnounceUi.ShowTookAll(playerID);
 

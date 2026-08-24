@@ -1,7 +1,6 @@
 using System;
 using System.Reflection;
 using HarmonyLib;
-using MulliganMadness.Cards;
 using MulliganMadness.Curses;
 using MulliganMadness.Utils;
 
@@ -47,14 +46,6 @@ namespace MulliganMadness.Stats
                 Stat("Short Hand",
                     player => CurseOwnership.Has(player, ShortHand.Card),
                     _ => "One fewer card per offer");
-
-                Stat("Nest Egg",
-                    player => NestEggManager.ShowStat(player, EggKind.Nest),
-                    player => NestEggManager.StatusText(player, EggKind.Nest));
-
-                Stat("Silver Egg",
-                    player => NestEggManager.ShowStat(player, EggKind.Silver),
-                    player => NestEggManager.StatusText(player, EggKind.Silver));
 
                 Plugin.Instance?.Log("Registered Mulligan Madness statuses with TabInfo.");
             }

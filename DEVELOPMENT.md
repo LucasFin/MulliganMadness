@@ -7,9 +7,9 @@ reference between them, and no shared assembly.
 
 | Repo | What it is |
 | --- | --- |
-| `MulliganMadness` | Take All, curses, Nest Egg / Silver Egg / Return to Sender |
+| `MulliganMadness` | Take All, curses, Return to Sender |
 | [`ProMLGStats`](https://thunderstore.io/c/rounds/p/LJIndustries/ProMLGStats/) | Stats HUD, Tab overlay, card-hover previews (client-side only) |
-| [`LeanAndMeanCards`](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) | The 14 general cards |
+| [`LeanAndMeanCards`](https://thunderstore.io/c/rounds/p/LJIndustries/LeanAndMeanCards/) | The general cards, including Nest Egg / Silver Egg |
 
 Where they need to know about each other they use reflection (`AccessTools.TypeByName` + null
 checks), so each works with the others absent.

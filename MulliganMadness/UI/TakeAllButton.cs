@@ -67,17 +67,13 @@ namespace MulliganMadness.UI
             rect.sizeDelta = new Vector2(400f, 70f);
 
             var shadowGo = CreateChild("Shadow", _root.transform, Vector2.zero, Vector2.one, new Vector2(6f, -6f), Vector2.zero);
-            var shadow = shadowGo.AddComponent<Image>();
-            shadow.color = new Color(0f, 0f, 0f, 0.45f);
-            shadow.raycastTarget = false;
+            MmUiGfx.Solid(shadowGo.AddComponent<Image>(), new Color(0f, 0f, 0f, 0.45f));
 
             var borderGo = CreateChild("Border", _root.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            _border = borderGo.AddComponent<Image>();
-            _border.color = new Color(0.95f, 0.82f, 0.35f, 1f);
+            _border = MmUiGfx.Solid(borderGo.AddComponent<Image>(), new Color(0.95f, 0.82f, 0.35f, 1f));
 
             var fillGo = CreateChild("Fill", borderGo.transform, Vector2.zero, Vector2.one, new Vector2(3f, 3f), new Vector2(-3f, -3f));
-            _fill = fillGo.AddComponent<Image>();
-            _fill.color = new Color(0.10f, 0.42f, 0.28f, 0.98f);
+            _fill = MmUiGfx.Solid(fillGo.AddComponent<Image>(), new Color(0.10f, 0.42f, 0.28f, 0.98f), raycast: true);
 
             _button = fillGo.AddComponent<Button>();
             _button.targetGraphic = _fill;
@@ -161,7 +157,7 @@ namespace MulliganMadness.UI
             var remaining = TakeAllManager.CanUseTakeAll(picker);
             var authorized = picker != null && TakeAllManager.HasAuthorization(picker.playerID);
             var voteMode = SessionSettings.Current.TakeAllMode == TakeAllMode.Vote;
-            var nest = TakeAllManager.HasNestBonus(picker);
+            var nest = TakeAllManager.HasBonus(picker);
             var show = TakeAllManager.IsLocalPlayersTurn()
                        && (remaining || authorized)
                        && TakeAllManager.IsOfferedHandReady()
@@ -185,13 +181,21 @@ namespace MulliganMadness.UI
             {
                 string modeLabel;
                 if (authorized) modeLabel = "optional - pick as usual if you want";
-                else if (nest) modeLabel = "curse-free · Nest Egg";
+                else if (nest) modeLabel = "curse-free · bonus";
                 else if (voteMode) modeLabel = "others vote; you can still pick if they accept";
                 else modeLabel = usesLeft > 1 ? $"{usesLeft} uses left" : "once per game";
                 _subtitle.text = curse
                     ? $"{modeLabel} · you get a random MulliganMadness curse"
                     : modeLabel;
             }
+
+            if (_title != null) _title.ForceMeshUpdate();
+            if (_subtitle != null) _subtitle.ForceMeshUpdate();
+            var needed = Mathf.Max(
+                _title != null ? _title.preferredWidth : 0f,
+                _subtitle != null ? _subtitle.preferredWidth : 0f) + 36f;
+            var rootRect = _root.GetComponent<RectTransform>();
+            if (rootRect != null) rootRect.sizeDelta = new Vector2(Mathf.Clamp(needed, 400f, 720f), 70f);
 
             var fill = nest
                 ? new Color(0.42f, 0.32f, 0.08f, 0.98f)

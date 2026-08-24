@@ -9,7 +9,7 @@ namespace MulliganMadness.Patches
     /// <summary>
     /// Softens (or kills) vanilla CardVisuals particle glow for MulliganMadness cards, and tints
     /// MmMovingCardBackground from the card theme colors.
-    /// Stacked Photon cards + Nest Egg yellow art made remote views wash out white.
+    /// Stacked Photon cards + bright sticker art made remote views wash out white.
     /// </summary>
     [HarmonyPatch(typeof(CardVisuals))]
     internal static class CardVisualsFxPatch
