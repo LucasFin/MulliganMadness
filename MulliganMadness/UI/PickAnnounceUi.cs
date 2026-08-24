@@ -131,6 +131,7 @@ namespace MulliganMadness.UI
                 _panicExpiresAt = Time.unscaledTime + _panicDuration;
                 _panicActive = true;
 
+                RestorePanicTextLayout();
                 var rect = gameObject.GetComponent<RectTransform>();
                 rect.sizeDelta = new Vector2(620f, 92f);
                 if (_barRoot != null) _barRoot.SetActive(true);
@@ -165,14 +166,69 @@ namespace MulliganMadness.UI
                 if (_bg != null) _bg.color = new Color(0.12f, 0.08f, 0.02f, 0.94f);
                 if (_border != null) _border.color = new Color(0.95f, 0.82f, 0.35f, 1f);
 
-                _title.ForceMeshUpdate();
-                _subtitle.ForceMeshUpdate();
-                var width = Mathf.Max(_title.preferredWidth, _subtitle.preferredWidth) + 48f;
-                var rect = gameObject.GetComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(Mathf.Clamp(width, 480f, 960f), 86f);
-
+                FitToastToText();
                 ShowImmediate();
                 FadeOutAfter(2.8f);
+            }
+
+            /// <summary>
+            /// Gold frame is the root; fill is inset 3px. Size the root from text
+            /// preferred size plus fill padding plus that border, after a canvas
+            /// rebuild — not from stretch-rect TMP width alone.
+            /// </summary>
+            private void FitToastToText()
+            {
+                if (_title == null || _subtitle == null) return;
+
+                _title.enableWordWrapping = false;
+                _subtitle.enableWordWrapping = false;
+                _title.overflowMode = TextOverflowModes.Overflow;
+                _subtitle.overflowMode = TextOverflowModes.Overflow;
+                _title.ForceMeshUpdate();
+                _subtitle.ForceMeshUpdate();
+                Canvas.ForceUpdateCanvases();
+
+                const float padX = 16f;
+                const float padY = 10f;
+                const float gap = 4f;
+                const float border = 3f;
+
+                var titleH = Mathf.Max(26f, _title.preferredHeight);
+                var subH = Mathf.Max(18f, _subtitle.preferredHeight);
+                var fillW = Mathf.Max(_title.preferredWidth, _subtitle.preferredWidth) + padX * 2f;
+                var fillH = padY + titleH + gap + subH + padY;
+
+                var root = gameObject.GetComponent<RectTransform>();
+                root.sizeDelta = new Vector2(
+                    Mathf.Clamp(fillW + border * 2f, 280f, 960f),
+                    fillH + border * 2f);
+
+                PlaceToastLine(_title.rectTransform, padX, -padY, titleH);
+                PlaceToastLine(_subtitle.rectTransform, padX, -(padY + titleH + gap), subH);
+            }
+
+            private static void PlaceToastLine(RectTransform rt, float padX, float yFromTop, float height)
+            {
+                rt.anchorMin = new Vector2(0f, 1f);
+                rt.anchorMax = new Vector2(1f, 1f);
+                rt.pivot = new Vector2(0.5f, 1f);
+                rt.sizeDelta = new Vector2(-(padX * 2f), height);
+                rt.anchoredPosition = new Vector2(0f, yFromTop);
+            }
+
+            private void RestorePanicTextLayout()
+            {
+                StretchText(_title.rectTransform, new Vector2(16f, -8f), new Vector2(-16f, -42f));
+                StretchText(_subtitle.rectTransform, new Vector2(16f, -42f), new Vector2(-16f, -70f));
+            }
+
+            private static void StretchText(RectTransform rt, Vector2 offsetMin, Vector2 offsetMax)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.offsetMin = offsetMin;
+                rt.offsetMax = offsetMax;
             }
 
             private void Update()

@@ -128,11 +128,19 @@ namespace MulliganMadness.Utils
                 if (_label == null || string.IsNullOrWhiteSpace(message)) return;
                 gameObject.SetActive(true);
                 _label.text = message;
+                _label.enableWordWrapping = false;
                 _label.ForceMeshUpdate();
+                Canvas.ForceUpdateCanvases();
                 if (_rect != null)
                 {
-                    var width = _label.preferredWidth + 48f;
-                    _rect.sizeDelta = new Vector2(Mathf.Clamp(width, 280f, 980f), 56f);
+                    const float padX = 16f;
+                    const float padY = 8f;
+                    const float border = 3f;
+                    var fillW = _label.preferredWidth + padX * 2f;
+                    var fillH = Mathf.Max(32f, _label.preferredHeight) + padY * 2f;
+                    _rect.sizeDelta = new Vector2(
+                        Mathf.Clamp(fillW + border * 2f, 280f, 980f),
+                        fillH + border * 2f);
                 }
                 _group.alpha = 1f;
                 CancelInvoke(nameof(Hide));

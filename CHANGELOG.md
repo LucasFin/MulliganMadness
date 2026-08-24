@@ -5,6 +5,8 @@
 - Bring **Nest Egg** back. It hatches a curse-free Take All after 3 rounds, so it belongs
   in this mod. Silver Egg stays out.
 - Nest Egg full art and mini icon have no glow (flat sticker, black background).
+- Take All toast gold frame sizes from the fill plus the 3px border after a layout
+  rebuild, so it matches the title and subtitle.
 
 ## 0.4.5
 
