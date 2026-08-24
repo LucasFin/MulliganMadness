@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.8
+
+- Stop Null card-bar icons from all showing the first MulliganMadness sticker.
+  NullManager shares one GameObject across every Null, so those slots are left to
+  NullManager instead of getting a mini PNG / FancyIcon stamp.
+
 ## 0.4.7
 
 - Kill pick-card bloom on selected sticker art so the PNG does not wash white.

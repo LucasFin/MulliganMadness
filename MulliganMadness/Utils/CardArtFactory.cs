@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,6 +22,8 @@ namespace MulliganMadness.Utils
 
         private static string _artFolder;
         private static bool _artFolderResolved;
+        private static Type _nullCardInfoType;
+        private static bool _nullCardInfoResolved;
 
         private static string ArtFolder
         {
@@ -119,11 +122,42 @@ namespace MulliganMadness.Utils
             }
         }
 
+        internal static bool IsNullPlaceholder(CardInfo card)
+        {
+            if (card == null) return false;
+            var nullType = NullCardInfoType();
+            if (nullType != null && nullType.IsInstanceOfType(card)) return true;
+            if (GameObjectHasNullCardInfo(card.gameObject)) return true;
+
+            var name = (card.cardName ?? "").Trim();
+            if (name.StartsWith("[]", StringComparison.Ordinal)) return true;
+            if (name.Equals("null", StringComparison.OrdinalIgnoreCase)) return true;
+            if (name.Equals("NullCard", StringComparison.OrdinalIgnoreCase)) return true;
+            if (name.Equals("Null Card", StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        internal static bool GameObjectHasNullCardInfo(GameObject go)
+        {
+            if (go == null) return false;
+            var nullType = NullCardInfoType();
+            if (nullType == null) return false;
+            return go.GetComponent(nullType) != null;
+        }
+
+        private static Type NullCardInfoType()
+        {
+            if (_nullCardInfoResolved) return _nullCardInfoType;
+            _nullCardInfoResolved = true;
+            _nullCardInfoType = AccessTools.TypeByName("Nullmanager.NullCardInfo");
+            return _nullCardInfoType;
+        }
+
         internal static void TryAssignSprite(CardInfo info)
         {
             try
             {
-                if (info == null) return;
+                if (info == null || IsNullPlaceholder(info)) return;
                 string artName = null;
                 if (info.cardArt != null)
                 {
@@ -151,6 +185,7 @@ namespace MulliganMadness.Utils
         internal static void RegisterCard(CardInfo info, string artName)
         {
             if (info == null || string.IsNullOrEmpty(artName)) return;
+            if (IsNullPlaceholder(info)) return;
             if (!string.IsNullOrEmpty(info.cardName))
             {
                 RegisteredCardNames.Add(info.cardName);
@@ -169,7 +204,7 @@ namespace MulliganMadness.Utils
 
         internal static string ArtNameFor(CardInfo info)
         {
-            if (info == null) return null;
+            if (info == null || IsNullPlaceholder(info)) return null;
             var tag = info.GetComponent<MmCardArtTag>();
             if (tag != null && !string.IsNullOrEmpty(tag.ArtName)) return tag.ArtName;
             if (info.cardArt != null)

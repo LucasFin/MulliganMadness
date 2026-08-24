@@ -1,6 +1,6 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.4.7",
+  "version_number": "0.4.8",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
   "description": "Take All in the pick phase, with curses as the price, plus Nest Egg and Return to Sender.",
   "dependencies": [
