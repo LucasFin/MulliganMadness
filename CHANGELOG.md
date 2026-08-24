@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+- **Fix missing card-bar mini icons**, same regression as LeanAndMeanCards 1.1.4: a card
+  added while a re-stamp was in flight had its request dropped instead of queued, so its
+  icon was wiped by FancyCardBar's rebuild and never restored.
+
 ## 0.4.2
 
 - Fix `PickSafetyPatch` never being installed. Harmony's `PatchClassProcessor`
