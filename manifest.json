@@ -1,6 +1,6 @@
 {
   "name": "MulliganMadness",
-  "version_number": "0.4.4",
+  "version_number": "0.4.5",
   "website_url": "https://github.com/LucasFin/MulliganMadness",
   "description": "Take All in the pick phase, with a pack of curses as the price for using it.",
   "dependencies": [

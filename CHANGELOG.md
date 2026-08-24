@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+
+- Thunderstore icon: original TAKE ALL card fan with the green blob in the corner.
+
 ## 0.4.4
 
 - Nest Egg and Silver Egg moved to
