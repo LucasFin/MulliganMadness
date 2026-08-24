@@ -27,6 +27,8 @@ namespace MulliganMadness.Utils
         private static Type _powerDistillation;
         private static Type _nullCardInfo;
         private static Type _nullCardVisual;
+        private static Type _nullManagerType;
+        private static object _nullManagerInstance;
         private static int _lastSpawnCount;
         private static float _spawnStableSince;
         private static int _authorizedPlayerId = -1;
@@ -578,6 +580,11 @@ namespace MulliganMadness.Utils
             {
                 Plugin.Instance.Log($"Take All granting {nullCards.Count} Null cards for player {playerID}.");
             }
+            else if (cashOutWithNull)
+            {
+                Plugin.Instance.LogWarn(
+                    $"Take All saw Nulls in the offer (cashOutNull) but resolved 0 NullCardInfo for player {playerID}.");
+            }
 
             try
             {
@@ -897,7 +904,13 @@ namespace MulliganMadness.Utils
                     : "";
             }
 
-            return ResolveNullBySourceName(sourceName, picker);
+            var resolved = ResolveNullBySourceName(sourceName, picker);
+            if (resolved == null && !string.IsNullOrEmpty(sourceName))
+            {
+                Plugin.Instance.LogWarn($"Take All could not resolve Null from '{sourceName}'.");
+            }
+
+            return resolved;
         }
 
         private static List<CardInfo> CollectOfferedNulls(Player picker)
@@ -911,6 +924,15 @@ namespace MulliganMadness.Utils
                 if (go == null) continue;
                 var source = SourceOf(go);
                 if (!IsPlaceholderCard(source, go)) continue;
+
+                // Live NullCardInfo on the offer is already what GetNullCardInfo would return.
+                var live = GetNullCardInfoComponent(source, go) as CardInfo;
+                if (live != null)
+                {
+                    result.Add(live);
+                    continue;
+                }
+
                 var resolved = ResolveNullBySourceName(GetNulledSourceName(source, go), picker);
                 if (resolved != null) result.Add(resolved);
             }
@@ -920,7 +942,11 @@ namespace MulliganMadness.Utils
 
         private static string GetNulledSourceName(CardInfo card, GameObject visual)
         {
-            if (TryGetNullPhotonSource(visual, out var photonName)) return photonName;
+            if (TryGetNullPhotonSource(visual, out var photonName)
+                && !IsNullStatName(photonName))
+            {
+                return photonName;
+            }
 
             var info = GetNullCardInfoComponent(card, visual);
             if (info != null)
@@ -930,7 +956,9 @@ namespace MulliganMadness.Utils
                     var field = AccessTools.Field(info.GetType(), "NulledSorce");
                     if (field?.GetValue(info) is CardInfo source && source.gameObject != null)
                     {
-                        return StripClone(source.gameObject.name);
+                        var objectName = StripClone(source.gameObject.name);
+                        if (!string.IsNullOrEmpty(objectName) && !IsNullStatName(objectName))
+                            return objectName;
                     }
                 }
                 catch
@@ -942,7 +970,27 @@ namespace MulliganMadness.Utils
             var name = card?.cardName ?? "";
             if (name.StartsWith("[]", StringComparison.Ordinal)) name = name.Substring(2);
             name = StripClone(name);
-            return string.IsNullOrEmpty(name) ? null : name;
+            if (string.IsNullOrEmpty(name) || IsNullStatName(name)) return null;
+            return name;
+        }
+
+        // NullManager titles are "[]Burst". The "-1 Nulls" line is a stat, not a Photon
+        // prefab name. GetNullCardInfo looks up ResourceCache[name], so that string fails.
+        private static bool IsNullStatName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return true;
+            var trimmed = name.Trim();
+            if (trimmed.Equals("[]", StringComparison.Ordinal)) return true;
+
+            var lower = trimmed.ToLowerInvariant();
+            if (lower == "null" || lower == "nulls" || lower == "null card" || lower == "nullcard")
+                return true;
+
+            var end = lower.EndsWith("nulls") ? 5 : lower.EndsWith("null") ? 4 : 0;
+            if (end == 0) return false;
+            var prefix = trimmed.Substring(0, trimmed.Length - end).Trim().TrimEnd('-').Trim();
+            if (prefix.Length == 0) return true;
+            return int.TryParse(prefix, out _);
         }
 
         private static bool TryGetNullPhotonSource(GameObject visual, out string sourceName)
@@ -1001,7 +1049,7 @@ namespace MulliganMadness.Utils
         {
             sourceName = StripClone(sourceName);
             if (picker == null) return null;
-            if (string.IsNullOrEmpty(sourceName)) return null;
+            if (string.IsNullOrEmpty(sourceName) || IsNullStatName(sourceName)) return null;
 
             var resolved = InvokeGetNullCardInfo(sourceName, picker);
             if (resolved != null) return resolved;
@@ -1011,7 +1059,7 @@ namespace MulliganMadness.Utils
             {
                 var original = CardsApi.instance?.GetCardWithName(sourceName);
                 var objectName = original?.gameObject != null ? StripClone(original.gameObject.name) : null;
-                if (!string.IsNullOrEmpty(objectName) && objectName != sourceName)
+                if (!string.IsNullOrEmpty(objectName) && objectName != sourceName && !IsNullStatName(objectName))
                 {
                     return InvokeGetNullCardInfo(objectName, picker);
                 }
@@ -1024,16 +1072,40 @@ namespace MulliganMadness.Utils
             return null;
         }
 
+        private static object GetNullManagerInstance()
+        {
+            if (_nullManagerInstance != null) return _nullManagerInstance;
+            _nullManagerType ??= AccessTools.TypeByName("Nullmanager.NullManager");
+            if (_nullManagerType == null) return null;
+
+            // NullManager 1.3.1 stores instance as a static field (Main.Awake). Harmony's
+            // Property lookup logs "Could not find property ... instance" and returns null.
+            var field = AccessTools.Field(_nullManagerType, "instance");
+            if (field != null)
+            {
+                _nullManagerInstance = field.GetValue(null);
+                return _nullManagerInstance;
+            }
+
+            var prop = AccessTools.Property(_nullManagerType, "instance");
+            if (prop != null)
+                _nullManagerInstance = prop.GetValue(null, null);
+
+            if (_nullManagerInstance == null)
+                _nullManagerInstance = UnityEngine.Object.FindObjectOfType(_nullManagerType);
+
+            return _nullManagerInstance;
+        }
+
         private static CardInfo InvokeGetNullCardInfo(string sourceName, Player picker)
         {
             try
             {
-                var type = AccessTools.TypeByName("Nullmanager.NullManager");
-                var instance = type == null ? null : AccessTools.Property(type, "instance")?.GetValue(null);
-                if (instance == null) return null;
+                var instance = GetNullManagerInstance();
+                if (instance == null || _nullManagerType == null) return null;
 
-                var method = AccessTools.Method(type, "GetNullCardInfo", new[] { typeof(string), typeof(Player) })
-                             ?? AccessTools.Method(type, "GetNullCardInfo", new[] { typeof(string), typeof(int) });
+                var method = AccessTools.Method(_nullManagerType, "GetNullCardInfo", new[] { typeof(string), typeof(Player) })
+                             ?? AccessTools.Method(_nullManagerType, "GetNullCardInfo", new[] { typeof(string), typeof(int) });
                 if (method == null) return null;
 
                 if (method.GetParameters()[1].ParameterType == typeof(Player))

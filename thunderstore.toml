@@ -8,7 +8,7 @@ repository = "https://thunderstore.io"
 # Must match your Thunderstore team name exactly
 namespace = "LJIndustries"
 name = "MulliganMadness"
-versionNumber = "0.4.8"
+versionNumber = "0.4.9"
 description = "Take All in the pick phase, with curses as the price, plus Nest Egg and Return to Sender."
 websiteUrl = "https://github.com/LucasFin/MulliganMadness"
 containsNsfwContent = false

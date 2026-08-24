@@ -20,17 +20,7 @@ namespace MulliganMadness.Utils
         internal static bool IsMmCard(CardInfo card)
         {
             if (card == null || CardArtFactory.IsNullPlaceholder(card)) return false;
-            if (HasArtTag(card)) return true;
-            if (card.sourceCard != null && card.sourceCard != card && HasArtTag(card.sourceCard))
-                return true;
-            return CardArtFactory.IsRegisteredCardName(card.cardName);
-        }
-
-        private static bool HasArtTag(CardInfo card)
-        {
-            if (card == null) return false;
-            if (card.GetComponent<MmCardArtTag>() != null) return true;
-            return card.cardArt != null && card.cardArt.GetComponent<MmCardArtTag>() != null;
+            return !string.IsNullOrEmpty(CardArtFactory.ArtNameFor(card));
         }
 
         internal static void RestampAll()
@@ -90,8 +80,7 @@ namespace MulliganMadness.Utils
             StripFancyOverlays(button);
             EnsureCleanOverlay(button, sprite);
 
-            if (card.sprite == null)
-                card.sprite = sprite;
+            card.sprite = sprite;
         }
 
         internal static Sprite SpriteFor(CardInfo card)

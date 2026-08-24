@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.9
+
+- Take All grants offered Nulls again. NullManager 1.3.1 stores `instance` as a
+  field, so the old property lookup never called `GetNullCardInfo` and dropped
+  every Null payload (`[]Burst` and the `-1 Nulls` stat line).
+- Load mini PNGs from next to the DLL, which is where r2modman extracts them.
+  Nest Egg and the curses were falling back to Unbound's generated blob.
+
 ## 0.4.8
 
 - Stop Null card-bar icons from all showing the first MulliganMadness sticker.

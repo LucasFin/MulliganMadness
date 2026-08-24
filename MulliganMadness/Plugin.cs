@@ -27,7 +27,7 @@ namespace MulliganMadness
     {
         public const string ModId = "com.bukey.rounds.mulliganmadness";
         public const string ModName = "Mulligan Madness";
-        public const string Version = "0.4.8";
+        public const string Version = "0.4.9";
         public const string ModInitials = "MM";
         public const string CurseInitials = "MMC";
         public const string CardsMenuName = "MulliganMadness";
@@ -101,6 +101,11 @@ namespace MulliganMadness
             gameObject.GetOrAddComponent<SessionVoteTicker>();
             gameObject.GetOrAddComponent<FumbleController>();
             gameObject.GetOrAddComponent<BlindDraftController>();
+
+            // BuildCard is delayed 2 frames and SetupCard runs before Unbound sets
+            // cardArt / cardName, so the immediate bind above often sees no cards yet.
+            Instance.ExecuteAfterSeconds(0.5f, CardArtFactory.BindLoadedCardInfos);
+            Instance.ExecuteAfterSeconds(2.5f, CardArtFactory.BindLoadedCardInfos);
         }
 
         private static void OnHandshake()

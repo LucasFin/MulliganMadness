@@ -14,6 +14,11 @@ namespace MulliganMadness.Cards
             CardArtFactory.TryAssignSprite(cardInfo);
         }
 
+        public override void Callback()
+        {
+            CardArtFactory.TryAssignSprite(cardInfo);
+        }
+
         public override void OnAddCard(Player player, Gun gun, GunAmmo gunAmmo, CharacterData data, HealthHandler health,
             Gravity gravity, Block block, CharacterStatModifiers characterStats)
         {
