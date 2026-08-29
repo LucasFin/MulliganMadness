@@ -1,6 +1,24 @@
 # Changelog
 
-## 0.4.9
+## 0.4.10
+
+- **Taking a Distill card no longer ends the lobby.** `TakeAllCollectPatch.CollectAll`
+  cached the picked card's `Transform` before its first `yield` and then wrote
+  `child.position` to it for the rest of the animation. Distill's own grant
+  (`GiveDistillNulls`, `StripDistillAcquisitionFromHand`, and three deferred
+  `StabilizeAfterGrant` passes) destroys and rebuilds the offer children inside that
+  window, so the coroutine resumed holding a destroyed object and threw. The slot is
+  re-resolved every frame now, and every write goes through a null-guarded helper.
+- **A failed collect animation can no longer stall the pick phase.** Vanilla
+  `IDoEndPick` ends with `spawnedCards.Clear()` and, on the picker's client,
+  `StartCoroutine(ReplaceCards(pickedCard))` — the only call that deals the next hand.
+  A coroutine that throws never reaches its own last line, so that handoff moved into
+  the `finally`. Symptom this fixes: cards audibly flipping forever with an empty table
+  and nobody able to select.
+- Declared `[HarmonyPriority(Priority.First)]` on the `IDoEndPick` prefix. Root's Nulled
+  Cards patches the same method and takes `___spawnedCards` / `pickedCard` by ref, and
+  Distill Knowledge is a Nulled card, so the two met on every Distill taken through Take
+  All with nothing but plugin load order deciding which ran first.
 
 - Take All grants offered Nulls again. NullManager 1.3.1 stores `instance` as a
   field, so the old property lookup never called `GetNullCardInfo` and dropped
