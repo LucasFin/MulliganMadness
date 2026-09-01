@@ -26,6 +26,7 @@ namespace MulliganMadness.Utils
         public ConfigEntry<bool> EnableJarOfDirt { get; }
         public ConfigEntry<bool> SandbagOncePerGame { get; }
         public ConfigEntry<bool> LogPickPhase { get; }
+        public ConfigEntry<bool> Diagnostics { get; }
 
         // Client-local stats UI
         public ConfigEntry<bool> EnableStatsHud { get; }
@@ -177,6 +178,13 @@ namespace MulliganMadness.Utils
                 "LogPickPhase",
                 false,
                 "Log a line each time a card pick starts. Only useful when reporting a bug.");
+
+            Diagnostics = config.Bind(
+                "Diagnostics",
+                "Diagnostics",
+                false,
+                "Capture networked-physics faults and per-round stat dumps to the BepInEx log. "
+                + "Enable on every peer at once when reproducing a desync, then diff the logs.");
 
             // Legacy migration: old "Take All.Enabled" key
             var legacyTakeAll = config.Bind("Take All", "Enabled", true, "Deprecated - use Session Defaults.TakeAllMode.");

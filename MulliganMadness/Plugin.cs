@@ -44,6 +44,7 @@ namespace MulliganMadness
             SessionSettingsSync.Register();
             SessionRulesBanner.RegisterHooks();
             RoundWinTracker.RegisterHooks();
+            RoundStatDump.RegisterHooks();
 
             // Patch per type so one bad/unloadable type cannot abort every MM patch
             // (Unity Mono historically chokes on IsReadOnlyAttribute from readonly structs).
